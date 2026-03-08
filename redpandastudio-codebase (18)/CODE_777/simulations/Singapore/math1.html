@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Math Grade 5: Day 1</title>
+    <!-- Fonts: Inter for clean readability, Comic Neue for a friendly touch -->
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme Colors based on Fallback/Math Blue */
+            --primary: #2563EB;
+            --primary-dark: #1D4ED8;
+            --secondary: #93C5FD;
+            --accent: #F59E0B; /* Friendly Orange for contrast */
+            --bg: #FFFFFF;
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --success: #10B981;
+            --danger: #EF4444;
+            --border: #E5E7EB;
+            --card-bg: #F3F4F6;
+            --font-main: 'Inter', sans-serif;
+            --font-fun: 'Comic Neue', cursive;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg);
+            font-family: var(--font-main);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-family: var(--font-fun);
+            font-size: 1.25rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .step-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: #EFF6FF;
+            padding: 4px 12px;
+            border-radius: 99px;
+            align-self: flex-start;
+        }
+
+        /* --- Main Content --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 800px;
+            background: #FFFFFF;
+            min-height: 100%;
+            padding-bottom: 2rem;
+        }
+
+        .step-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2 {
+            font-family: var(--font-main);
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+
+        h1 { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+        h2 { font-size: 1.5rem; font-weight: 700; }
+        
+        p {
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+
+        /* --- Interactive Components --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .objective-list {
+            list-style: none;
+        }
+
+        .objective-list li {
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .objective-list li::before {
+            content: "🎯";
+            position: absolute;
+            left: 0;
+            top: 2px;
+        }
+
+        /* Number Cards */
+        .number-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .num-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .num-card.selected {
+            border-color: var(--primary);
+            background-color: #EFF6FF;
+            transform: translateY(-2px);
+        }
+
+        /* Place Value Chart */
+        .pv-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 4px;
+            margin: 1.5rem 0;
+        }
+
+        .pv-header {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .pv-cell {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+            height: 60px;
+            vertical-align: middle;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pv-cell.hidden-val {
+            background: #E5E7EB;
+            color: transparent;
+        }
+        
+        .pv-cell.hidden-val::after {
+            content: "❓";
+            color: #6B7280;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+        }
+
+        .pv-cell.revealed {
+            background: #EFF6FF;
+            color: var(--primary);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+            font-family: var(--font-main);
+            min-height: 48px; /* Touch target */
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-action {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        /* Rocket Animation */
+        .rocket-container {
+            font-size: 3rem; 
+            display: block; 
+            margin-bottom: 1rem;
+            transition: transform 1s ease-in;
+        }
+        .rocket-launch {
+            transform: translateY(-500px) scale(0.5);
+            opacity: 0;
+        }
+
+        /* Expanded Form Animation */
+        .expanded-container {
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            background: #1F2937;
+            color: #10B981;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 1rem 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .expanded-container:hover {
+            background: #374151;
+        }
+
+        /* Flip Cards (Real World) */
+        .flip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 1rem;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            width: 100%;
+            height: 150px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+        }
+
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border: 2px solid var(--border);
+        }
+
+        .flip-card-front {
+            background-color: white;
+            color: black;
+            font-size: 3rem;
+        }
+
+        .flip-card-back {
+            background-color: var(--primary);
+            color: white;
+            transform: rotateY(180deg);
+            font-weight: bold;
+        }
+        
+        /* Quiz Styles */
+        .quiz-option {
+            background: white;
+            border: 2px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--secondary);
+        }
+
+        .quiz-option.correct {
+            border-color: var(--success);
+            background-color: #ECFDF5;
+            color: #065F46;
+        }
+
+        .quiz-option.incorrect {
+            border-color: var(--danger);
+            background-color: #FEF2F2;
+            color: #991B1B;
+        }
+
+        /* Interactive Chunking (Step 5) */
+        .chunk-box {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: #E5E7EB;
+            margin: 0 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .chunk-box.active {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: fall linear forwards;
+            z-index: 100;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+
+        /* --- Footer --- */
+        footer {
+            background: #FFFFFF;
+            border-top: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 10px;
+            min-height: 44px;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.primary-nav {
+            color: var(--primary);
+        }
+
+        /* --- Utilities --- */
+        .hidden { display: none; }
+        .text-center { text-align: center; }
+        .mt-4 { margin-top: 1rem; }
+        .swipe-hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #9CA3AF;
+            margin-top: 2rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 80px;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* --- Resources Section --- */
+        .resources-box {
+            background: #F0FDFA;
+            border: 1px solid #CCFBF1;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 2rem;
+        }
+        .resources-box h3 {
+            color: #0F766E;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .resources-box ul {
+            padding-left: 1.2rem;
+            color: #115E59;
+        }
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.25rem; }
+            .pv-cell { font-size: 1.1rem; padding: 6px 0; }
+            .pv-header { font-size: 0.7rem; }
+            .flip-card { height: 120px; }
+            .flip-card-front { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-top">
+            <div class="brand">
+                🦁 Singapore Math
+            </div>
+            <div class="step-badge" id="step-badge">Day 1: Intro</div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="content-container">
+
+            <!-- STEP 1 -->
+            <div class="step-content active" id="step-1">
+                <div class="text-center">
+                    <span class="rocket-container" id="rocket">🚀</span>
+                    <h1>Step 1: The Mindset Shift</h1>
+                    <p>Welcome to Day 1! Today is not just about counting. It's about seeing numbers in a whole new way.</p>
+                </div>
+                
+                <div class="card" style="background-color: #1F2937; color: white;">
+                    <h2 style="color: var(--secondary); font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;">🎯 Mission Objectives</h2>
+                    <ul class="objective-list" style="margin-top: 1rem;">
+                        <li>Understand place value up to <strong>Millions</strong></li>
+                        <li>Read & Write big numbers confidently</li>
+                        <li>Compare & Order like a pro</li>
+                        <li>Avoid the "Digit Trap" mistake</li>
+                    </ul>
+                </div>
+
+                <div class="text-center">
+                    <p style="font-weight: 600; color: var(--primary);">Are you ready?</p>
+                    <button class="btn btn-primary" onclick="launchRocket()" id="launch-btn">Start Engines 🚀</button>
+                </div>
+                <div class="swipe-hint">Swipe left to begin 👈</div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step-content" id="step-2">
+                <h2>Step 2: What are Whole Numbers?</h2>
+                <p>Whole numbers are counting numbers. No fractions. No decimals. Just solid, whole amounts.</p>
+                
+                <div class="card">
+                    <h3>Tap the Whole Numbers:</h3>
+                    <div class="number-grid">
+                        <div class="num-card" onclick="checkWhole(this, true)">5</div>
+                        <div class="num-card" onclick="checkWhole(this, false)">2.5</div>
+                        <div class="num-card" onclick="checkWhole(this, true)">1,450</div>
+                        <div class="num-card" onclick="checkWhole(this, false)">½</div>
+                        <div class="num-card" onclick="checkWhole(this, true)">0</div>
+                    </div>
+                </div>
+                <p><strong>Remember:</strong> 0 is also a whole number!</p>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step-content" id="step-3">
+                <h2>Step 3: Visualizing Millions</h2>
+                <p>When numbers get big, we need a map. That map is the <strong>Place Value Chart</strong>.</p>
+                <p style="font-size: 0.9rem; color: var(--accent); font-weight: bold;">👇 Tap the Mystery Boxes to reveal the number!</p>
+                
+                <div class="card">
+                    <table class="pv-table">
+                        <tr>
+                            <th class="pv-header">Millions</th>
+                            <th class="pv-header">Hundred<br>Thousands</th>
+                            <th class="pv-header">Ten<br>Thousands</th>
+                            <th class="pv-header">Thousands</th>
+                        </tr>
+                        <tr>
+                            <td class="pv-cell hidden-val" onclick="revealCell(this)">3</td>
+                            <td class="pv-cell hidden-val" onclick="revealCell(this)">4</td>
+                            <td class="pv-cell hidden-val" onclick="revealCell(this)">8</td>
+                            <td class="pv-cell hidden-val" onclick="revealCell(this)">2</td>
+                        </tr>
+                    </table>
+                    <p class="text-center mt-4">Each step to the left is <strong>10 times bigger</strong> than the step to its right.</p>
+                </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step-content" id="step-4">
+                <h2>Step 4: Interactive Place Value</h2>
+                <p>The digit <strong>5</strong> changes its value depending on where it sits. Tap a position to move the 5!</p>
+                
+                <div class="card text-center">
+                    <div id="moving-digit-display" style="font-size: 2rem; font-family: monospace; font-weight: bold; margin-bottom: 1rem;">
+                        0,000,005
+                    </div>
+                    <div class="number-grid">
+                        <button class="btn btn-outline" onclick="moveDigit(1)">Ones</button>
+                        <button class="btn btn-outline" onclick="moveDigit(100)">Hundreds</button>
+                        <button class="btn btn-outline" onclick="moveDigit(10000)">Ten Thousands</button>
+                        <button class="btn btn-outline" onclick="moveDigit(1000000)">Millions</button>
+                    </div>
+                    <p id="value-readout" style="color: var(--primary); font-weight: bold; margin-top: 1rem;">Value: 5</p>
+                </div>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step-content" id="step-5">
+                <h2>Step 5: Reading Numbers</h2>
+                <p>Big numbers are like pizza—easier to eat in slices! Tap the number chunks to slice it.</p>
+                <div class="card">
+                    <h3 style="text-align: center; font-size: 1.8rem; letter-spacing: 1px; line-height: 1.5;">
+                        <span class="chunk-box" onclick="activateChunk(this)">3,</span><span class="chunk-box" onclick="activateChunk(this)">482,</span><span class="chunk-box" onclick="activateChunk(this)">715</span>
+                    </h3>
+                    <hr style="border: 0; border-top: 1px solid #ddd; margin: 1rem 0;">
+                    <p><strong>Say it:</strong></p>
+                    <p>Three <strong>million</strong>,<br>
+                    four hundred eighty-two <strong>thousand</strong>,<br>
+                    seven hundred fifteen.</p>
+                </div>
+            </div>
+
+            <!-- STEP 6 -->
+            <div class="step-content" id="step-6">
+                <h2>Step 6: Writing Numbers</h2>
+                <p>Can you convert the word form back to digits?</p>
+                
+                <div class="card">
+                    <p style="font-style: italic; margin-bottom: 1rem;">"Two million, fifty thousand, six"</p>
+                    <div class="quiz-option" onclick="checkWrite(this, false)">2,500,006</div>
+                    <div class="quiz-option" onclick="checkWrite(this, true)">2,050,006</div>
+                    <div class="quiz-option" onclick="checkWrite(this, false)">2,005,006</div>
+                </div>
+                <p>Watch out for the zeros! They are placeholders.</p>
+            </div>
+
+            <!-- STEP 7 -->
+            <div class="step-content" id="step-7">
+                <h2>Step 7: Expanded Form</h2>
+                <p>Expanded form stretches the number out. <strong>Tap the number to explode it!</strong></p>
+                <div class="card">
+                    <div id="expand-box-wrapper">
+                        <div class="expanded-container" onclick="explodeNumber()" id="explode-box">
+                            TAP ME: 6,720,500
+                        </div>
+                    </div>
+                    <p class="text-center">Notice the zero in the thousands and ones place? We skip them in expanded form.</p>
+                    <div class="text-center">
+                        <button class="btn btn-outline btn-sm hidden" id="reset-explode" onclick="resetExplode()">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 8 -->
+            <div class="step-content" id="step-8">
+                <h2>Step 8: Simulation: Stack It!</h2>
+                <p>Tap the button to stack the values into a single whole number.</p>
+                
+                <div class="card text-center" style="min-height: 250px; display: flex; flex-direction: column; justify-content: center;">
+                    <div id="stack-area">
+                        <div class="stack-layer" id="layer-1">4,000,000</div>
+                        <div class="stack-layer" id="layer-2">+ 200,000</div>
+                        <div class="stack-layer" id="layer-3">+ 50,000</div>
+                        <div class="stack-layer" id="layer-4">+ 9</div>
+                    </div>
+                    <div id="stack-result" class="hidden" style="font-size: 2rem; color: var(--primary); font-weight: bold; margin-top: 1rem;">4,250,009</div>
+                    
+                    <button class="btn btn-primary btn-action" onclick="animateStack()" id="stack-btn">Stack Numbers</button>
+                    <button class="btn btn-outline btn-action hidden" onclick="resetStack()" id="reset-stack-btn">Reset</button>
+                </div>
+            </div>
+
+            <!-- STEP 9 -->
+            <div class="step-content" id="step-9">
+                <h2>Step 9: Comparing - Method 1</h2>
+                <p>How do we know which number is bigger? Count the digits!</p>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-around; align-items: center; margin: 1rem 0;">
+                        <div style="text-align:center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">98,765</div>
+                            <button class="btn btn-outline" style="margin-top:5px; font-size: 0.7rem; padding: 4px 8px;" onclick="showDigits(this, '5')">Count Digits</button>
+                        </div>
+                        <div style="font-size: 2rem;">vs</div>
+                        <div style="text-align:center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">1,200,000</div>
+                            <button class="btn btn-outline" style="margin-top:5px; font-size: 0.7rem; padding: 4px 8px;" onclick="showDigits(this, '7')">Count Digits</button>
+                        </div>
+                    </div>
+                    <p class="text-center" style="background: #ECFDF5; padding: 0.5rem; border-radius: 8px; color: #065F46;">More Digits = Bigger Number</p>
+                </div>
+            </div>
+
+            <!-- STEP 10 -->
+            <div class="step-content" id="step-10">
+                <h2>Step 10: Comparing - Method 2</h2>
+                <p>What if they have the same number of digits? Compare from <strong>Left to Right</strong>.</p>
+                
+                <div class="card">
+                    <div style="font-family: monospace; font-size: 1.5rem; letter-spacing: 3px; text-align: center;">
+                        <span style="color: #9CA3AF;">4,5</span><span style="color: var(--danger); font-weight: bold;">6</span><span style="color: #9CA3AF;">2,300</span><br>
+                        <span style="color: #9CA3AF;">4,5</span><span style="color: var(--danger); font-weight: bold;">5</span><span style="color: #9CA3AF;">9,900</span>
+                    </div>
+                    <p class="text-center mt-4">The Millions and Hundred Thousands are the same.</p>
+                    <p class="text-center">Look at the Ten Thousands: <strong>6 > 5</strong>.</p>
+                    <p class="text-center" style="font-weight: bold; font-size: 1.2rem;">So, top number is bigger.</p>
+                </div>
+            </div>
+
+            <!-- STEP 11 -->
+            <div class="step-content" id="step-11">
+                <h2>Step 11: Simulation: Gator Chomp</h2>
+                <p>Remember the alligator eats the bigger number? Fill in the correct symbol.</p>
+                
+                <div class="card text-center">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+                        <div style="font-size: 1.1rem; font-weight: bold;">508,921</div>
+                        <div id="gator-box" style="width: 50px; height: 50px; background: #E5E7EB; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border-radius: 8px;">?</div>
+                        <div style="font-size: 1.1rem; font-weight: bold;">509,102</div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button class="btn btn-outline" onclick="checkGator('<')">&lt;</button>
+                        <button class="btn btn-outline" onclick="checkGator('>')">&gt;</button>
+                        <button class="btn btn-outline" onclick="checkGator('=')">=</button>
+                    </div>
+                    <p id="gator-feedback" class="mt-4" style="min-height: 1.5rem; font-weight: bold;"></p>
+                </div>
+            </div>
+
+            <!-- STEP 12 -->
+            <div class="step-content" id="step-12">
+                <h2>Step 12: Ordering Numbers</h2>
+                <p><strong>Ascending</strong> means going UP (Small to Large).</p>
+                <div class="card">
+                    <p>Which list is in Ascending Order?</p>
+                    <div class="quiz-option" onclick="checkOrder(this, false)">
+                        900,000 ➔ 850,000 ➔ 800,000
+                    </div>
+                    <div class="quiz-option" onclick="checkOrder(this, true)">
+                        125,000 ➔ 128,000 ➔ 130,000
+                    </div>
+                    <div class="quiz-option" onclick="checkOrder(this, false)">
+                        125,000 ➔ 130,000 ➔ 128,000
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 13 -->
+            <div class="step-content" id="step-13">
+                <h2>Step 13: Real World Application</h2>
+                <p>Where do we see millions in real life? <strong>Tap the cards to find out!</strong></p>
+                <div class="flip-grid">
+                    <!-- Card 1 -->
+                    <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                🏟️<div style="font-size: 1rem; margin-top:5px;">Stadium</div>
+                            </div>
+                            <div class="flip-card-back">
+                                <div style="font-size: 1.2rem;">80,000</div>
+                                <div style="font-size: 0.8rem;">Seats</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 2 -->
+                    <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                📚<div style="font-size: 1rem; margin-top:5px;">Library</div>
+                            </div>
+                            <div class="flip-card-back">
+                                <div style="font-size: 1.1rem;">170,000,000</div>
+                                <div style="font-size: 0.8rem;">Items</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 3 -->
+                    <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                🏙️<div style="font-size: 1rem; margin-top:5px;">SG Pop.</div>
+                            </div>
+                            <div class="flip-card-back">
+                                <div style="font-size: 1.2rem;">5,900,000</div>
+                                <div style="font-size: 0.8rem;">People</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 14 -->
+            <div class="step-content" id="step-14">
+                <h2>Step 14: Common Mistakes Challenge</h2>
+                <p>Don't fall into the trap! Can you spot the error?</p>
+                
+                <div class="card">
+                    <p><strong>Question:</strong> What is the value of the digit 4 in <strong>3,402,100</strong>?</p>
+                    <div class="quiz-option" onclick="checkMistake(this, false)">4 (Just the digit)</div>
+                    <div class="quiz-option" onclick="checkMistake(this, false)">40,000 (Ten Thousands)</div>
+                    <div class="quiz-option" onclick="checkMistake(this, true)">400,000 (Hundred Thousands)</div>
+                </div>
+                <p id="mistake-feedback" class="hidden text-center" style="color: var(--primary);">Correct! The position determines the value.</p>
+            </div>
+
+            <!-- STEP 15 -->
+            <div class="step-content" id="step-15">
+                <h2>Step 15: Mastery Debrief</h2>
+                <div class="text-center">
+                    <span style="font-size: 3rem;">🎉</span>
+                    <h3 style="color: var(--primary); margin: 1rem 0;">Day 1 Complete!</h3>
+                    <p>You have mastered the foundation of Whole Numbers.</p>
+                </div>
+                
+                <div class="card">
+                    <h4>Checklist:</h4>
+                    <ul class="objective-list">
+                        <li>✅ I know Place Value up to Millions.</li>
+                        <li>✅ I can write Expanded Form.</li>
+                        <li>✅ I can Compare and Order numbers.</li>
+                    </ul>
+                </div>
+
+                <div class="resources-box">
+                    <h3>📚 Teacher Resources</h3>
+                    <ul>
+                        <li><a href="https://www.moe.gov.sg/education-in-sg/syllabus" target="_blank">Singapore MOE Syllabus</a></li>
+                        <li><a href="https://www.khanacademy.org/math/cc-fourth-grade-math/imp-place-value" target="_blank">Khan Academy: Place Value</a></li>
+                        <li>Use Base-10 blocks for hands-on practice.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <button class="nav-btn" id="prev-btn" onclick="changeStep(-1)">← Back</button>
+        <button class="nav-btn primary-nav" id="next-btn" onclick="changeStep(1)">Next →</button>
+    </footer>
+
+    <div id="toast">Feedback message</div>
+
+    <script>
+        // State Management
+        let currentStep = 1;
+        const totalSteps = 15;
+        
+        // Titles for Header
+        const stepTitles = [
+            "Intro", "Whole Numbers", "Visualizing", "Interactive PV", "Reading", 
+            "Writing", "Expanded Form", "Simulation", "Comparing 1", "Comparing 2", 
+            "Gator Sim", "Ordering", "Real World", "Mistakes", "Debrief"
+        ];
+
+        // DOM Elements
+        const progressBar = document.getElementById('progress-bar');
+        const stepBadge = document.getElementById('step-badge');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const mainContent = document.getElementById('main-content');
+        const toast = document.getElementById('toast');
+
+        // Initialization
+        updateUI();
+
+        // Navigation Logic
+        function changeStep(direction) {
+            const nextStep = currentStep + direction;
+            
+            if (nextStep >= 1 && nextStep <= totalSteps) {
+                // Hide current
+                document.getElementById(`step-${currentStep}`).classList.remove('active');
+                
+                // Update state
+                currentStep = nextStep;
+                
+                // Show next
+                document.getElementById(`step-${currentStep}`).classList.add('active');
+                
+                // Scroll to top
+                mainContent.scrollTo(0, 0);
+                
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            // Update Progress Bar
+            const percentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressBar.style.width = `${percentage}%`;
+
+            // Update Badge
+            stepBadge.textContent = `Day 1 Step ${currentStep}: ${stepTitles[currentStep-1]}`;
+
+            // Button States
+            prevBtn.disabled = currentStep === 1;
+            nextBtn.textContent = currentStep === totalSteps ? "Finish" : "Next →";
+            if (currentStep === totalSteps) {
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = 0;
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = 1;
+            }
+        }
+
+        // Swipe Gesture Support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        mainContent.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+
+        mainContent.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, {passive: true});
+
+        function handleSwipe() {
+            const threshold = 50; // min distance
+            if (touchEndX < touchStartX - threshold) {
+                // Swipe Left -> Next
+                if (currentStep < totalSteps) changeStep(1);
+            }
+            if (touchEndX > touchStartX + threshold) {
+                // Swipe Right -> Prev
+                if (currentStep > 1) changeStep(-1);
+            }
+        }
+
+        // --- Interactive Logic ---
+
+        // Step 1: Rocket
+        function launchRocket() {
+            const rocket = document.getElementById('rocket');
+            const btn = document.getElementById('launch-btn');
+            
+            // Shake effect
+            rocket.style.transform = "rotate(5deg)";
+            setTimeout(() => { rocket.style.transform = "rotate(-5deg)"; }, 100);
+            setTimeout(() => { rocket.style.transform = "rotate(5deg)"; }, 200);
+            
+            // Launch
+            setTimeout(() => { 
+                rocket.classList.add('rocket-launch');
+                btn.textContent = "Blast Off! 🌟";
+                btn.classList.add('btn-outline');
+                btn.classList.remove('btn-primary');
+                triggerConfetti();
+            }, 500);
+        }
+
+        // Step 2: Whole Numbers
+        function checkWhole(element, isWhole) {
+            // Reset selection style
+            element.parentElement.querySelectorAll('.num-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+
+            if (isWhole) {
+                showToast("✅ Correct!");
+                triggerConfetti();
+            } else {
+                showToast("❌ Try again");
+            }
+        }
+
+        // Step 3: Reveal
+        function revealCell(el) {
+            if (el.classList.contains('hidden-val')) {
+                el.classList.remove('hidden-val');
+                el.classList.add('revealed');
+                showToast("🔍 Revealed!");
+            }
+        }
+
+        // Step 4: Move Digit
+        function moveDigit(multiplier) {
+            const display = document.getElementById('moving-digit-display');
+            const readout = document.getElementById('value-readout');
+            
+            const val = 5 * multiplier;
+            const formatted = val.toLocaleString();
+            
+            let padded = formatted;
+            if(val < 10) padded = "0,000,00" + formatted;
+            else if(val < 1000) padded = "0,000," + formatted;
+            else if(val < 100000) padded = "0,0" + formatted;
+            
+            display.textContent = formatted; 
+            readout.textContent = `Value: ${formatted}`;
+            readout.style.animation = "none";
+            readout.offsetHeight; /* trigger reflow */
+            readout.style.animation = "fadeIn 0.5s";
+        }
+
+        // Step 5: Chunking
+        function activateChunk(el) {
+            el.classList.toggle('active');
+        }
+
+        // Step 6: Write Numbers
+        function checkWrite(el, isCorrect) {
+            const parent = el.parentElement;
+            parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+            
+            if (isCorrect) {
+                el.classList.add('correct');
+                showToast("✅ Excellent!");
+                triggerConfetti();
+            } else {
+                el.classList.add('incorrect');
+                showToast("❌ Watch the zeros!");
+            }
+        }
+
+        // Step 7: Explode Number
+        function explodeNumber() {
+            const box = document.getElementById('explode-box');
+            box.style.transform = "scale(1.1)";
+            setTimeout(() => {
+                box.innerHTML = "6,000,000<br>+ 700,000<br>+ 20,000<br>+ 500";
+                box.style.transform = "scale(1)";
+                document.getElementById('reset-explode').classList.remove('hidden');
+                triggerConfetti();
+            }, 200);
+        }
+
+        function resetExplode() {
+             const box = document.getElementById('explode-box');
+             box.innerHTML = "TAP ME: 6,720,500";
+             document.getElementById('reset-explode').classList.add('hidden');
+        }
+
+        // Step 8: Stack Animation
+        function animateStack() {
+            const layers = document.querySelectorAll('.stack-layer');
+            const result = document.getElementById('stack-result');
+            const btn = document.getElementById('stack-btn');
+            const resetBtn = document.getElementById('reset-stack-btn');
+
+            layers.forEach((l, index) => {
+                l.style.transition = 'all 0.5s ease';
+                l.style.transform = `translateY(${index * 10}px)`;
+                l.style.opacity = '0';
+            });
+
+            setTimeout(() => {
+                result.classList.remove('hidden');
+                result.style.animation = 'fadeIn 0.5s';
+                btn.classList.add('hidden');
+                resetBtn.classList.remove('hidden');
+                triggerConfetti();
+            }, 500);
+        }
+
+        function resetStack() {
+            const layers = document.querySelectorAll('.stack-layer');
+            const result = document.getElementById('stack-result');
+            const btn = document.getElementById('stack-btn');
+            const resetBtn = document.getElementById('reset-stack-btn');
+
+            layers.forEach(l => {
+                l.style.transform = 'translateY(0)';
+                l.style.opacity = '1';
+            });
+            result.classList.add('hidden');
+            btn.classList.remove('hidden');
+            resetBtn.classList.add('hidden');
+        }
+
+        // Step 9: Count Digits
+        function showDigits(btn, count) {
+            btn.innerText = `${count} Digits!`;
+            btn.classList.add('btn-primary');
+            btn.classList.remove('btn-outline');
+        }
+
+        // Step 11: Gator Sim
+        function checkGator(symbol) {
+            const box = document.getElementById('gator-box');
+            const feedback = document.getElementById('gator-feedback');
+            
+            box.textContent = symbol;
+            
+            if (symbol === '<') {
+                box.style.background = '#ECFDF5';
+                box.style.color = '#065F46';
+                box.style.border = '2px solid #10B981';
+                feedback.textContent = "Correct! 508,921 is less than 509,102";
+                feedback.style.color = "var(--success)";
+                showToast("✅ Chomp!");
+                triggerConfetti();
+            } else {
+                box.style.background = '#FEF2F2';
+                box.style.color = '#991B1B';
+                box.style.border = '2px solid #EF4444';
+                feedback.textContent = "Look at the Thousands place (8 vs 9)";
+                feedback.style.color = "var(--danger)";
+            }
+        }
+
+        // Step 12: Ordering
+        function checkOrder(el, isCorrect) {
+            const parent = el.parentElement;
+            parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+            
+            if (isCorrect) {
+                el.classList.add('correct');
+                showToast("✅ Perfect ordering!");
+                triggerConfetti();
+            } else {
+                el.classList.add('incorrect');
+                showToast("❌ Check the direction (Small → Large)");
+            }
+        }
+
+        // Step 14: Mistake Challenge
+        function checkMistake(el, isCorrect) {
+            const parent = el.parentElement;
+            const feedback = document.getElementById('mistake-feedback');
+            
+            parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+            
+            if (isCorrect) {
+                el.classList.add('correct');
+                feedback.classList.remove('hidden');
+                showToast("✅ You got it!");
+                triggerConfetti();
+            } else {
+                el.classList.add('incorrect');
+                feedback.classList.add('hidden');
+                showToast("❌ Remember the Place Value Chart");
+            }
+        }
+
+        // Utility: Toast
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.className = "show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+        
+        // Utility: Confetti
+        function triggerConfetti() {
+            const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6'];
+            
+            for (let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // Random properties
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = -10 + 'px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                document.body.appendChild(confetti);
+                
+                // Cleanup
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3000);
+            }
+        }
+
+    </script>
+</body>
+</html>

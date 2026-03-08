@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Math Grade 5: Day 2</title>
+    <!-- Fonts for academic/clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme: Singapore Math (Blue/Yellow/Clean) */
+            --primary: #2563EB; /* Royal Blue */
+            --primary-dark: #1E40AF;
+            --secondary: #1F2937; /* Dark Gray/Black */
+            --accent: #F59E0B; /* Amber/Yellow for highlights */
+            --bg: #FFFFFF; /* Mandatory White Background */
+            --card-bg: #F3F4F6;
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --border: #E5E7EB;
+            --font-heading: 'Fredoka', sans-serif; /* Friendly, rounded for kids */
+            --font-body: 'Nunito', sans-serif;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header & Progress --- */
+        header {
+            background-color: var(--bg);
+            border-bottom: 2px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .brand {
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+        }
+
+        .brand-icon {
+            background: var(--primary);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 300px;
+            margin: 0 1.5rem;
+            background: #E5E7EB;
+            height: 10px;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .step-indicator {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 700;
+            min-width: 80px;
+            text-align: right;
+            font-family: var(--font-heading);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.5rem;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+            touch-action: pan-y;
+            background-color: #FAFAFA;
+        }
+
+        .content-container {
+            background: var(--bg);
+            width: 100%;
+            max-width: 800px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            min-height: 500px;
+        }
+
+        /* --- Content Areas (Steps) --- */
+        .step-content {
+            display: none;
+            padding: 2.5rem;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            margin: 1.5rem 0 0.5rem 0;
+            color: var(--secondary);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        /* --- Mission/Objective Card --- */
+        .objective-card {
+            background: #1F2937; /* Dark theme per constraints */
+            color: #FFFFFF;
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .objective-header {
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .objective-list {
+            list-style: none;
+        }
+
+        .objective-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 1.05rem;
+        }
+
+        .objective-list li::before {
+            content: "✓";
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        /* --- Visual Components --- */
+        .visual-box {
+            background: white;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Step 2 Hill Animation */
+        .rounding-hill-container {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .rounding-hill {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 100px;
+            border-top-left-radius: 150px;
+            border-top-right-radius: 150px;
+            border: 8px solid #CBD5E1;
+            border-bottom: none;
+            background: transparent;
+        }
+
+        .hill-ball {
+            width: 30px;
+            height: 30px;
+            background: var(--danger);
+            border-radius: 50%;
+            position: absolute;
+            top: 55px; /* Resting on top */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            transition: all 1s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .hill-ball.roll-left {
+            left: calc(50% - 140px);
+            top: 150px;
+            background: var(--text-secondary);
+        }
+
+        .hill-ball.roll-right {
+            left: calc(50% + 140px);
+            top: 150px;
+            background: var(--success);
+        }
+
+        /* Step 3 Number Line Animation */
+        .number-line-container {
+            position: relative;
+            height: 80px;
+            margin: 40px 0 20px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .number-line {
+            width: 100%;
+            height: 6px;
+            background: #E5E7EB;
+            position: relative;
+            border-radius: 4px;
+        }
+
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: var(--text-secondary);
+            top: -7px;
+        }
+
+        .tick-label {
+            position: absolute;
+            top: 25px;
+            transform: translateX(-50%);
+            font-weight: bold;
+            color: var(--text-secondary);
+        }
+
+        .midpoint {
+            position: absolute;
+            left: 50%;
+            height: 12px;
+            width: 2px;
+            background: var(--danger);
+            top: -3px;
+        }
+
+        .midpoint-label {
+            position: absolute;
+            left: 50%;
+            top: -30px;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .animated-marker {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 50%;
+            top: -9px;
+            left: 0%; /* Start */
+            transform: translateX(-50%);
+            z-index: 2;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border: 3px solid white;
+        }
+
+        .marker-popup {
+            position: absolute;
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+        
+        .marker-popup::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: var(--primary) transparent transparent transparent;
+        }
+
+        /* --- Interactive Cards --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .interactive-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .interactive-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+        }
+
+        .interactive-card.correct {
+            border-color: var(--success);
+            background-color: #ECFDF5;
+        }
+
+        .interactive-card.incorrect {
+            border-color: var(--danger);
+            background-color: #FEF2F2;
+        }
+        
+        .feedback-text {
+            display: none;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .interactive-card.correct .feedback-text,
+        .interactive-card.incorrect .feedback-text {
+            display: block;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            font-family: var(--font-heading);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            min-height: 50px; /* Touch target size */
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--text-secondary);
+            background: #F3F4F6;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* --- Digits --- */
+        .digit-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 2rem 0;
+        }
+
+        .digit-box {
+            padding: 10px 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .digit-box:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+        
+        .digit-box.selected-target {
+            border-color: var(--accent);
+            background-color: #FFFBEB;
+            color: var(--accent);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+        
+        .digit-box.selected-neighbor {
+            border-color: var(--danger);
+            color: var(--danger);
+            transform: scale(1.1);
+            position: relative;
+        }
+        .digit-box.selected-neighbor::after {
+            content: '👀';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
+        }
+
+        /* --- Footer --- */
+        footer {
+            background: white;
+            border-top: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 80px;
+        }
+
+        .nav-info {
+            flex: 1;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* --- Toast Notification --- */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--secondary);
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 100px;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 110px;
+        }
+
+        .swipe-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #9CA3AF;
+            margin-top: 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        
+        /* Step 10 Morph Animation */
+        .morph-number {
+            display: inline-block;
+            transition: all 0.8s ease;
+        }
+        .morph-active {
+            color: var(--primary);
+            font-weight: bold;
+            transform: scale(1.1);
+        }
+
+        /* --- Mobile Responsive --- */
+        @media (max-width: 768px) {
+            header {
+                padding: 0.75rem;
+            }
+            .brand span {
+                display: none; 
+            }
+            .progress-container {
+                margin: 0 1rem;
+            }
+            .step-indicator {
+                display: none; 
+            }
+            main {
+                padding: 1rem;
+            }
+            .step-content {
+                padding: 1.5rem;
+            }
+            footer {
+                padding: 1rem;
+                flex-direction: column-reverse; /* Stack buttons */
+                gap: 1rem;
+            }
+            .btn {
+                width: 100%;
+            }
+            .nav-info {
+                margin: 0.5rem 0;
+            }
+            h2 {
+                font-size: 1.4rem;
+            }
+            .rounding-hill {
+                width: 260px;
+            }
+            .hill-ball.roll-left {
+                left: calc(50% - 120px);
+            }
+            .hill-ball.roll-right {
+                left: calc(50% + 120px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <div class="brand-icon">5</div>
+        <span>Singapore Math</span>
+    </div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="step-indicator" id="step-indicator">Step 1/15</div>
+</header>
+
+<main id="main-content">
+    <div class="content-container">
+
+        <!-- STEP 1: Intro -->
+        <div class="step-content active" id="step-1">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <span style="background: var(--accent); color: white; padding: 4px 12px; border-radius: 99px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase;">Day 2 Module</span>
+            </div>
+            <h2 style="text-align: center;">Step 1: The Power of Estimation</h2>
+            <p style="text-align: center;">By the end of today, you won't just calculate numbers. You will understand them.</p>
+            
+            <div class="objective-card">
+                <div class="objective-header">
+                    🎯 Learning Objectives
+                </div>
+                <ul class="objective-list">
+                    <li>Round whole numbers (10, 100, 1000).</li>
+                    <li>Use estimation to check if answers make sense.</li>
+                    <li>Solve real-world problems efficiently.</li>
+                    <li>Master the "Thinking Before Calculating" mindset.</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn btn-primary" onclick="navigateSteps(1)">Start Learning 🚀</button>
+            </div>
+            <div class="swipe-hint">Swipe left to continue &larr;</div>
+        </div>
+
+        <!-- STEP 2: The Rule (Interactive Hill) -->
+        <div class="step-content" id="step-2">
+            <h2>Step 2: The Golden Rule</h2>
+            <p>Rounding is like a ball on a hill. It will roll to the closest side.</p>
+            
+            <div class="visual-box">
+                <div class="rounding-hill-container">
+                    <div class="rounding-hill"></div>
+                    <div id="hill-ball" class="hill-ball"></div>
+                    
+                    <!-- Labels -->
+                    <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-weight: bold; background:white; padding: 2px 8px; border-radius:10px;">5, 6, 7, 8, 9</div>
+                    <div style="position: absolute; bottom: 10px; left: 10px; font-weight: bold; color: var(--text-secondary);">0, 1, 2, 3, 4</div>
+                    <div style="position: absolute; bottom: 10px; right: 10px; font-weight: bold; color: var(--success);">UP</div>
+                </div>
+                
+                <p id="hill-feedback" style="min-height: 1.5em; font-weight: bold; color: var(--primary);">Tap a button below to push the ball.</p>
+            </div>
+
+            <div class="card-grid">
+                <button class="btn btn-outline" onclick="animateHill('left')">
+                    Digit is 0 - 4
+                </button>
+                <button class="btn btn-outline" style="border-color: var(--accent);" onclick="animateHill('right')">
+                    Digit is 5 - 9
+                </button>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 3: Visual Number Line (Simulation) -->
+        <div class="step-content" id="step-3">
+            <h2>Step 3: Visualizing Closeness</h2>
+            <p>In Singapore Math, we visualize where the number lives. Is <strong>4,372</strong> closer to 4,300 or 4,400?</p>
+
+            <div class="visual-box">
+                <div class="number-line-container">
+                    <div class="number-line"></div>
+                    <!-- Ticks -->
+                    <div class="tick" style="left: 0;"></div><div class="tick-label" style="left: 0;">4,300</div>
+                    <div class="tick" style="left: 100%;"></div><div class="tick-label" style="left: 100%;">4,400</div>
+                    <div class="midpoint"></div><div class="midpoint-label">4,350</div>
+
+                    <!-- The Car/Marker -->
+                    <div id="step3-marker" class="animated-marker">
+                        <div class="marker-popup">4,372</div>
+                    </div>
+                </div>
+
+                <div id="step3-controls" style="text-align: center; margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="runStep3Simulation()">Visualize 4,372 ▶️</button>
+                </div>
+
+                <div id="step3-result" style="margin-top: 1.5rem; display: none; background: #ECFDF5; padding: 1rem; border-radius: 8px; border: 1px solid var(--success);">
+                    <p style="margin: 0; color: var(--text-secondary);">It passed the midpoint (4,350)!</p>
+                    <h3 style="margin: 5px 0 0 0; color: var(--success);">Closer to 4,400 ✅</h3>
+                </div>
+            </div>
+             <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 4: Nearest 10 (Interactive) -->
+        <div class="step-content" id="step-4">
+            <h2>Step 4: Rounding to Nearest 10</h2>
+            <p>Target: <strong>4,372</strong>. We want to round to the Tens place.</p>
+            <p class="highlight-text">Tap the TARGET digit (Tens) below:</p>
+            
+            <div class="digit-container" id="step4-digits">
+                <div class="digit-box" onclick="step4Select(this, '4')">4</div>
+                <div class="digit-box" onclick="step4Select(this, '3')">3</div>
+                <div class="digit-box" onclick="step4Select(this, '7')">7</div>
+                <div class="digit-box" onclick="step4Select(this, '2')">2</div>
+            </div>
+            
+            <div id="step4-part2" style="display: none; animation: slideIn 0.3s ease-out;">
+                <p>Great! Now, look at the neighbor to the <strong>RIGHT</strong>.</p>
+                <div class="visual-box" style="padding: 1rem; text-align: left; display: flex; align-items: center; gap: 15px;">
+                    <div style="font-size: 2rem;">👉 <strong>2</strong></div>
+                    <div>Since 2 is less than 5... we <strong>Round DOWN</strong> (stay same).</div>
+                </div>
+                <div class="interactive-card correct" style="text-align: center;">
+                    <h3>Answer: 4,370</h3>
+                </div>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 5: Interactive 10s -->
+        <div class="step-content" id="step-5">
+            <h2>Step 5: Practice - Nearest 10</h2>
+            <p>Round <strong>7,483</strong> to the nearest 10.</p>
+            
+            <div class="visual-box" style="padding: 1rem;">
+                <span style="font-size: 1.5rem; letter-spacing: 5px; font-family: monospace;">7 4 <strong>8</strong> <span style="color: var(--danger);">3</span></span>
+            </div>
+
+            <div class="card-grid">
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, false, 'Look at the 3 again. Is it 5 or bigger?')">
+                    <h3>7,490</h3>
+                    <p class="feedback-text">Incorrect.</p>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, true, 'Correct! The neighbor is 3, so we round down.')">
+                    <h3>7,480</h3>
+                     <p class="feedback-text">Correct!</p>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, false, 'Check the Hundreds place. Did that change?')">
+                    <h3>7,500</h3>
+                     <p class="feedback-text">Incorrect.</p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="resetQuizzes()">Reset</button>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 6: Nearest 100 -->
+        <div class="step-content" id="step-6">
+            <h2>Step 6: Rounding to Nearest 100</h2>
+            <p>Same number: <strong>4,372</strong>. Target: Hundreds.</p>
+            
+            <div class="visual-box">
+                <div style="font-size: 2rem; margin-bottom: 1rem;">
+                    4 <span style="background: #FFFBEB; border: 2px solid var(--accent); padding: 0 5px; border-radius: 4px;">3</span> <span style="color: var(--danger);">7</span> 2
+                </div>
+                <button class="btn btn-primary" onclick="this.nextElementSibling.hidden=false; this.style.display='none'">Check the Neighbor</button>
+                <div hidden>
+                    <p>The neighbor is <strong>7</strong>.</p>
+                    <p>7 is in the "High Five" club (5-9). We round <strong>UP</strong>!</p>
+                    <h3>3 becomes 4.</h3>
+                </div>
+            </div>
+
+            <div class="interactive-card correct" style="text-align: center; margin-top: 1rem;">
+                <h3>Answer: 4,400</h3>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 7: Nearest 1,000 -->
+        <div class="step-content" id="step-7">
+            <h2>Step 7: Rounding to Nearest 1,000</h2>
+            <p>Same number: <strong>4,372</strong>. Target: Thousands.</p>
+             <div style="font-size: 1.5rem; text-align: center; margin: 2rem 0;">
+                <span class="digit-box highlight-digit">4</span>
+                <span class="digit-box" style="border-color: var(--danger); color: var(--danger);">3</span>
+                <span class="digit-box">7</span>
+                <span class="digit-box">2</span>
+            </div>
+
+            <div class="visual-box">
+                <p>Is 3 strong enough to push 4 up?</p>
+                <div style="font-weight: bold; font-size: 1.2rem; color: var(--danger);">NO</div>
+            </div>
+
+            <p>The neighbor is 3 (less than 5). We round down (stay the same).</p>
+            <div class="interactive-card correct" style="text-align: center;">
+                <h3>Answer: 4,000</h3>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 8: Mixed Practice -->
+        <div class="step-content" id="step-8">
+            <h2>Step 8: Mastery Check</h2>
+            <p>Let's check your understanding. Round <strong>7,483</strong> to the nearest <strong>100</strong>.</p>
+            
+             <div style="font-size: 1.5rem; text-align: center; margin: 2rem 0;">
+                <span class="digit-box">7</span>
+                <span class="digit-box highlight-digit">4</span>
+                <span class="digit-box" style="border-color: var(--danger); color: var(--danger);">8</span>
+                <span class="digit-box">3</span>
+            </div>
+
+            <div class="card-grid">
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, false, 'Close, but look at the neighbor (8). 8 rounds up!')">
+                    <h3>7,400</h3>
+                    <p class="feedback-text">Incorrect.</p>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, true, 'Correct! The neighbor is 8, so 4 becomes 5.')">
+                    <h3>7,500</h3>
+                     <p class="feedback-text">Correct!</p>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, false, 'Careful! We are rounding to the nearest 100, not 10.')">
+                    <h3>7,480</h3>
+                     <p class="feedback-text">Incorrect.</p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="resetQuizzes()">Reset</button>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 9: Why Estimate? -->
+        <div class="step-content" id="step-9">
+            <h2>Step 9: Why Estimate?</h2>
+            <p>Estimation is not just guessing. It is a tool to check <strong>reasonableness</strong>.</p>
+            
+            <div class="objective-card" style="background: #ECFDF5; color: var(--text-main);">
+                <div class="objective-header" style="color: var(--success); border-color: #A7F3D0;">
+                    🧠 Mental Check
+                </div>
+                <p>If you calculate <strong>400 + 300</strong> and get <strong>7,000</strong>, estimation tells you immediately that you made a mistake.</p>
+            </div>
+            
+            <p>Singapore Math teaches us to estimate <em>before</em> we calculate or <em>after</em> to verify.</p>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 10: Estimation (Animation) -->
+        <div class="step-content" id="step-10">
+            <h2>Step 10: Estimating Sums</h2>
+            <p>Problem: <strong>4,372 + 2,689</strong></p>
+            <p>Let's morph these numbers into something easier.</p>
+
+            <div class="visual-box" style="text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 1rem;">
+                    <span id="morph-1" class="morph-number">4,372</span> + <span id="morph-2" class="morph-number">2,689</span>
+                </div>
+                
+                <button class="btn btn-primary" onclick="animateMorph()">Morph Numbers ✨</button>
+                
+                <div id="morph-result" style="margin-top: 1.5rem; opacity: 0; transition: opacity 0.5s;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">
+                        4,000 + 3,000 = 7,000
+                    </div>
+                    <p style="font-size: 0.9rem; color: #666;">(Actual: 7,061)</p>
+                </div>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 11: Estimation (Subtraction) -->
+        <div class="step-content" id="step-11">
+            <h2>Step 11: Estimating Differences</h2>
+            <p>Problem: <strong>9,843 - 5,126</strong></p>
+            <p>Round to the nearest 1,000.</p>
+
+            <div class="card-grid">
+                 <div class="interactive-card quiz-option" onclick="checkQuiz(this, true, 'Correct! 10,000 - 5,000 = 5,000.')">
+                    <h3>10,000 - 5,000</h3>
+                    <p class="feedback-text">Correct!</p>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkQuiz(this, false, 'Check 9,843. Does it round to 9,000?')">
+                    <h3>9,000 - 5,000</h3>
+                    <p class="feedback-text">Incorrect.</p>
+                </div>
+            </div>
+             <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="resetQuizzes()">Reset</button>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 12: Front-End Estimation -->
+        <div class="step-content" id="step-12">
+            <h2>Step 12: Front-End Estimation</h2>
+            <p>Singapore Math uses a technique called "Front-End Estimation" for quick checks. You simply look at the leading (front) digits and ignore the rest.</p>
+            
+            <div class="visual-box">
+                <p><strong>6</strong>,483 + <strong>2</strong>,514</p>
+                <p>Look at the thousands only:</p>
+                <h3 style="color: var(--primary);">6,000 + 2,000 = 8,000</h3>
+            </div>
+            
+            <p>This gives a lower-bound estimate quickly without complex rounding rules.</p>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 13: Real World Problem -->
+        <div class="step-content" id="step-13">
+            <h2>Step 13: Real World Problem</h2>
+            <div class="objective-card" style="background: var(--bg); color: var(--text-main); border: 2px solid var(--primary);">
+                <p><strong>The Problem:</strong> A school collected <strong>48,735</strong> bottles in Jan and <strong>21,462</strong> bottles in Feb.</p>
+                <p>Estimate the total collected (Nearest 10,000).</p>
+            </div>
+
+            <div style="margin-top: 1rem;" id="word-problem-solution" hidden>
+                <div class="visual-box" style="background: #ECFDF5; border-color: var(--success);">
+                    <p>48,735 &rarr; <strong>50,000</strong></p>
+                    <p>21,462 &rarr; <strong>20,000</strong></p>
+                    <hr>
+                    <p><strong>Total Estimate: 70,000 bottles</strong></p>
+                </div>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="btn btn-primary" onclick="document.getElementById('word-problem-solution').hidden = false;">Reveal Solution 💡</button>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 14: Common Mistakes -->
+        <div class="step-content" id="step-14">
+            <h2>Step 14: Common Mistakes</h2>
+            <p>Watch out for these traps!</p>
+
+            <div class="card-grid">
+                <div class="interactive-card incorrect" style="background: #FFF5F5;">
+                    <h3>❌ The Wrong Neighbor</h3>
+                    <p>Looking at the digit ITSELF instead of the digit to the RIGHT.</p>
+                </div>
+                <div class="interactive-card incorrect" style="background: #FFF5F5;">
+                    <h3>❌ Chain Rounding</h3>
+                    <p>Rounding the ones, then tens, then hundreds. No! Only look at the immediate neighbor.</p>
+                </div>
+            </div>
+            <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+        </div>
+
+        <!-- STEP 15: Debrief -->
+        <div class="step-content" id="step-15">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <span style="background: var(--success); color: white; padding: 4px 12px; border-radius: 99px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase;">Module Complete</span>
+            </div>
+            <h2>Step 15: Mastery Check</h2>
+            <p>You have completed Day 2! You can now round numbers and use estimation to check your work.</p>
+
+            <div class="visual-box">
+                <h3>Final Challenge</h3>
+                <p>Round <strong>9,999</strong> to the nearest 10.</p>
+                <p style="font-size: 0.9rem; color: #666;">(Think carefully: The 9 rounds up, which pushes the next 9...)</p>
+                <div id="final-answer" style="display: none; margin-top: 1rem; color: var(--primary); font-weight: bold; font-size: 1.5rem;">
+                    10,000
+                </div>
+                <button class="btn btn-outline" style="margin-top: 10px;" onclick="document.getElementById('final-answer').style.display = 'block'">Check Answer</button>
+            </div>
+
+            <div style="background: #F9FAFB; padding: 1.5rem; border-radius: 12px; margin-top: 2rem;">
+                <h3 style="margin-top: 0; color: var(--text-main);">📚 Resources</h3>
+                <ul style="padding-left: 1.5rem;">
+                    <li><a href="https://www.singaporemath.com/" target="_blank">Singapore Math Curriculum</a></li>
+                    <li><a href="https://www.khanacademy.org/math/cc-third-grade-math/imp-addition-and-subtraction/imp-rounding/v/rounding-to-the-nearest-10-and-100" target="_blank">Khan Academy: Rounding</a></li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="location.reload()">Restart Lesson 🔄</button>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<footer>
+    <button class="btn btn-outline" id="prev-btn" disabled onclick="navigateSteps(-1)">
+        &larr; Prev
+    </button>
+    <div class="nav-info" id="step-info">Step 1: Introduction</div>
+    <button class="btn btn-primary" id="next-btn" onclick="navigateSteps(1)">
+        Next &rarr;
+    </button>
+</footer>
+
+<div id="toast">Feedback Message</div>
+
+<script>
+    // --- State ---
+    let currentStep = 1;
+    const totalSteps = 15;
+    const stepInfo = document.getElementById('step-info');
+    const progressBar = document.getElementById('progress-bar');
+    const stepIndicator = document.getElementById('step-indicator');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    // --- Titles for Footer ---
+    const stepTitles = {
+        1: "Step 1: The Power of Estimation",
+        2: "Step 2: The Golden Rule",
+        3: "Step 3: Visualizing Closeness",
+        4: "Step 4: Rounding to Nearest 10",
+        5: "Step 5: Practice - Nearest 10",
+        6: "Step 6: Rounding to Nearest 100",
+        7: "Step 7: Rounding to Nearest 1,000",
+        8: "Step 8: Mastery Check",
+        9: "Step 9: Why Estimate?",
+        10: "Step 10: Estimating Sums",
+        11: "Step 11: Estimating Differences",
+        12: "Step 12: Front-End Estimation",
+        13: "Step 13: Real World Problem",
+        14: "Step 14: Common Mistakes",
+        15: "Step 15: Mastery Check"
+    };
+
+    // --- Navigation Logic ---
+    function navigateSteps(direction) {
+        const newStep = currentStep + direction;
+        if (newStep >= 1 && newStep <= totalSteps) {
+            // Hide current
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            
+            // Show new
+            currentStep = newStep;
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            
+            // Scroll to top
+            document.getElementById('main-content').scrollTop = 0;
+            
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        // Buttons
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'inline-flex';
+        }
+
+        // Progress
+        const percent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        progressBar.style.width = `${percent}%`;
+
+        // Text Info
+        stepIndicator.textContent = `Step ${currentStep}/${totalSteps}`;
+        stepInfo.textContent = stepTitles[currentStep];
+    }
+
+    // --- Step 2: Hill Animation ---
+    function animateHill(direction) {
+        const ball = document.getElementById('hill-ball');
+        const feedback = document.getElementById('hill-feedback');
+        
+        // Reset
+        ball.className = 'hill-ball';
+        void ball.offsetWidth; // Trigger reflow
+        
+        if (direction === 'left') {
+            ball.classList.add('roll-left');
+            feedback.innerText = "Rolling Down... It stays the same!";
+            feedback.style.color = "var(--text-secondary)";
+        } else {
+            ball.classList.add('roll-right');
+            feedback.innerText = "Rolling Up... Add 1 to the digit!";
+            feedback.style.color = "var(--success)";
+        }
+    }
+
+    // --- Step 3: Simulation Logic ---
+    function runStep3Simulation() {
+        const marker = document.getElementById('step3-marker');
+        const result = document.getElementById('step3-result');
+        const button = document.querySelector('#step3-controls button');
+        
+        button.disabled = true;
+        
+        // Reset
+        marker.style.display = 'block';
+        marker.style.left = '0%';
+        marker.style.transition = 'none';
+        result.style.display = 'none';
+        
+        setTimeout(() => {
+            // 1. Move to midpoint
+            marker.style.transition = 'left 1.5s linear';
+            marker.style.left = '50%';
+            
+            setTimeout(() => {
+                // 2. Pause briefly at midpoint
+                
+                setTimeout(() => {
+                    // 3. Move to final 72%
+                    marker.style.transition = 'left 1s ease-out';
+                    marker.style.left = '72%';
+                    
+                    setTimeout(() => {
+                        // 4. Show result
+                        result.style.display = 'block';
+                        result.style.animation = 'slideIn 0.3s ease-out';
+                        button.disabled = false;
+                        button.innerText = "Replay ▶️";
+                    }, 1000);
+                }, 500);
+                
+            }, 1500);
+        }, 100);
+    }
+
+    // --- Step 4: Digit Interaction ---
+    function step4Select(el, digit) {
+        // Reset siblings
+        const parent = el.parentElement;
+        Array.from(parent.children).forEach(child => {
+            child.classList.remove('selected-target', 'selected-neighbor');
+        });
+
+        if (digit === '7') {
+            // Correct Target
+            el.classList.add('selected-target');
+            showToast("Correct! 7 is the Tens place.");
+            
+            // Highlight neighbor automatically after short delay
+            setTimeout(() => {
+                const neighbor = parent.children[3]; // The '2'
+                neighbor.classList.add('selected-neighbor');
+                document.getElementById('step4-part2').style.display = 'block';
+            }, 800);
+        } else {
+            // Wrong
+            showToast("Try again. Which digit is in the Tens place?");
+        }
+    }
+
+    // --- Step 10: Morph Animation ---
+    function animateMorph() {
+        const m1 = document.getElementById('morph-1');
+        const m2 = document.getElementById('morph-2');
+        const res = document.getElementById('morph-result');
+        
+        m1.classList.add('morph-active');
+        m2.classList.add('morph-active');
+        
+        setTimeout(() => {
+            m1.innerText = "4,000";
+            m2.innerText = "3,000";
+            m1.style.color = "var(--primary)";
+            m2.style.color = "var(--primary)";
+            
+            setTimeout(() => {
+                res.style.opacity = '1';
+            }, 500);
+        }, 600);
+    }
+
+    // --- Quiz Logic ---
+    function checkQuiz(element, isCorrect, feedback) {
+        // Reset siblings in the same grid
+        const parent = element.parentElement;
+        const siblings = parent.querySelectorAll('.interactive-card');
+        siblings.forEach(sib => {
+            sib.classList.remove('selected', 'correct', 'incorrect');
+        });
+
+        element.classList.add('selected');
+        
+        const feedbackEl = element.querySelector('.feedback-text');
+        
+        if (isCorrect) {
+            element.classList.add('correct');
+            feedbackEl.innerText = feedback;
+            showToast("Correct! Great job! 🎉");
+        } else {
+            element.classList.add('incorrect');
+            feedbackEl.innerText = feedback;
+            showToast("Try again! You can do it.");
+        }
+    }
+
+    function resetQuizzes() {
+        const allOptions = document.querySelectorAll('.quiz-option');
+        allOptions.forEach(opt => {
+            opt.classList.remove('correct', 'incorrect', 'selected');
+        });
+        showToast("Quiz reset.");
+    }
+
+    // --- Toast Logic ---
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // --- Swipe Logic ---
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const mainContent = document.getElementById('main-content');
+
+    mainContent.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    mainContent.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        if (touchEndX < touchStartX - 50) {
+            // Swipe Left -> Next
+            navigateSteps(1);
+        }
+        if (touchEndX > touchStartX + 50) {
+            // Swipe Right -> Prev
+            navigateSteps(-1);
+        }
+    }
+
+    // --- Init ---
+    updateUI();
+
+</script>
+
+</body>
+</html>

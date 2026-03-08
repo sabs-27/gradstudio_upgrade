@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Editor - Learning Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --bg: #f8fafc;
+            --white: #fff;
+            --hover: #f1f5f9;
+            --text: #0f172a;
+            --text2: #475569;
+            --muted: #94a3b8;
+            --border: #e2e8f0;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --error: #ef4444;
+            --radius: 8px
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh
+        }
+
+        .app {
+            display: flex;
+            height: 100vh
+        }
+
+        .sidebar {
+            width: 340px;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .sidebar-header h1 i {
+            color: var(--accent)
+        }
+
+        .back-link {
+            font-size: 13px;
+            color: var(--muted);
+            text-decoration: none
+        }
+
+        .back-link:hover {
+            color: var(--accent)
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px
+        }
+
+        .category-section {
+            margin-bottom: 24px
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            margin-bottom: 8px
+        }
+
+        .category-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 4px
+        }
+
+        .icon-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px
+        }
+
+        .icon-btn:hover {
+            background: var(--hover);
+            color: var(--text)
+        }
+
+        .icon-btn.delete:hover {
+            background: #fee2e2;
+            color: var(--error)
+        }
+
+        .course-list {
+            list-style: none
+        }
+
+        .course-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            margin-bottom: 4px;
+            border: 1px solid transparent
+        }
+
+        .course-item:hover {
+            background: var(--hover)
+        }
+
+        .course-item.active {
+            background: #eff6ff;
+            border-color: var(--accent)
+        }
+
+        .course-item i {
+            width: 20px;
+            margin-right: 10px;
+            color: var(--muted)
+        }
+
+        .course-item.active i {
+            color: var(--accent)
+        }
+
+        .course-item span {
+            flex: 1;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .course-item .count {
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--hover);
+            padding: 2px 8px;
+            border-radius: 10px
+        }
+
+        .course-item .item-actions {
+            display: none;
+            gap: 2px
+        }
+
+        .course-item:hover .item-actions {
+            display: flex
+        }
+
+        .course-item:hover .count {
+            display: none
+        }
+
+        .add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed var(--border);
+            background: transparent;
+            border-radius: var(--radius);
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px
+        }
+
+        .add-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: #eff6ff
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .main-header {
+            padding: 20px 24px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .main-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .main-header h2 i {
+            color: var(--accent)
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--text)
+        }
+
+        .btn:hover {
+            background: var(--hover)
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent)
+        }
+
+        .btn-primary:hover {
+            background: #2563eb
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            background: var(--white);
+            border-radius: var(--radius);
+            border: 1px solid var(--border)
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: var(--hover);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted)
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px
+        }
+
+        .empty-state p {
+            color: var(--muted);
+            margin-bottom: 20px
+        }
+
+        .section-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 16px
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--hover);
+            border-radius: var(--radius) var(--radius) 0 0
+        }
+
+        .section-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .section-content {
+            padding: 12px
+        }
+
+        .topic-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border)
+        }
+
+        .topic-item:hover {
+            background: var(--hover)
+        }
+
+        .topic-badge {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px
+        }
+
+        .topic-info {
+            flex: 1
+        }
+
+        .topic-title {
+            font-size: 14px;
+            font-weight: 500
+        }
+
+        .topic-meta {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .topic-actions {
+            display: flex;
+            gap: 4px
+        }
+
+        .modal-overlay {
+            position: fixed;
+
+            .topic-item.focused {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+                background: #eef2ff
+            }
+
+            .section-card.focused {
+                border: 2px solid var(--accent);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+                background: #eef2ff
+            }
+
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--hover);
+            border-radius: 6px;
+            cursor: pointer
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--bg)
+        }
+
+        .form-group {
+            margin-bottom: 20px
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text2);
+            margin-bottom: 8px
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent)
+        }
+
+        .form-group input[type="file"] {
+            padding: 12px;
+            border-style: dashed;
+            border-width: 2px;
+            background: var(--bg)
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .form-check input[type="checkbox"] {
+            width: 18px;
+            height: 18px
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            background: var(--text);
+            color: white
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1
+        }
+
+        .toast.success {
+            background: var(--success)
+        }
+
+        .toast.error {
+            background: var(--error)
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--muted)
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 12px
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px
+        }
+
+        /* DnD Styles */
+        .drag-handle {
+            cursor: grab;
+            color: var(--muted);
+            margin-right: 8px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            padding: 4px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .draggable-category.dragging,
+        .draggable-course.dragging {
+            opacity: 0.5;
+            background: var(--hover);
+            border: 1px dashed var(--accent);
+        }
+
+        .draggable-category.over {
+            border-top: 2px solid var(--accent);
+        }
+
+        .draggable-course.over {
+            border-top: 2px solid var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-cog"></i> Admin Editor</h1>
+                <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+            </div>
+            <div class="sidebar-content" id="sidebar-content">
+                <div class="loading">
+                    <div class="spinner"></div> Loading...
+                </div>
+            </div>
+        </aside>
+        <main class="main">
+            <div class="main-header">
+                <h2 id="main-title"><i class="fas fa-home"></i> Dashboard</h2>
+                <div class="header-actions" id="header-actions"></div>
+            </div>
+            <div class="main-content" id="main-content">
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-mouse-pointer" style="font-size:24px;"></i></div>
+                    <h3>Select a Course</h3>
+                    <p>Choose a course from the sidebar to view and edit its content.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal-content"></div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        const API_BASE = 'https://www.gradstudio.org';
+        let allCourses = [], allCategories = [], currentCourse = null, currentCourseData = null;
+        let pendingFocusSimId = null;
+        let pendingFocusSectionId = null;
+
+        // Auth helpers - shared token with main site
+        function getAuthToken() { return localStorage.getItem('lp_auth_token') || ''; }
+        function authHeaders() { const t = getAuthToken(); return t ? { 'Authorization': 'Bearer ' + t } : {}; }
+        function authJsonHeaders() { return { 'Content-Type': 'application/json', ...authHeaders() }; }
+
+        // Auth check disabled for local preview
+
+        function showToast(m, t = 'success') { const toast = document.getElementById('toast'); toast.className = 'toast ' + t + ' show'; toast.innerHTML = '<i class="fas fa-' + (t === 'success' ? 'check' : 'exclamation') + '-circle"></i> ' + (typeof m === 'object' ? JSON.stringify(m) : m); setTimeout(() => toast.classList.remove('show'), 3000) }
+        function showModal(h) { document.getElementById('modal-content').innerHTML = h; document.getElementById('modal-overlay').classList.add('active') }
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('active') }
+        function esc(s) { return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '' }
+        function broadcastAdminUpdate() { try { localStorage.setItem('lp_admin_refresh', String(Date.now())); } catch (e) { /* ignore */ } }
+
+        async function loadData() {
+            try {
+                const [cRes, catRes] = await Promise.all([
+                    fetch(API_BASE + '/api/courses?t=' + Date.now()),
+                    fetch(API_BASE + '/api/categories?t=' + Date.now())
+                ]);
+
+                const cData = await cRes.json();
+                allCourses = cData.courses || [];
+
+                const catData = await catRes.json();
+                allCategories = catData.categories || [];
+
+                // Fallback for visual continuity if needed, but prefer DB
+                if (allCategories.length === 0 && allCourses.length > 0) {
+                    // Temporary client-side derivation if DB empty (should be backfilled)
+                    // Keeping simple for now, assuming backfill worked.
+                }
+
+                renderSidebar();
+            } catch (e) { document.getElementById('sidebar-content').innerHTML = '<div style="padding:20px;color:var(--error);text-align:center;">Failed to load<br><button class="btn btn-sm" style="margin-top:10px;" onclick="loadData()">Retry</button></div>' }
+        }
+
+        function renderSidebar() {
+            let h = '<button class="add-btn" onclick="openAddCategoryModal()"><i class="fas fa-plus"></i> Add Category</button>';
+            allCategories.forEach(cat => {
+                const courses = allCourses.filter(c => (c.category || 'skill') === cat.id);
+                courses.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+                h += '<div class="category-section" data-id="' + cat.id + '"><div class="category-header"><i class="fas fa-grip-vertical drag-handle"></i><span class="category-title" title="' + esc(cat.name) + '">' + esc(cat.name) + '</span><div class="category-actions"><button class="icon-btn" onclick="openEditCategoryModal(\'' + cat.id + '\',\'' + esc(cat.name) + '\')" title="Edit"><i class="fas fa-pencil-alt"></i></button><button class="icon-btn delete" onclick="deleteCategory(\'' + cat.id + '\')" title="Delete"><i class="fas fa-trash-alt"></i></button></div></div><ul class="course-list">';
+                if (courses.length === 0) { h += '<li style="padding:10px;color:var(--muted);font-size:13px;text-align:center;">No courses yet</li>' }
+                else { courses.forEach(course => { h += '<li class="course-item ' + (currentCourse === course.id ? 'active' : '') + '" data-id="' + course.id + '" onclick="selectCourse(\'' + course.id + '\')"><i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i><i class="' + (course.icon_class || 'fas fa-book') + '"></i><span title="' + esc(course.title) + '">' + esc(course.title) + '</span><span class="count">' + (course.simulation_count || 0) + '</span><div class="item-actions"><button class="icon-btn" onclick="event.stopPropagation();openEditCourseModal(\'' + course.id + '\')" title="Edit"><i class="fas fa-pencil-alt"></i></button><button class="icon-btn delete" onclick="event.stopPropagation();deleteCourse(\'' + course.id + '\')" title="Delete"><i class="fas fa-trash-alt"></i></button></div></li>' }) }
+                h += '</ul><button class="add-btn" onclick="openAddCourseModal(\'' + cat.id + '\')"><i class="fas fa-plus"></i> Add Course</button></div>'
+            });
+
+            h += '<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:10px;"><button class="add-btn" onclick="openRecycleBin()" style="border-color:var(--muted);color:var(--text2);"><i class="fas fa-trash-restore"></i> Recycle Bin</button></div>';
+            document.getElementById('sidebar-content').innerHTML = h;
+            if (window.initDragAndDrop) window.initDragAndDrop();
+        }
+
+        async function selectCourse(id, force = false) {
+            if (currentCourse === id && !force) return;
+            currentCourse = id;
+            // Optimization: Toggle active class without full re-render
+            document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+            const activeItem = document.querySelector('.course-item[data-id="' + id + '"]');
+            if (activeItem) activeItem.classList.add('active');
+
+            const course = allCourses.find(c => c.id === id); if (!course) return;
+            document.getElementById('main-title').innerHTML = '<i class="' + (course.icon_class || 'fas fa-book') + '"></i> ' + esc(course.title);
+            document.getElementById('header-actions').innerHTML = '<button class="btn" onclick="openEditCourseModal(\'' + id + '\')"><i class="fas fa-edit"></i> Edit</button><button class="btn btn-primary" onclick="openAddSectionModal(\'' + id + '\')"><i class="fas fa-plus"></i> Add Section</button>';
+            document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+            try { const res = await fetch(API_BASE + '/api/courses/' + id + '?t=' + Date.now()); currentCourseData = await res.json(); renderContent() }
+            catch (e) { document.getElementById('main-content').innerHTML = '<div class="empty-state"><h3>Failed to Load</h3><button class="btn" onclick="selectCourse(\'' + id + '\')">Retry</button></div>' }
+        }
+
+        // ... renderContent ...
+
+        // ... Modals ...
+
+        async function handleEditCategory(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { id, name: f.name.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Category updated'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditCategoryModal(id, name) {
+            const cat = allCategories.find(c => c.id === id);
+            const order = cat ? (cat.display_order || 0) : 0;
+            const html = `
+                <div class="modal-header"><h3>Edit Category</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-cat-form" onsubmit="handleEditCategory(event, '${id}')">
+                        <div class="form-group"><label>ID</label><input type="text" value="${id}" disabled></div>
+                        <div class="form-group"><label>Name *</label><input type="text" name="name" value="${esc(name)}" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${order}"><small>Lower numbers appear first</small></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" form="edit-cat-form" class="btn btn-primary">Save</button>
+                </div>
+            `;
+            showModal(html);
+        }
+
+        function openAddCategoryModal() {
+            const orders = allCategories.map(c => c.display_order || 0);
+            const nextOrder = orders.length > 0 ? (Math.max(...orders) + 1) : 1;
+            const html = `
+                <div class="modal-header"><h3>Add Category</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-cat-form" onsubmit="handleAddCategory(event)">
+                        <div class="form-group"><label>ID (unique, lowercase, no spaces) *</label><input type="text" name="id" required pattern="[a-z0-9-]+"></div>
+                        <div class="form-group"><label>Name *</label><input type="text" name="name" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}" readonly></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-cat-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddCategory(e) {
+            e.preventDefault();
+            const f = e.target;
+            const idValue = f.elements['id'] ? f.elements['id'].value : '';
+            const data = { id: idValue, name: f.name.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Category created'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Delete this category?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openAddCourseModal(catId) {
+            // Filter courses by category to find max order in this specific category
+            const siblings = allCourses.filter(c => (c.category || 'skill') === catId);
+            const orders = siblings.map(c => c.display_order || 0);
+            const nextOrder = orders.length > 0 ? (Math.max(...orders) + 1) : 1;
+
+            const html = `
+                <div class="modal-header"><h3>Add Course</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-course-form" onsubmit="handleAddCourse(event)">
+                        <div class="form-group"><label>ID (unique) *</label><input type="text" name="id" required></div>
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>Category</label><select name="category">${allCategories.map(c => `<option value="${c.id}" ${c.id === catId ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Icon Class</label><input type="text" name="icon_class" value="fas fa-book" placeholder="fas fa-book"></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}" readonly></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-course-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddCourse(e) {
+            e.preventDefault();
+            const f = e.target;
+            const idValue = f.elements['id'] ? f.elements['id'].value : '';
+            const data = { id: idValue, title: f.title.value, category: f.category.value, icon_class: f.icon_class.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Course created'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditCourseModal(id) {
+            const c = allCourses.find(x => x.id === id);
+            if (!c) return;
+            const html = `
+                <div class="modal-header"><h3>Edit Course</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-course-form" onsubmit="handleEditCourse(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(c.title)}" required></div>
+                        <div class="form-group"><label>Category</label><select name="category">${allCategories.map(cat => `<option value="${cat.id}" ${cat.id === (c.category || 'skill') ? 'selected' : ''}>${esc(cat.name)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Icon Class</label><input type="text" name="icon_class" value="${esc(c.icon_class || 'fas fa-book')}"></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${c.display_order || 0}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-course-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        function openAddSectionModal(courseId) {
+            let nextOrder = 1;
+            if (currentCourseData && currentCourseData.sections) {
+                const orders = currentCourseData.sections.map(s => s.display_order || 0);
+                if (orders.length > 0) nextOrder = Math.max(...orders) + 1;
+            }
+
+            const html = `
+                <div class="modal-header"><h3>Add Section</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-sec-form" onsubmit="handleAddSection(event, '${courseId}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}" readonly></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-sec-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddSection(e, courseId) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { course_id: courseId, title: f.title.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                const d = await res.json().catch(() => null);
+                if (res.ok) {
+                    pendingFocusSectionId = d?.id || null;
+                    showToast('Section created');
+                    closeModal();
+                    selectCourse(courseId, true);
+                    broadcastAdminUpdate();
+                } else {
+                    showToast(d?.error || 'Failed', 'error');
+                }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditSectionModal(id, title, order) {
+            const html = `
+                <div class="modal-header"><h3>Edit Section</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-sec-form" onsubmit="handleEditSection(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(title)}" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${order || 0}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-sec-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleEditSection(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { id, title: f.title.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Section updated'); closeModal(); if (currentCourse) selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteSection(id) {
+            if (!confirm('Delete this section?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); if (currentCourse) selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openAddSimulationModal(sectionId) {
+            let nextOrder = 1;
+            if (currentCourseData && currentCourseData.sections) {
+                const sec = currentCourseData.sections.find(s => s.id === sectionId);
+                if (sec && sec.items) {
+                    const orders = sec.items.map(s => s.display_order || 0);
+                    if (orders.length > 0) nextOrder = Math.max(...orders) + 1;
+                }
+            }
+
+            const html = `
+                <div class="modal-header"><h3>Add Topic</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-sim-form" onsubmit="handleAddSimulation(event, '${sectionId}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>HTML File *</label><input type="file" name="file" accept=".html" required></div>
+                        <div class="form-group"><label>Metadata</label><small>Slug will be auto-generated from title</small></div>
+                        <input type="hidden" name="display_order" value="${nextOrder}">
+                        <div class="form-check"><input type="checkbox" name="has_simulation" value="1" checked><label>Has Simulation Content</label></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-sim-form" class="btn btn-primary">Upload</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddSimulation(e, sectionId) {
+            e.preventDefault();
+            const f = e.target;
+            const fileInput = f.querySelector('input[type="file"][name="file"]');
+            const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+            if (!file) { showToast('Please select a file to upload', 'error'); return; }
+            // File size limit removed
+            const formData = new FormData(f);
+            formData.append('course_id', currentCourse);
+            formData.append('section_id', sectionId);
+
+            // Ensure display_order is explicitly set
+            const displayOrder = f.display_order ? f.display_order.value : '1';
+            if (!formData.get('display_order')) {
+                formData.set('display_order', displayOrder);
+            }
+
+            console.log('[ADD TOPIC] Sending display_order:', formData.get('display_order'));
+
+            showToast('Uploading...', 'success');
+
+            // DEBUG: Auth Check
+            console.log('[UPLOAD] Auth token:', getAuthToken() ? 'present' : 'MISSING');
+            console.log('[UPLOAD] Headers:', JSON.stringify(authHeaders()));
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/upload-simulation', { method: 'POST', headers: authHeaders(), body: formData });
+                const text = await res.text();
+                let d = null;
+                try { d = text ? JSON.parse(text) : null; } catch (_) { d = null; }
+
+                if (res.ok) {
+                    console.log('[ADD TOPIC] Server response:', d);
+                    showToast('Topic added');
+                    pendingFocusSimId = d?.id || null;
+                    closeModal();
+                    selectCourse(currentCourse, true);
+                    broadcastAdminUpdate();
+                } else {
+                    console.error('Upload failed:', res.status, text);
+                    const msg = typeof d?.error === 'object' ? JSON.stringify(d.error) : (d?.error || text || `Upload failed (${res.status})`);
+                    showToast(msg, 'error');
+                }
+            } catch (err) { showToast('Error: ' + err.message, 'error') }
+        }
+
+        function openEditSimulationModal(id) {
+            // Find sim data
+            if (!currentCourseData) return;
+            let sim = null;
+            let sectionId = null;
+            currentCourseData.sections.forEach(s => {
+                const found = s.items.find(x => x.id === id);
+                if (found) {
+                    sim = found;
+                    sectionId = s.id;
+                }
+            });
+            if (!sim) return;
+
+            // Get max order in this section for validation hint
+            const section = currentCourseData.sections.find(s => s.id === sectionId);
+            const maxOrder = section && section.items ? Math.max(...section.items.map(i => i.display_order || 0)) : 1;
+
+            const html = `
+                <div class="modal-header"><h3>Edit Topic</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-sim-form" onsubmit="handleEditSimulation(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(sim.name)}" required></div>
+                        <div class="form-group"><label>Position (1-${maxOrder})</label><input type="number" name="display_order" value="${sim.display_order || 1}" min="1" max="${maxOrder}"><small>Change position within this section</small></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-sim-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleEditSimulation(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = {
+                id,
+                title: f.title.value,
+                display_order: parseInt(f.display_order.value) || 1
+            };
+
+            console.log('[EDIT TOPIC] Sending:', data);
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/simulations', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Updated'); closeModal(); selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteSimulation(id) {
+            if (!confirm('Delete this topic?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/simulations/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+
+
+        function openBulkImportModal(sectionId) {
+            const html = `
+                <div class="modal-header"><h3><i class="fas fa-database"></i> Bulk Import Topics</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="bulk-import-form" onsubmit="handleBulkImport(event, '${sectionId}')">
+                        <div class="form-group">
+                            <label>Select HTML Files</label>
+                            <input type="file" id="bulk-files" accept=".html" multiple required style="padding:8px;">
+                            <small>Select multiple HTML files from your desktop</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Topic Metadata (JSON)</label>
+                            <textarea id="bulk-json" placeholder="Paste your JSON array here..." style="min-height:200px;font-family:monospace;font-size:13px;" required></textarea>
+                            <small>Provide title and display_order for each file (in same order as selected files)</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-upload"></i> Upload & Import</button>
+                        
+                        <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+                            <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2);">Example JSON Format</h4>
+                            <pre style="background:var(--bg-tertiary);padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;margin:0;">[
+  {
+    "title": "IAM",
+    "display_order": 1
+  },
+  {
+    "title": "ELB",
+    "display_order": 2
+  }
+]</pre>
+                            <small style="display:block;margin-top:8px;color:var(--muted);">Files will be uploaded to: simulations/${currentCourse}/</small>
+                        </div>
+                    </form>
+                </div>
+            `;
+            showModal(html);
+        }
+
+
+
+
+        async function handleBulkImport(e, sectionId) {
+            e.preventDefault();
+            const files = document.getElementById('bulk-files').files;
+            const jsonInput = document.getElementById('bulk-json').value.trim();
+
+            if (files.length === 0) {
+                showToast('No files selected', 'error');
+                return;
+            }
+
+            if (!jsonInput) {
+                showToast('No JSON provided', 'error');
+                return;
+            }
+
+            let metadata;
+            try {
+                metadata = JSON.parse(jsonInput);
+            } catch (err) {
+                showToast('Invalid JSON: ' + err.message, 'error');
+                return;
+            }
+
+            if (!Array.isArray(metadata)) {
+                showToast('JSON must be an array', 'error');
+                return;
+            }
+
+            if (files.length !== metadata.length) {
+                showToast(`Mismatch: ${files.length} files but ${metadata.length} metadata entries`, 'error');
+                return;
+            }
+
+            showToast(`Uploading ${files.length} files...`, 'success');
+
+            try {
+                // Upload each file and create database record
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const meta = metadata[i];
+
+                    // Generate slug from filename
+                    const filename = file.name;
+                    const slug = filename.replace(/\.html$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+                    // Upload + create record
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('course_id', currentCourse);
+                    formData.append('section_id', sectionId);
+                    formData.append('title', meta.title || filename.replace(/\.html$/i, ''));
+                    formData.append('slug', slug);
+                    formData.append('has_simulation', '1');
+                    formData.append('display_order', meta.display_order || (i + 1));
+
+                    const uploadRes = await fetch(API_BASE + '/api/admin/upload-simulation', {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: formData
+                    });
+
+                    if (!uploadRes.ok) {
+                        const errText = await uploadRes.text();
+                        let err;
+                        try { err = errText ? JSON.parse(errText) : null; } catch (_) { err = null; }
+                        throw new Error(`Upload failed for ${filename}: ${err?.error || errText || uploadRes.status}`);
+                    }
+
+                    showToast(`✓ Uploaded ${i + 1}/${files.length}: ${meta.title}`, 'success');
+                }
+
+                showToast(`Successfully imported ${files.length} topics!`, 'success');
+                closeModal();
+                selectCourse(currentCourse, true);
+                broadcastAdminUpdate();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+
+        async function handleEditCourse(e, id) {
+            e.preventDefault();
+            const f = e.target, data = { id, title: f.title.value, category: f.category.value, icon_class: f.icon_class.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) {
+                    showToast('Updated!');
+                    closeModal();
+                    // Update local state
+                    const c = allCourses.find(x => x.id === id);
+                    const catChanged = c && c.category !== data.category;
+                    // Reload data to ensure sync
+                    await loadData();
+                    if (currentCourse === id) {
+                        // Reselect optimistically
+                        document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+                        const activeItem = document.querySelector('.course-item[data-id="' + id + '"]');
+                        if (activeItem) activeItem.classList.add('active');
+                    }
+                    broadcastAdminUpdate();
+                }
+                else showToast('Failed', 'error')
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteCourse(id) {
+            if (!confirm('Delete this course? All sections and topics will be deleted.')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Course deleted'); currentCourse = null; loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error'); }
+        }
+
+        function renderContent() {
+            if (!currentCourseData) return;
+            const sections = currentCourseData.sections || [];
+            sections.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+            let html = '';
+            if (sections.length === 0) {
+                html = '<div class="empty-state"><h3>No Content</h3><p>This course has no sections yet.</p><button class="btn btn-primary" onclick="openAddSectionModal(\'' + currentCourse + '\')">Create Section</button></div>';
+            } else {
+                sections.forEach(sec => {
+                    html += `<div class="section-card draggable-section" draggable="true" data-id="${sec.id}" data-course-id="${currentCourse}">
+                        <div class="section-header">
+                            <i class="fas fa-grip-vertical drag-handle"></i>
+                            <div class="section-title">
+                                <span>${esc(sec.title)}</span>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="icon-btn" onclick="openEditSectionModal('${sec.id}', '${esc(sec.title)}', ${sec.display_order})" title="Edit Section"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="icon-btn delete" onclick="deleteSection('${sec.id}')" title="Delete Section"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <ul class="topic-list" data-section-id="${sec.id}">`;
+
+                    const sims = sec.items || [];
+                    sims.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+                    if (sims.length === 0) {
+                        html += `<li style="padding:10px;text-align:center;color:var(--muted);list-style:none;">No topics</li>`;
+                    } else {
+                        sims.forEach(sim => {
+                            html += `<li class="topic-item draggable-topic" draggable="true" data-id="${sim.id}" data-section-id="${sec.id}">
+                                <i class="fas fa-grip-vertical drag-handle"></i>
+                                <div class="topic-info">
+                                    <div class="topic-title">${esc(sim.name)}</div>
+                                    <div class="topic-meta">${esc(sim.slug)}</div>
+                                </div>
+                                <div class="topic-actions">
+                                    <button class="icon-btn" onclick="openEditSimulationModal('${sim.id}')"><i class="fas fa-pencil-alt"></i></button>
+                                    <button class="icon-btn delete" onclick="deleteSimulation('${sim.id}')"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </li>`;
+                        });
+                    }
+
+                    html += `</ul>
+                            <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center;">
+                                <button class="btn btn-sm" onclick="openAddSimulationModal('${sec.id}')"><i class="fas fa-plus"></i> Add Topic</button>
+                                <button class="btn btn-sm" onclick="openBulkImportModal('${sec.id}')" style="background:var(--success);"><i class="fas fa-file-import"></i> Bulk Import</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            document.getElementById('main-content').innerHTML = html;
+            if (window.initDragAndDrop) window.initDragAndDrop();
+
+            if (pendingFocusSimId) {
+                const target = document.querySelector('.topic-item[data-id="' + pendingFocusSimId + '"]');
+                if (target) {
+                    document.querySelectorAll('.topic-item.focused').forEach(el => el.classList.remove('focused'));
+                    target.classList.add('focused');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => target.classList.remove('focused'), 2000);
+                }
+                pendingFocusSimId = null;
+            }
+
+            if (pendingFocusSectionId) {
+                const sectionTarget = document.querySelector('.section-card[data-id="' + pendingFocusSectionId + '"]');
+                if (sectionTarget) {
+                    document.querySelectorAll('.section-card.focused').forEach(el => el.classList.remove('focused'));
+                    sectionTarget.classList.add('focused');
+                    sectionTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => sectionTarget.classList.remove('focused'), 2000);
+                }
+                pendingFocusSectionId = null;
+            }
+        }
+
+        async function openRecycleBin() {
+            currentCourse = null;
+            document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('main-title').innerHTML = '<i class="fas fa-trash-restore"></i> Recycle Bin';
+            document.getElementById('header-actions').innerHTML = '<button class="btn btn-sm" onclick="openRecycleBin()"><i class="fas fa-sync"></i> Refresh</button>';
+            const content = document.getElementById('main-content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading trash...</div>';
+
+            try {
+                const [catRes, courseRes, secRes, simRes] = await Promise.all([
+                    fetch(API_BASE + '/api/admin/categories/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/courses/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/sections/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/simulations/deleted', { headers: authHeaders() })
+                ]);
+
+                const cats = await catRes.json();
+                const courses = await courseRes.json();
+                const sections = await secRes.json();
+                const sims = await simRes.json();
+
+                let html = `
+                <div class="header">
+                    <div class="header-left">
+                        <h2><i class="fas fa-trash-alt"></i> Recycle Bin</h2>
+                        <p class="text-muted">Manage deleted items</p>
+                    </div>
+                </div>
+                <div class="content-body" style="padding: 24px">
+            `;
+
+                // Categories
+                if (cats.categories && cats.categories.length > 0) {
+                    html += `<h3>Deleted Categories</h3><table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Actions</th></tr></thead><tbody>`;
+                    cats.categories.forEach(c => {
+                        html += `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.name}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('categories', '${c.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('categories', '${c.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Courses
+                if (courses.courses && courses.courses.length > 0) {
+                    html += `<h3>Deleted Courses</h3><table class="data-table"><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Actions</th></tr></thead><tbody>`;
+                    courses.courses.forEach(c => {
+                        html += `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.title}</td>
+                            <td>${c.category}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('courses', '${c.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('courses', '${c.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Sections
+                if (sections.sections && sections.sections.length > 0) {
+                    html += `<h3>Deleted Sections</h3><table class="data-table"><thead><tr><th>ID</th><th>Title</th><th>Course</th><th>Actions</th></tr></thead><tbody>`;
+                    sections.sections.forEach(s => {
+                        html += `
+                        <tr>
+                            <td>${s.id}</td>
+                            <td>${s.title}</td>
+                            <td>${s.course_title || s.course_id}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('sections', '${s.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('sections', '${s.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Topics
+                if (sims.simulations && sims.simulations.length > 0) {
+                    html += `<h3>Deleted Topics</h3><table class="data-table"><thead><tr><th>Title</th><th>Slug</th><th>Actions</th></tr></thead><tbody>`;
+                    sims.simulations.forEach(s => {
+                        html += `
+                        <tr>
+                            <td>${s.title}</td>
+                            <td>${s.slug}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('simulations', '${s.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('simulations', '${s.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table>`;
+                }
+
+                if (!cats.count && !courses.count && !sections.count && !sims.count) {
+                    html += `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-trash"></i></div><h3>Trash is empty</h3></div>`;
+                }
+
+                html += `</div>`;
+                content.innerHTML = html;
+
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = '<div class="empty-state" style="color:var(--error);"><h3>Error Loading Recycle Bin</h3><p>' + e.message + '</p><button class="btn" onclick="openRecycleBin()">Retry</button></div>';
+            }
+        }
+
+        async function handleRestore(type, id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/${type}/${id}/restore`, { method: 'POST' });
+                if (res.ok) { showToast('Restored!'); openRecycleBin(); loadData(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function handlePermanentDelete(type, id) {
+            if (!confirm('Permanently delete this item? This CANNOT be undone.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/${type}/${id}/permanent`, { method: 'DELETE' });
+                if (res.ok) { showToast('Deleted forever'); openRecycleBin(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+
+        // Initialize
+        loadData();
+    </script>
+    <script src="./admin-drag.js" defer></script>
+</body>
+
+</html>

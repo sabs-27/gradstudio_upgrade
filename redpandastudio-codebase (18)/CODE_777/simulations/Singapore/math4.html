@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Math Grade 5: Day 4</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-dark: #1D4ED8;
+            --secondary: #93C5FD;
+            --accent: #F59E0B;
+            --bg: #F8FAFC;
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --success: #10B981;
+            --danger: #EF4444;
+            --border: #E5E7EB;
+            --card-bg: #FFFFFF;
+            --font-main: 'Inter', sans-serif;
+            --font-fun: 'Comic Neue', cursive;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            width: 100%; height: 100%; background-color: var(--bg);
+            font-family: var(--font-main); color: var(--text-main);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #FFFFFF; border-bottom: 1px solid var(--border);
+            padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 10;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-family: var(--font-fun); font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .progress-container { width: 100%; height: 8px; background: #E5E7EB; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s ease; }
+        .step-badge { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); background: #EFF6FF; padding: 4px 12px; border-radius: 99px; }
+
+        /* --- Main Content --- */
+        main { flex: 1; overflow-y: auto; scroll-behavior: smooth; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; /* Space for floating footer */ }
+        .content-container { width: 100%; max-width: 800px; min-height: 100%; }
+        .step-content { display: none; animation: fadeIn 0.4s ease-out; }
+        .step-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 1rem; }
+        h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+        p { line-height: 1.6; margin-bottom: 1.5rem; color: var(--text-secondary); font-size: 1.05rem; }
+
+        /* --- Components --- */
+        .card { background: var(--card-bg); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px;
+            border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none;
+            font-size: 1rem; font-family: var(--font-main); min-height: 48px;
+        }
+        .btn-primary { background-color: var(--primary); color: white; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text-main); }
+        .btn-full { width: 100%; margin-top: 0.5rem; }
+        .btn-sm { padding: 8px 16px; font-size: 0.9rem; min-height: 36px; }
+        
+        /* Reveal Button */
+        .btn-reveal {
+            background: transparent; color: var(--text-secondary); border: 1px dashed var(--border);
+            font-size: 0.9rem; padding: 8px 16px; border-radius: 8px; margin-top: 10px; width: 100%;
+        }
+        .btn-reveal:hover { background: #F3F4F6; color: var(--primary); border-color: var(--primary); }
+
+        /* --- Bar Model Styling --- */
+        .bar-container { display: flex; align-items: center; margin: 20px 0; position: relative; }
+        .bar {
+            height: 50px; border: 2px solid var(--primary); border-radius: 8px;
+            background: #EFF6FF; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: var(--primary-dark); transition: all 0.3s;
+            position: relative;
+        }
+        .bar-label { position: absolute; left: -80px; width: 70px; text-align: right; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        
+        /* Bracket for Total */
+        .bracket-total {
+            position: relative; margin-top: 10px; height: 15px;
+            border-left: 2px solid var(--text-secondary);
+            border-right: 2px solid var(--text-secondary);
+            border-bottom: 2px solid var(--text-secondary);
+        }
+        .bracket-total::after {
+            content: attr(data-label); position: absolute; bottom: -25px; left: 50%;
+            transform: translateX(-50%); font-weight: bold; color: var(--text-secondary); white-space: nowrap;
+        }
+
+        /* Step 5 Comparison Specifics */
+        .comparison-wrapper { display: flex; flex-direction: column; gap: 10px; position: relative; padding-left: 80px; }
+        .comp-row { display: flex; align-items: center; height: 50px; }
+        .comp-label { position: absolute; left: 0; width: 70px; text-align: right; font-weight: 600; color: var(--text-secondary); }
+        .bar-full { width: 100%; background: #DBEAFE; border: 2px solid var(--primary); border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary-dark); }
+        .bar-short { width: 60%; background: #FEE2E2; border: 2px solid #EF4444; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #991B1B; z-index: 2; }
+        .diff-gap { 
+            flex: 1; margin-left: 5px; height: 100%; 
+            border: 2px dashed #F59E0B; border-radius: 6px; 
+            background: #FEF3C7; color: #D97706; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; opacity: 0; transform: translateX(-20px); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .diff-gap.visible { opacity: 1; transform: translateX(0); }
+
+        /* Interactive Slots */
+        .drop-zone {
+            border: 2px dashed #9CA3AF; background: rgba(255,255,255,0.5);
+            min-width: 60px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            margin: 0 5px; cursor: pointer; color: #6B7280; font-size: 0.9rem;
+        }
+        .drop-zone.filled { border: 2px solid var(--success); background: #ECFDF5; color: var(--success); font-weight: bold; }
+
+        .number-bank { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+        .draggable-num {
+            background: white; border: 2px solid var(--primary); padding: 8px 16px; border-radius: 8px;
+            font-weight: bold; cursor: pointer; transition: transform 0.2s;
+        }
+        .draggable-num:active { transform: scale(0.95); }
+        .draggable-num.used { opacity: 0.5; cursor: not-allowed; background: #E5E7EB; border-color: #9CA3AF; }
+
+        /* Quiz & Inputs */
+        .input-group { display: flex; gap: 10px; margin-top: 1rem; }
+        input[type="number"] {
+            flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem;
+        }
+        input[type="number"]:focus { outline: none; border-color: var(--primary); }
+
+        /* Confetti */
+        .confetti { position: fixed; width: 10px; height: 10px; animation: fall linear forwards; z-index: 100; pointer-events: none; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+
+        /* Blue Chip Footer */
+        footer {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: var(--primary);
+            border-radius: 50px;
+            padding: 8px 10px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            font-weight: 700;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.primary-nav {
+            color: #FFFFFF;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .nav-btn.primary-nav:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .bar-label { position: static; text-align: left; width: 100%; margin-bottom: 4px; display: block; }
+            .bar-container { flex-direction: column; align-items: flex-start; margin-bottom: 30px; }
+            .bar { width: 100%; }
+            .comparison-wrapper { padding-left: 0; }
+            .comp-label { position: static; text-align: left; width: 100%; margin-bottom: 5px; }
+            .comp-row { width: 100%; margin-bottom: 10px; }
+        }
+        
+        .hidden { display: none; }
+        .swipe-hint { text-align: center; font-size: 0.85rem; color: #9CA3AF; margin-top: 2rem; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 100px;
+            transform: translateX(-50%); opacity: 0; transition: opacity 0.3s;
+        }
+        #toast.show { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-top">
+            <div class="brand">🦁 Singapore Math</div>
+            <div class="step-badge" id="step-badge">Day 4: Intro</div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="content-container">
+
+            <!-- STEP 1: Intro -->
+            <div class="step-content active" id="step-1">
+                <div class="text-center">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">✏️</span>
+                    <h1>Step 1: Draw to Think</h1>
+                    <p>Welcome to Day 4! Today we unlock the superpower of Singapore Math: <strong>The Bar Model</strong>.</p>
+                </div>
+                <div class="card" style="background-color: #1F2937; color: white;">
+                    <h2 style="color: var(--secondary); font-size: 1.2rem;">🎯 Learning Objectives</h2>
+                    <ul class="objective-list" style="list-style: none; padding-left: 0;">
+                        <li style="margin-bottom: 8px;">📊 Represent problems visually</li>
+                        <li style="margin-bottom: 8px;">➕ Decide: Add or Subtract?</li>
+                        <li style="margin-bottom: 8px;">🧠 Solve 1-step & 2-step problems</li>
+                    </ul>
+                </div>
+                <p class="text-center">Instead of guessing "plus or minus?", we draw meaningful pictures.</p>
+                <div class="text-center">
+                    <button class="btn btn-primary" onclick="changeStep(1)">Start Drawing 🎨</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: What is a Bar Model -->
+            <div class="step-content" id="step-2">
+                <h2>Step 2: What is a Bar Model?</h2>
+                <p>A bar model turns words into visual blocks. It helps us see the relationship between parts and the whole.</p>
+                
+                <div class="card">
+                    <h3>The Anatomy</h3>
+                    <div style="margin: 20px 0;">
+                        <div style="display: flex; gap: 5px;">
+                            <div style="background: #93C5FD; flex: 2; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold;">Part A</div>
+                            <div style="background: #FCA5A5; flex: 1; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold;">Part B</div>
+                        </div>
+                        <div class="bracket-total" data-label="WHOLE / TOTAL"></div>
+                    </div>
+                    <p style="font-size: 0.9rem; text-align: center;">If you know the parts, you ADD to find the whole.</p>
+                </div>
+            </div>
+
+            <!-- STEP 3: Type 1 Construction -->
+            <div class="step-content" id="step-3">
+                <h2>Step 3: Part-Whole (Addition)</h2>
+                <p><strong>Problem:</strong> A library has <strong>245,000</strong> story books and <strong>178,000</strong> reference books.</p>
+                <p>Let's build the model. Tap the numbers to place them in the bar.</p>
+
+                <div class="card">
+                    <div style="display: flex; gap: 5px; margin-bottom: 20px;">
+                        <div class="bar" style="flex: 3;" id="s3-bar1">
+                            <div class="drop-zone" id="s3-zone1" onclick="fillZone(this, '245,000')">Tap Here</div>
+                        </div>
+                        <div class="bar" style="flex: 2;" id="s3-bar2">
+                            <div class="drop-zone" id="s3-zone2" onclick="fillZone(this, '178,000')">Tap Here</div>
+                        </div>
+                    </div>
+                    <div class="bracket-total" data-label="? Total"></div>
+
+                    <div class="number-bank">
+                        <div class="draggable-num" onclick="triggerZoneClick('s3-zone1')">245,000</div>
+                        <div class="draggable-num" onclick="triggerZoneClick('s3-zone2')">178,000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: Solve Type 1 -->
+            <div class="step-content" id="step-4">
+                <h2>Step 4: Solve It</h2>
+                <p>We have two parts. We need the whole.</p>
+                <div class="card text-center">
+                    <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                        245,000 + 178,000 = ?
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="s4-input" placeholder="Enter total...">
+                        <button class="btn btn-primary" onclick="checkAnswer('s4-input', 423000, 'Correct! Two parts make a whole.')">Check</button>
+                    </div>
+                    <button class="btn-reveal" onclick="revealAnswer('s4-input', 423000)">💡 Reveal Solution</button>
+                </div>
+            </div>
+
+            <!-- STEP 5: Type 2 Construction (Comparison) -->
+            <div class="step-content" id="step-5">
+                <h2>Step 5: Comparison (Subtraction)</h2>
+                <p><strong>Problem:</strong> Factory A made <strong>680,000</strong> masks. Factory B made <strong>455,000</strong>.</p>
+                <p>How many <em>more</em> did A make?</p>
+
+                <div class="card">
+                    <div class="comparison-wrapper">
+                        <div class="comp-label">Fact. A</div>
+                        <div class="comp-row">
+                            <div class="bar-full">680,000</div>
+                        </div>
+                        
+                        <div class="comp-label" style="top: 60px;">Fact. B</div>
+                        <div class="comp-row" style="margin-top: 10px;">
+                            <div class="bar-short">455,000</div>
+                            <div id="diff-gap" class="diff-gap">?</div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 1.5rem; text-align: center;">Tap the button to visualize the DIFFERENCE.</p>
+                    <button class="btn btn-outline btn-full" onclick="animateDifference(this)">Visualize Difference 📐</button>
+                </div>
+            </div>
+
+            <!-- STEP 6: Solve Type 2 -->
+            <div class="step-content" id="step-6">
+                <h2>Step 6: Solve It</h2>
+                <p>When we compare two bars to find the difference, we subtract.</p>
+                <div class="card text-center">
+                    <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                        680,000 - 455,000 = ?
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="s6-input" placeholder="Enter difference...">
+                        <button class="btn btn-primary" onclick="checkAnswer('s6-input', 225000, 'Spot on! Difference means subtraction.')">Check</button>
+                    </div>
+                    <button class="btn-reveal" onclick="revealAnswer('s6-input', 225000)">💡 Reveal Solution</button>
+                </div>
+            </div>
+
+            <!-- STEP 7: Type 3 Construction -->
+            <div class="step-content" id="step-7">
+                <h2>Step 7: Missing Part</h2>
+                <p><strong>Problem:</strong> Total bottles = <strong>750,000</strong>. Week 1 = <strong>468,000</strong>. Week 2 = ?</p>
+                
+                <div class="card">
+                    <div style="display: flex; gap: 5px; margin-bottom: 20px;">
+                        <div class="bar" style="flex: 2; background: #DBEAFE;">
+                            468,000
+                        </div>
+                        <div class="bar" style="flex: 1; background: #F3F4F6; border-style: dashed;">
+                            ?
+                        </div>
+                    </div>
+                    <div class="bracket-total" data-label="Total: 750,000"></div>
+                </div>
+                <p>We know the Whole and one Part. We need the other Part.</p>
+            </div>
+
+            <!-- STEP 8: Solve Type 3 -->
+            <div class="step-content" id="step-8">
+                <h2>Step 8: Solve It</h2>
+                <p>Whole - Part = Other Part.</p>
+                <div class="card text-center">
+                    <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                        750,000 - 468,000 = ?
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="s8-input" placeholder="Answer...">
+                        <button class="btn btn-primary" onclick="checkAnswer('s8-input', 282000, 'Excellent! Subtraction reveals the missing part.')">Check</button>
+                    </div>
+                    <button class="btn-reveal" onclick="revealAnswer('s8-input', 282000)">💡 Reveal Solution</button>
+                </div>
+            </div>
+
+            <!-- STEP 9: Model Matcher Simulation -->
+            <div class="step-content" id="step-9">
+                <h2>Step 9: Simulation - Model Matcher</h2>
+                <p>Read the problem text and pick the correct empty model.</p>
+                <div class="card">
+                    <p><strong>"John has 500 apples. Mary has 200 fewer than John."</strong></p>
+                    
+                    <div class="quiz-option" onclick="checkModelMatch(this, false)" style="border: 2px solid var(--border); padding: 10px; margin-bottom: 10px; border-radius: 8px; cursor: pointer;">
+                        <strong>Model A:</strong> One long bar split into two parts (500 and 200).
+                    </div>
+                    
+                    <div class="quiz-option" onclick="checkModelMatch(this, true)" style="border: 2px solid var(--border); padding: 10px; margin-bottom: 10px; border-radius: 8px; cursor: pointer;">
+                        <strong>Model B:</strong> Two separate bars. Comparison. John's is longer.
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 10: Two-Step Intro -->
+            <div class="step-content" id="step-10">
+                <h2>Step 10: Two-Step Problems</h2>
+                <p>Real math problems often have two parts. Don't rush!</p>
+                <div class="card" style="border-left: 5px solid var(--accent);">
+                    <p><strong>The Apple Shop Problem:</strong></p>
+                    <p>Monday: Sold <strong>325,000</strong>.</p>
+                    <p>Tuesday: Sold <strong>48,000 fewer</strong> than Monday.</p>
+                    <p><strong>Goal:</strong> Find the Total sold.</p>
+                </div>
+                <p>We cannot find the total yet because we don't know Tuesday's number!</p>
+            </div>
+
+            <!-- STEP 11: Two-Step Part 1 -->
+            <div class="step-content" id="step-11">
+                <h2>Step 11: Step 1 - Find Tuesday</h2>
+                <p>"48,000 fewer than Monday (325,000)"</p>
+                
+                <div class="card">
+                    <div class="bar-container">
+                        <span class="bar-label">Mon</span>
+                        <div class="bar" style="width: 100%;">325,000</div>
+                    </div>
+                    <div class="bar-container">
+                        <span class="bar-label">Tue</span>
+                        <div class="bar" style="width: 80%; background: #F3F4F6; border-style: dashed;">?</div>
+                        <div style="position: absolute; right: 0; width: 20%; text-align: center; font-size: 0.8rem; color: var(--danger);">-48k</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="number" id="s11-input" placeholder="What is Tuesday's sales?">
+                        <button class="btn btn-primary" onclick="checkAnswer('s11-input', 277000, 'Correct! 325,000 - 48,000 = 277,000')">Check</button>
+                    </div>
+                    <button class="btn-reveal" onclick="revealAnswer('s11-input', 277000)">💡 Reveal Solution</button>
+                </div>
+            </div>
+
+            <!-- STEP 12: Two-Step Part 2 -->
+            <div class="step-content" id="step-12">
+                <h2>Step 12: Step 2 - Find Total</h2>
+                <p>Now we know both days.</p>
+                <p>Monday: <strong>325,000</strong></p>
+                <p>Tuesday: <strong>277,000</strong></p>
+                
+                <div class="card">
+                    <div style="display: flex; gap: 5px;">
+                        <div class="bar" style="flex: 1;">325,000</div>
+                        <div class="bar" style="flex: 1; background: #FCA5A5; border-color: #EF4444; color: #7F1D1D;">277,000</div>
+                    </div>
+                    <div class="bracket-total" data-label="?"></div>
+                    
+                    <div class="input-group">
+                        <input type="number" id="s12-input" placeholder="Total sales?">
+                        <button class="btn btn-primary" onclick="checkAnswer('s12-input', 602000, 'Boom! You solved a 2-step problem.')">Check</button>
+                    </div>
+                    <button class="btn-reveal" onclick="revealAnswer('s12-input', 602000)">💡 Reveal Solution</button>
+                </div>
+            </div>
+
+            <!-- STEP 13: Challenge 1 -->
+            <div class="step-content" id="step-13">
+                <h2>Step 13: Challenge - The Farm</h2>
+                <p><strong>385,000</strong> mangoes. <strong>219,000</strong> oranges. How many fruits altogether?</p>
+                
+                <div class="card">
+                    <p>Select Operation:</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <button class="btn btn-outline" style="flex:1;" onclick="selectOp(this, 'add')">Addition (+)</button>
+                        <button class="btn btn-outline" style="flex:1;" onclick="selectOp(this, 'sub')">Subtraction (-)</button>
+                    </div>
+                    <div id="c1-calc" class="hidden">
+                        <input type="number" id="c1-input" placeholder="Result..." style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                        <button class="btn btn-primary btn-full" onclick="checkAnswer('c1-input', 604000, 'Correct! Part + Part = Whole')">Submit</button>
+                        <button class="btn-reveal" onclick="revealAnswer('c1-input', 604000)">💡 Reveal Solution</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 14: Challenge 2 -->
+            <div class="step-content" id="step-14">
+                <h2>Step 14: Challenge - The City</h2>
+                <p>City pop: <strong>1,200,000</strong>. East side: <strong>475,000</strong>. How many elsewhere?</p>
+                
+                 <div class="card">
+                    <p>Select Operation:</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <button class="btn btn-outline" style="flex:1;" onclick="selectOp(this, 'add')">Addition (+)</button>
+                        <button class="btn btn-outline" style="flex:1;" onclick="selectOp(this, 'sub')">Subtraction (-)</button>
+                    </div>
+                    <div id="c2-calc" class="hidden">
+                        <input type="number" id="c2-input" placeholder="Result..." style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                        <button class="btn btn-primary btn-full" onclick="checkAnswer('c2-input', 725000, 'Correct! Whole - Part = Part')">Submit</button>
+                        <button class="btn-reveal" onclick="revealAnswer('c2-input', 725000)">💡 Reveal Solution</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 15: Debrief -->
+            <div class="step-content" id="step-15">
+                <h2>Step 15: Day 4 Mastery</h2>
+                <div class="text-center">
+                    <span style="font-size: 3rem;">🌟</span>
+                    <h3>Bar Model Certified!</h3>
+                    <p>You can now visualize math problems.</p>
+                </div>
+                
+                <div class="card">
+                    <h4>Checklist:</h4>
+                    <ul class="objective-list" style="list-style: none; padding: 0;">
+                        <li>✅ I can draw Part-Whole models.</li>
+                        <li>✅ I can draw Comparison models.</li>
+                        <li>✅ I can solve 2-step problems.</li>
+                    </ul>
+                </div>
+
+                <div class="resources-box" style="background: #F0FDFA; padding: 1rem; border-radius: 8px; border: 1px solid #CCFBF1; margin-top: 1rem;">
+                    <h3 style="color: #0F766E; font-size: 1.1rem; margin-bottom: 0.5rem;">📚 Resources</h3>
+                    <ul style="padding-left: 1.2rem; color: #115E59;">
+                        <li><a href="https://www.mathplayground.com/thinkingblocks.html" target="_blank">Thinking Blocks (Interactive Tool)</a></li>
+                        <li><a href="https://www.youtube.com/results?search_query=singapore+math+bar+model" target="_blank">Video Tutorials</a></li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <button class="nav-btn" id="prev-btn" onclick="changeStep(-1)">← Back</button>
+        <button class="nav-btn primary-nav" id="next-btn" onclick="changeStep(1)">Next →</button>
+    </footer>
+
+    <div id="toast">Feedback message</div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 15;
+        const stepBadge = document.getElementById('step-badge');
+        const progressBar = document.getElementById('progress-bar');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const mainContent = document.getElementById('main-content');
+        const toast = document.getElementById('toast');
+
+        const stepTitles = [
+            "Intro", "Definition", "Part-Whole Build", "Part-Whole Solve", 
+            "Comparison Build", "Comparison Solve", "Missing Part Build", "Missing Part Solve",
+            "Model Matcher", "2-Step Intro", "2-Step Part 1", "2-Step Part 2",
+            "Challenge 1", "Challenge 2", "Debrief"
+        ];
+
+        function changeStep(dir) {
+            const next = currentStep + dir;
+            if (next >= 1 && next <= totalSteps) {
+                document.getElementById(`step-${currentStep}`).classList.remove('active');
+                currentStep = next;
+                document.getElementById(`step-${currentStep}`).classList.add('active');
+                mainContent.scrollTo(0, 0);
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            stepBadge.textContent = `Day 4 Step ${currentStep}: ${stepTitles[currentStep-1]}`;
+            const pct = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressBar.style.width = `${pct}%`;
+            prevBtn.disabled = currentStep === 1;
+            nextBtn.textContent = currentStep === totalSteps ? "Finish" : "Next →";
+            nextBtn.disabled = currentStep === totalSteps;
+            if(currentStep === totalSteps) nextBtn.style.opacity = 0;
+            else nextBtn.style.opacity = 1;
+        }
+
+        // Swipe
+        let tX = 0;
+        mainContent.addEventListener('touchstart', e => tX = e.changedTouches[0].screenX, {passive:true});
+        mainContent.addEventListener('touchend', e => {
+            if (e.changedTouches[0].screenX < tX - 50 && currentStep < totalSteps) changeStep(1);
+            if (e.changedTouches[0].screenX > tX + 50 && currentStep > 1) changeStep(-1);
+        }, {passive:true});
+
+        // Step 3 Logic
+        function fillZone(el, text) {
+            el.textContent = text;
+            el.classList.add('filled');
+            showToast("Placed!");
+        }
+        function triggerZoneClick(id) {
+            document.getElementById(id).click();
+        }
+
+        // Step 4, 6, 8, 11, 12, 13, 14 Answer Check
+        function checkAnswer(inputId, correctVal, msg) {
+            const val = parseInt(document.getElementById(inputId).value.replace(/,/g, ''));
+            if (val === correctVal) {
+                showToast("✅ " + msg);
+                triggerConfetti();
+            } else {
+                showToast("❌ Try again. Check your math.");
+            }
+        }
+
+        // Reveal Answer Logic
+        function revealAnswer(inputId, correctVal) {
+            const input = document.getElementById(inputId);
+            input.value = correctVal.toLocaleString();
+            input.style.borderColor = "var(--accent)";
+            showToast("💡 Solution revealed!");
+        }
+
+        // Step 5 Visual Animation
+        function animateDifference(btn) {
+            const gap = document.getElementById('diff-gap');
+            gap.classList.add('visible');
+            btn.style.display = 'none';
+        }
+
+        // Step 9 Logic
+        function checkModelMatch(el, isCorrect) {
+            if (isCorrect) {
+                el.style.borderColor = "var(--success)";
+                el.style.backgroundColor = "#ECFDF5";
+                showToast("✅ Correct! 'Fewer than' means comparison.");
+                triggerConfetti();
+            } else {
+                el.style.borderColor = "var(--danger)";
+                el.style.backgroundColor = "#FEF2F2";
+                showToast("❌ Incorrect. We are comparing two people.");
+            }
+        }
+
+        // Challenges Logic
+        function selectOp(btn, op) {
+            // Visual selection
+            const parent = btn.parentElement;
+            parent.querySelectorAll('.btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline');
+            });
+            btn.classList.remove('btn-outline');
+            btn.classList.add('btn-primary');
+
+            // Show input if correct op
+            const card = parent.parentElement;
+            const inputDiv = card.querySelector('div[id$="-calc"]');
+            
+            // Challenge 1 is Add, Challenge 2 is Sub
+            const isChal1 = card.innerHTML.includes("mangoes");
+            const correctOp = isChal1 ? 'add' : 'sub';
+
+            if (op === correctOp) {
+                inputDiv.classList.remove('hidden');
+                showToast("Correct Operation selected!");
+            } else {
+                inputDiv.classList.add('hidden');
+                showToast("Think again. Draw the bar model in your head.");
+            }
+        }
+
+        // Utilities
+        function showToast(msg) {
+            toast.textContent = msg; toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function triggerConfetti() {
+            const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6'];
+            for (let i = 0; i < 30; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.backgroundColor = colors[Math.floor(Math.random() * 4)];
+                c.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 3000);
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>

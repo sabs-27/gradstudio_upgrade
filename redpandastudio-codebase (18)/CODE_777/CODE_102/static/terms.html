@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Terms of Service - Grad Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* * GLOBAL RESET & VARIABLES */
+        :root {
+            /* Color Palette - Slate / Clean White */
+            --bg-body: #ffffff;
+            --bg-sidebar: #f8fafc;
+            /* Slate 50 */
+            --bg-surface: #ffffff;
+            --bg-hover: #f1f5f9;
+            /* Slate 100 */
+
+            --text-primary: #0f172a;
+            /* Slate 900 */
+            --text-secondary: #475569;
+            /* Slate 600 */
+            --text-muted: #94a3b8;
+            /* Slate 400 */
+
+            --border-color: #e2e8f0;
+            /* Slate 200 */
+            --border-focus: #cbd5e1;
+            /* Slate 300 */
+
+            --primary-color: #4f46e5;
+            /* Indigo 600 */
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+            --radius-md: 8px;
+
+            --sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 20, 40, 0.92) 100%);
+            --sidebar-glass-blur: blur(22px) saturate(110%) contrast(100%);
+            --sidebar-glass-border: 1px solid rgba(148, 163, 184, 0.15);
+            --sidebar-glass-shadow: 0 18px 45px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+            /* Glassmorphism Tokens */
+            --glass-white-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.88));
+            --glass-white-border: 1px solid rgba(255, 255, 255, 0.35);
+            --glass-white-blur: blur(14px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Allow mobile scrolling */
+        @media (max-width: 900px),
+        (max-height: 600px) {
+            body {
+                height: auto;
+                overflow-y: auto;
+                min-height: 100vh;
+            }
+        }
+
+        /* --- LAYOUT CONTAINER --- */
+        .desktop-app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body);
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg) !important;
+            backdrop-filter: var(--sidebar-glass-blur);
+            -webkit-backdrop-filter: var(--sidebar-glass-blur);
+            border-right: var(--sidebar-glass-border);
+            box-shadow: var(--sidebar-glass-shadow);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            padding: 24px 16px;
+            height: 100%;
+            z-index: 20;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #FFFFFF;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+                /* Hide sidebar on mobile for simple pages */
+            }
+        }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-body);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .view-section {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- HEADER --- */
+        .top-nav-links {
+            display: flex;
+            align-items: center;
+            padding: 20px 40px;
+            gap: 32px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: auto;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .brand-icon-box {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+
+        .brand-text-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-text-main {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .brand-text-sub {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-items-container {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-item {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            color: var(--primary-color);
+            background: var(--bg-hover);
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            background: #eef2ff;
+        }
+
+        /* --- FOOTER --- */
+        .main-footer {
+            background: #1e293b;
+            /* Slate 800 */
+            color: #f8fafc;
+            padding: 60px 40px 30px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+            gap: 40px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-brand-section {
+            flex: 2;
+            min-width: 250px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: white;
+        }
+
+        .footer-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #94a3b8;
+            max-width: 300px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links-column {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .footer-links-column h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-links-column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-links-column li {
+            margin-bottom: 12px;
+        }
+
+        .footer-link {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="desktop-app-container">
+        <!-- Sidebar - simplified for static page -->
+        <aside class="sidebar">
+            <a href="/" class="sidebar-item">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </a>
+            <!-- Could add more items or leave empty/simplified -->
+        </aside>
+
+        <main class="main-content">
+            <div id="view-terms" class="view-section">
+                <!-- Header -->
+                <div class="top-nav-links">
+                    <a href="/" class="brand-logo">
+                        <div class="brand-icon-box">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div class="brand-text-wrapper">
+                            <span class="brand-text-main">Grad Studio</span>
+                            <span class="brand-text-sub">Learning Platform</span>
+                        </div>
+                    </a>
+                    <div class="nav-items-container">
+                        <a href="/" class="nav-item">Home</a>
+                        <a href="/about.html" class="nav-item">About</a>
+                        <a href="/?course=all" class="nav-item">Courses</a>
+                        <a href="/contact.html" class="nav-item">Contact us</a>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div
+                    style="max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; font-size: 1.1rem; color: var(--text-secondary); flex: 1;">
+                    <h1
+                        style="color: var(--text-primary); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; margin-bottom: 24px; font-size: 32px;">
+                        Terms of Service</h1>
+
+                    <p style="margin-bottom: 24px;">By using Grad Studio, you agree to the terms outlined below.</p>
+
+                    <p style="margin-bottom: 24px;">Grad Studio provides educational content and interactive simulations
+                        for learning purposes only. The platform does not guarantee accuracy, completeness, or
+                        real-world outcomes.</p>
+
+                    <p style="margin-bottom: 24px;">You are responsible for how you use the information provided on this
+                        website. Grad Studio is not liable for any decisions, actions, or results that arise from using
+                        the platform.</p>
+
+                    <p style="margin-bottom: 24px;">All content on this website, including simulations and materials,
+                        is owned by Grad Studio unless stated otherwise and may not be copied, redistributed, or reused
+                        without permission.</p>
+
+                    <p style="margin-bottom: 24px;">Grad Studio may update or modify the platform at any time without
+                        notice.</p>
+
+                    <p style="margin-bottom: 24px;">If you do not agree with these terms, please do not use the website.
+                    </p>
+
+                    <p>For questions regarding these terms, you can contact us at: <a
+                            href="mailto:contact@gradstudio.org"
+                            style="color: var(--primary-color); text-decoration: none; font-weight: 500;">contact@gradstudio.org</a>
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <footer class="main-footer">
+                    <div class="footer-content">
+                        <div class="footer-brand-section">
+                            <div class="footer-logo">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                                <span>Grad Studio</span>
+                            </div>
+                            <p class="footer-desc">
+                                Empowering the next generation of cloud engineers.
+                            </p>
+                        </div>
+
+                        <div class="footer-links-column">
+                            <h4>Company</h4>
+                            <ul>
+                                <li><a href="/about.html" class="footer-link">About</a></li>
+                                <li><a href="/contact.html" class="footer-link">Contact</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="footer-links-column">
+                            <h4>Legal</h4>
+                            <ul>
+                                <li><a href="/legal/privacy.html" class="footer-link">Privacy Policy</a></li>
+                                <li><a href="/legal/terms.html" class="footer-link">Terms of Service</a></li>
+                                <li><a href="/legal/cookies.html" class="footer-link">Cookie Policy</a></li>
+                                <li><a href="/legal/cookie-preferences.html" class="footer-link">Cookie Preferences</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div
+                            style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px; text-align: center; color: #94a3b8; font-size: 0.875rem;">
+                            &copy; <span id="year">2026</span> Grad Studio. All rights reserved.
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+
+ ⛅️ wrangler 4.60.0 (update available 4.63.0)
+─────────────────────────────────────────────
+Total Upload: 862.45 KiB / gzip: 159.03 KiB
+Your Worker has access to the following bindings:
+Binding                                                               Resource                  
+env.KV (e5dc25fdeb9d42eb8947287323cf7027)                             KV Namespace              
+env.REFRESH_TOKENS (92489a91aab6495ab072d7e2715eb8e0)                 KV Namespace              
+env.RATE_LIMITS (dd4395372be745e5b7d5f63acddb002a)                    KV Namespace              
+env.DB (learning-platform-db)                                         D1 Database               
+env.R2 (learning-simulations)                                         R2 Bucket                 
+env.ENVIRONMENT ("production")                                        Environment Variable      
+env.ALLOWED_ORIGINS ("https://learning-platform-api.sabaree...")      Environment Variable      
+env.MAX_CACHE_TTL ("900")                                             Environment Variable      
+
+Uploaded learning-platform-api (3.69 sec)
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/f731c515fd82d1edc4f9707adf5a4318/workers/scripts/learning-platform-api/domains/records) failed.[0m
+
+  Hostname 'gradstudio.org' already has externally managed DNS records (A, CNAME, etc). Either delete them, try a different hostname, or use the option 'override_existing_dns_record' to override. [code: 100117]
+  
+  If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+
+
+🪵  Logs were written to "C:\Users\sabar\AppData\Roaming\xdg.config\.wrangler\logs\wrangler-2026-02-08_03-17-14_212.log"

@@ -1,0 +1,22 @@
+{
+  "name": "learning-platform",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloudflare-native learning platform with automated upload pipeline",
+  "scripts": {
+    "upload": "node scripts/upload-simulations.js",
+    "batch-upload": "node scripts/batch-upload.js --config upload-config.json",
+    "dev": "cd worker && wrangler dev",
+    "deploy": "cd worker && wrangler deploy",
+    "serve": "live-server --port=5500 --open=Website.html --watch=Website.html",
+    "live": "live-server --port=5500 --open=Website.html --watch=Website.html"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.0",
+    "node-html-parser": "^6.1.0"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "wrangler": "^4.60.0"
+  }
+}

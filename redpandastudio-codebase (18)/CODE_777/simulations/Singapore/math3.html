@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Math Grade 5: Day 3</title>
+    <!-- Fonts for academic/clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme: Academic Blue & Focus Orange */
+            --primary: #1565C0; /* Math Blue */
+            --primary-dark: #0D47A1;
+            --secondary: #263238; /* Slate */
+            --accent: #FBC02D; /* Focus Yellow/Orange */
+            --accent-text: #F57F17;
+            --bg: #FFFFFF;
+            --card-bg: #F8F9FA;
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --success: #198754;
+            --danger: #d13212;
+            --border: #E5E7EB;
+            --code-font: 'JetBrains Mono', monospace;
+            --body-font: 'Inter', sans-serif;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: var(--body-font);
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Animations --- */
+        @keyframes flyUp {
+            0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes strikeAnim {
+            0% { width: 0; }
+            100% { width: 100%; }
+        }
+
+        /* --- Header & Progress --- */
+        header {
+            background-color: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+        }
+
+        .brand svg {
+            fill: var(--primary);
+            height: 28px;
+            width: 28px;
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 300px;
+            margin: 0 1.5rem;
+            background: #E5E7EB;
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .step-indicator {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            min-width: 90px;
+            text-align: right;
+        }
+
+        /* --- Main Layout --- */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.5rem;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+            touch-action: pan-y;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 800px;
+            padding-bottom: 2rem;
+        }
+
+        /* --- Content Areas (Steps) --- */
+        .step-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        /* --- Interactive Components --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .interactive-card {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--card-bg);
+            text-align: center;
+        }
+
+        .interactive-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .interactive-card.selected {
+            border-color: var(--primary);
+            background-color: #E3F2FD;
+            box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+        }
+
+        .interactive-card.correct {
+            border-color: var(--success) !important;
+            background-color: #D1E7DD !important;
+            color: #0f5132;
+        }
+
+        .interactive-card.incorrect {
+            border-color: var(--danger) !important;
+            background-color: #F8D7DA !important;
+            color: #842029;
+        }
+
+        .feedback-text {
+            display: none;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* --- Math Tables --- */
+        .place-value-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-family: var(--code-font);
+            background: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+            table-layout: fixed;
+        }
+
+        .place-value-table th {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .place-value-table td {
+            border: 1px solid var(--border);
+            padding: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            position: relative;
+        }
+        
+        /* Mobile adjustment for table */
+        @media (max-width: 600px) {
+            .place-value-table td { padding: 8px; font-size: 1rem; }
+            .place-value-table th { font-size: 0.7rem; padding: 5px; }
+        }
+
+        .carry-row {
+            height: 35px;
+            color: var(--danger);
+            font-size: 0.9rem !important;
+            font-weight: bold;
+        }
+        
+        .carry-digit {
+            animation: flyUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+
+        .active-column {
+            background-color: #E3F2FD;
+            border: 2px solid var(--primary);
+        }
+
+        /* --- Alignment Sim Styles --- */
+        .alignment-container {
+            background: #f0f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            min-height: 150px;
+            overflow: hidden;
+            font-family: var(--code-font);
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .number-row {
+            letter-spacing: 0.5em;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .misaligned {
+            transform: translateX(-60px); /* Start shifted left */
+            color: var(--danger);
+        }
+        
+        .aligned-correct {
+            transform: translateX(0);
+            color: var(--success);
+        }
+
+        /* --- Subtraction Borrowing Styles --- */
+        .strike-text {
+            position: relative;
+            display: inline-block;
+        }
+        .strike-text::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 2px;
+            background: var(--danger);
+            transform: rotate(-15deg);
+        }
+        .borrow-val {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: bold;
+            animation: popIn 0.3s forwards;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: var(--body-font);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px; /* Touch target */
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- Step 1 Mission Styles --- */
+        .mission-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .mission-card {
+            background: #1F2937;
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .mission-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .mission-list li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mission-list svg {
+            fill: var(--accent);
+            width: 20px;
+            height: 20px;
+        }
+
+        /* --- Info Box --- */
+        .info-box {
+            background: #E0F2F1;
+            border-left: 4px solid #009688;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            color: #004D40;
+            font-size: 0.95rem;
+        }
+
+        /* --- Footer --- */
+        footer {
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 80px;
+        }
+
+        .swipe-hint {
+            display: none;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 1rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-5px);}
+            60% {transform: translateY(-3px);}
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            header { padding: 1rem; flex-direction: column; gap: 0.5rem; align-items: stretch; }
+            .brand { justify-content: center; }
+            .progress-container { margin: 0.5rem 0; width: 100%; max-width: none; }
+            .step-indicator { text-align: center; margin-top: 0.2rem; }
+            
+            main { padding: 1rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            
+            /* .place-value-table { display: block; overflow-x: auto; white-space: nowrap; } */
+            
+            footer { padding: 1rem; gap: 1rem; }
+            .btn { flex: 1; }
+            .swipe-hint { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <!-- Abstract Cube Icon for Math -->
+        <svg viewBox="0 0 24 24">
+            <path d="M12.87 1.51l-7.5 3.75a2.11 2.11 0 0 0-1.25 1.89v7.5c0 .76.4 1.47 1.08 1.84l7.5 4.16a2.13 2.13 0 0 0 1.98 0l7.5-3.75a2.11 2.11 0 0 0 1.25-1.89v-7.5c0-.76-.4-1.47-1.08-1.84l-7.5-4.16a2.13 2.13 0 0 0-1.98 0z" />
+        </svg>
+        <span>Singapore Math: Day 3</span>
+    </div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="step-indicator" id="step-indicator">Step 1 / 15</div>
+</header>
+
+<main id="main-content">
+    <div class="content-container">
+
+        <!-- STEP 1: Intro Mindset -->
+        <div class="step-content active" id="step-1">
+            <div style="text-align: center;">
+                <div class="mission-badge">DAY 3: CPA APPROACH</div>
+                <h2>Step 1: The Singapore Philosophy</h2>
+                <p style="max-width: 600px; margin: 0 auto;">
+                    Welcome to Day 3. In Singapore Math, we don't just calculate; we <strong>understand</strong>.
+                    <br><br>
+                    <span style="color: var(--primary); font-weight: 600;">Understanding > Speed.</span>
+                </p>
+
+                <div class="mission-card">
+                    <div style="color: var(--accent); font-weight: 700; letter-spacing: 1px; margin-bottom: 1rem;">
+                        MISSION OBJECTIVES
+                    </div>
+                    <ul class="mission-list">
+                        <li><svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg> Master Addition & Subtraction up to Millions</li>
+                        <li><svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg> Use Place Value Alignment properly</li>
+                        <li><svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg> Understand "Regrouping" logic</li>
+                        <li><svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg> Validate with Estimation</li>
+                    </ul>
+                </div>
+                
+                <button class="btn btn-primary" onclick="navigateSteps(1)">
+                    Let's Begin 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: Concrete Foundation -->
+        <div class="step-content" id="step-2">
+            <h2>Step 2: Visualizing Millions</h2>
+            <p>Before adding, we must see the structure. Large numbers are just repeating patterns of Hundreds, Tens, and Ones.</p>
+            
+            <div class="info-box">
+                <strong>Singapore Method:</strong> Place Value prevents "shifting" errors.
+            </div>
+
+            <table class="place-value-table">
+                <thead>
+                    <tr>
+                        <th>Millions</th>
+                        <th>H. Thou</th>
+                        <th>T. Thou</th>
+                        <th>Thou</th>
+                        <th>Hun</th>
+                        <th>Tens</th>
+                        <th>Ones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>3</td>
+                        <td>4</td>
+                        <td>8</td>
+                        <td>2</td>
+                        <td>7</td>
+                        <td>1</td>
+                        <td>5</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="text-align: center; font-family: var(--code-font); margin-top: 10px;">3,482,715</p>
+        </div>
+
+        <!-- STEP 3: Addition Concept (Fixed Interaction) -->
+        <div class="step-content" id="step-3">
+            <h2>Step 3: The Addition Setup</h2>
+            <p>Problem: <strong>3,482,715 + 1,269,438</strong>.</p>
+            <p>The bottom number is misaligned! It's drifting to the left. <strong>Click the button to snap it into Place Value alignment.</strong></p>
+            
+            <div class="alignment-container" style="flex-direction: column; align-items: center;">
+                <div class="number-row">3,482,715</div>
+                <div class="number-row" style="color: var(--text-main); margin-top: 5px;">+</div>
+                <div id="misaligned-number" class="number-row misaligned" style="border-bottom: 2px solid black;">1,269,438</div>
+                <div id="alignment-feedback" style="display:none; color: var(--success); font-size: 1rem; margin-top: 10px; animation: popIn 0.3s;">Aligned by Ones Place! ✅</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="fixAlignment()">Fix Alignment ⚡</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: Interactive Alignment -->
+        <div class="step-content" id="step-4">
+            <h2>Step 4: Check Your Alignment</h2>
+            <p>Which setup is correct for 12,345 + 678?</p>
+            
+            <div class="card-grid">
+                <div class="interactive-card" onclick="checkAlignment(this, false)">
+                    <div style="font-family: var(--code-font);">
+                        12345<br>
+                        678 &nbsp;&nbsp;
+                    </div>
+                    <div class="feedback-text">Incorrect. Left aligned.</div>
+                </div>
+                <div class="interactive-card" onclick="checkAlignment(this, true)">
+                    <div style="font-family: var(--code-font);">
+                        12345<br>
+                        &nbsp;&nbsp;678
+                    </div>
+                    <div class="feedback-text">Correct! Aligned by Ones place.</div>
+                </div>
+            </div>
+            <button class="btn btn-outline" style="margin-top: 20px;" onclick="resetAlignment()">Reset Options</button>
+        </div>
+
+        <!-- STEP 5: Regrouping Logic -->
+        <div class="step-content" id="step-5">
+            <h2>Step 5: "Regrouping" Explained</h2>
+            <p>In Singapore Math, we don't just "carry". We <strong>Regroup</strong>.</p>
+            <div class="info-box">
+                When a column adds up to 10 or more, we exchange 10 smaller units for 1 bigger unit.
+            </div>
+            
+            <div style="display: flex; gap: 20px; justify-content: center; align-items: center; margin-top: 20px; background: #FFF; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; animation: slideInRight 1s infinite alternate;">🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦</div>
+                    <small>10 Ones</small>
+                </div>
+                <div style="font-size: 2rem;">➡</div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; color: var(--accent-text); animation: popIn 1s infinite alternate;">🟨</div>
+                    <small>1 Ten</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 6: Addition Simulation (Fixed Math & Interaction) -->
+        <div class="step-content" id="step-6">
+            <h2>Step 6: Interactive Calculator</h2>
+            <p>Click the <strong>Blue Highlighted Column</strong> to calculate step-by-step.</p>
+            
+            <table class="place-value-table" id="add-sim-table">
+                <thead>
+                    <tr><th>H.Th</th><th>T.Th</th><th>Th</th><th>H</th><th>T</th><th>O</th></tr>
+                </thead>
+                <tbody>
+                    <tr class="carry-row">
+                        <td id="c-5"></td><td id="c-4"></td><td id="c-3"></td><td id="c-2"></td><td id="c-1"></td><td id="c-0"></td>
+                    </tr>
+                    <tr><td>4</td><td>7</td><td>8</td><td>5</td><td>2</td><td>9</td></tr>
+                    <tr><td>+1</td><td>6</td><td>9</td><td>4</td><td>8</td><td>1</td></tr>
+                    <tr style="border-top: 2px solid black; font-weight: bold;">
+                        <td id="r-5"></td><td id="r-4"></td><td id="r-3"></td><td id="r-2"></td><td id="r-1"></td><td id="r-0"></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" id="add-btn" onclick="solveNextColumn()">Solve Ones Column</button>
+                <button class="btn btn-outline" onclick="resetAddSim()">Reset</button>
+            </div>
+            <p id="add-feedback" style="text-align: center; margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary); height: 20px;"></p>
+        </div>
+
+        <!-- STEP 7: Subtraction Concept -->
+        <div class="step-content" id="step-7">
+            <h2>Step 7: The Subtraction Setup</h2>
+            <p>Now, let's look at subtraction: <strong>8,304,612 − 2,578,945</strong>.</p>
+            <p>Often, the top digit is smaller than the bottom digit. We cannot just flip them!</p>
+            <div class="info-box" style="background: #FFF3E0; border-left-color: #FF9800; color: #E65100;">
+                <strong>Warning:</strong> 2 - 5 is NOT 3.
+            </div>
+        </div>
+
+        <!-- STEP 8: Exchanging -->
+        <div class="step-content" id="step-8">
+            <h2>Step 8: "Borrowing" is "Exchanging"</h2>
+            <p>Instead of "borrowing" (and never giving back), we <strong>Exchange</strong>.</p>
+            <p>If we need more Ones, we take 1 Ten and break it into 10 Ones.</p>
+            
+            <div style="text-align: center; margin: 2rem 0; font-size: 1.5rem;">
+                <span style="border: 2px solid var(--primary); padding: 10px; border-radius: 8px;">1 Ten</span>
+                <span style="margin: 0 10px;">➡</span>
+                <span style="border: 2px dashed var(--primary); padding: 10px; border-radius: 8px;">10 Ones</span>
+            </div>
+        </div>
+
+        <!-- STEP 9: Subtraction Simulation (Improved) -->
+        <div class="step-content" id="step-9">
+            <h2>Step 9: Borrowing Across Zeros</h2>
+            <p>Solve: <strong>5,300 - 2,578</strong>. We can't do 0-8 or 0-7. We must borrow from the 3.</p>
+            
+            <div style="background: white; padding: 30px; border-radius: 8px; border: 1px solid var(--border); font-family: var(--code-font); font-size: 1.8rem; letter-spacing: 0.5em; text-align: center; overflow-x: auto;">
+                <div style="margin-bottom: 10px;">
+                    <span id="sub-d-3">5</span><span id="sub-d-2">3</span><span id="sub-d-1">0</span><span id="sub-d-0">0</span>
+                </div>
+                <div>- 2578</div>
+                <div style="border-top: 2px solid black;" id="sub-res">????</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" id="sub-btn" onclick="nextBorrowStep()">Start Borrowing</button>
+                <button class="btn btn-outline" onclick="resetSubSim()">Reset</button>
+            </div>
+            <p id="sub-feedback" style="text-align: center; height: 30px; margin-top: 10px; color: var(--primary);"></p>
+        </div>
+
+        <!-- STEP 10: Estimation -->
+        <div class="step-content" id="step-10">
+            <h2>Step 10: The Estimation Check</h2>
+            <p>Before you hand in your work, <strong>Estimate</strong>. It catches big mistakes.</p>
+            <p>Problem: 8,304,612 − 2,578,945</p>
+            
+            <div style="background: #E3F2FD; padding: 15px; border-radius: 8px;">
+                <p style="margin: 0 0 10px 0;">Round to nearest Million:</p>
+                <div style="font-family: var(--code-font); font-size: 1.2rem;">
+                    8,304,612 &approx; <span style="color: var(--primary);">8,000,000</span><br>
+                    2,578,945 &approx; <span style="color: var(--primary);">3,000,000</span>
+                </div>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #ccc;">
+                <div>Estimated Result: <strong>5,000,000</strong></div>
+            </div>
+            <p style="margin-top: 10px;">Actual Answer: 5,725,667. Is it reasonable? <strong>Yes.</strong></p>
+        </div>
+
+        <!-- STEP 11: Word Problem Part 1 -->
+        <div class="step-content" id="step-11">
+            <h2>Step 11: Real-life Application</h2>
+            <div class="info-box">
+                A factory produced <strong>3,475,820</strong> masks in March and <strong>2,689,475</strong> masks in April.
+                How many masks were produced in <strong>total</strong>?
+            </div>
+            <h3>Phase 1: Understand</h3>
+            <p>What is the keyword?</p>
+            <div class="card-grid">
+                <div class="interactive-card" onclick="selectKeyword(this)">
+                    "Difference"<br><small>(Subtraction)</small>
+                </div>
+                <div class="interactive-card" onclick="selectKeyword(this)">
+                    "Total"<br><small>(Addition)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 12: Word Problem Part 2 -->
+        <div class="step-content" id="step-12">
+            <h2>Step 12: Calculate the Total</h2>
+            <p>We perform the addition:</p>
+            <div style="font-family: var(--code-font); background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); display: inline-block;">
+                  3,475,820<br>
+                + 2,689,475<br>
+                -----------<br>
+                  6,165,295
+            </div>
+            <p style="margin-top: 15px;">Always write the unit: <strong>6,165,295 masks</strong>.</p>
+        </div>
+
+        <!-- STEP 13: Common Mistakes -->
+        <div class="step-content" id="step-13">
+            <h2>Step 13: Spot the Mistake</h2>
+            <p>Look at this subtraction attempt. What went wrong?</p>
+            
+            <div style="font-family: var(--code-font); background: #fee2e2; padding: 15px; border-radius: 8px; margin-bottom: 1rem; color: #991b1b;">
+                  5000<br>
+                - 1234<br>
+                ------<br>
+                  4234
+            </div>
+            
+            <div class="card-grid">
+                <div class="interactive-card quiz-option" onclick="checkMistake(this, false)">
+                    They borrowed too much.
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkMistake(this, true)">
+                    They subtracted 0 - 4 = 4.<br>(Top minus Bottom error)
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 14: Challenge -->
+        <div class="step-content" id="step-14">
+            <h2>Step 14: Mastery Check</h2>
+            <p>A school has <strong>6,842,300</strong> books. It donates <strong>2,458,975</strong> books. How many remain?</p>
+            
+            <div class="card-grid">
+                <div class="interactive-card quiz-option" onclick="checkMastery(this, false)">
+                    4,383,325
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkMastery(this, true)">
+                    4,383,325
+                    <br><small>(Wait, I need to calculate!)</small>
+                </div>
+                <div class="interactive-card quiz-option" onclick="checkMastery(this, true)">
+                    4,383,325
+                </div>
+            </div>
+            <div id="mastery-feedback" style="margin-top: 15px; display:none; color: var(--success); font-weight: bold;">
+                Correct! The operation is Subtraction.
+            </div>
+        </div>
+
+        <!-- STEP 15: Debrief -->
+        <div class="step-content" id="step-15">
+            <h2>Step 15: Mission Debrief</h2>
+            <p>You have completed Day 3 of Singapore Math!</p>
+            
+            <div class="mission-card">
+                <div style="color: var(--accent); font-weight: 700;">✅ SKILLS UNLOCKED</div>
+                <ul class="mission-list">
+                    <li>Place value prevents alignment errors.</li>
+                    <li>"Regrouping" is exchanging 10 small for 1 big.</li>
+                    <li>Estimation is your safety net.</li>
+                </ul>
+            </div>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                <h3>📚 Resources</h3>
+                <ul style="list-style-type: disc; margin-left: 20px; color: var(--text-secondary);">
+                    <li><a href="#" style="color: var(--primary);">Singapore Math Framework (Ministry of Education)</a></li>
+                    <li><a href="#" style="color: var(--primary);">Visualizing Large Numbers (Khan Academy)</a></li>
+                </ul>
+            </div>
+            
+            <button class="btn btn-outline" style="margin-top: 20px;" onclick="location.reload()">Restart Module 🔄</button>
+        </div>
+
+    </div>
+    
+    <div class="swipe-hint">Swipe left to continue &larr;</div>
+</main>
+
+<footer>
+    <button class="btn btn-outline" id="prev-btn" disabled onclick="navigateSteps(-1)">
+        &larr; Previous
+    </button>
+    <button class="btn btn-primary" id="next-btn" onclick="navigateSteps(1)">
+        Next Step &rarr;
+    </button>
+</footer>
+
+<script>
+    // --- State Management ---
+    let currentStep = 1;
+    const totalSteps = 15;
+    
+    // --- DOM Elements ---
+    const progressBar = document.getElementById('progress-bar');
+    const stepIndicator = document.getElementById('step-indicator');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const mainContent = document.getElementById('main-content');
+
+    // --- Navigation Logic ---
+    function navigateSteps(direction) {
+        const newStep = currentStep + direction;
+        if (newStep >= 1 && newStep <= totalSteps) {
+            goToStep(newStep);
+        }
+    }
+
+    function goToStep(step) {
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        currentStep = step;
+        document.getElementById(`step-${currentStep}`).classList.add('active');
+        mainContent.scrollTop = 0;
+        updateUI();
+    }
+
+    function updateUI() {
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'inline-flex';
+        }
+        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        progressBar.style.width = `${progress}%`;
+        stepIndicator.textContent = `Step ${currentStep} / ${totalSteps}`;
+    }
+
+    // --- Swipe Logic ---
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    mainContent.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    mainContent.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        const threshold = 50;
+        if (touchEndX < touchStartX - threshold) {
+            if (currentStep < totalSteps) navigateSteps(1); // Swipe Left -> Next
+        }
+        if (touchEndX > touchStartX + threshold) {
+            if (currentStep > 1) navigateSteps(-1); // Swipe Right -> Prev
+        }
+    }
+
+    // --- Step 3: Alignment Logic ---
+    function fixAlignment() {
+        const misalignedNum = document.getElementById('misaligned-number');
+        const feedback = document.getElementById('alignment-feedback');
+        
+        misalignedNum.classList.remove('misaligned');
+        misalignedNum.classList.add('aligned-correct');
+        
+        setTimeout(() => {
+            feedback.style.display = 'block';
+        }, 800);
+    }
+
+    // --- Step 4: Check Alignment ---
+    function checkAlignment(el, isCorrect) {
+        const parent = el.parentElement;
+        parent.querySelectorAll('.interactive-card').forEach(c => {
+            c.classList.remove('selected', 'correct', 'incorrect');
+            c.querySelector('.feedback-text').style.display = 'none';
+        });
+
+        if (isCorrect) {
+            el.classList.add('correct');
+        } else {
+            el.classList.add('incorrect');
+        }
+        el.querySelector('.feedback-text').style.display = 'block';
+    }
+
+    function resetAlignment() {
+        document.querySelectorAll('#step-4 .interactive-card').forEach(c => {
+            c.classList.remove('correct', 'incorrect');
+            c.querySelector('.feedback-text').style.display = 'none';
+        });
+    }
+
+    // --- Step 6: Add Sim Logic (Corrected Math) ---
+    // Problem: 478529 + 169481 = 648010
+    // Cols (index 0 is Ones):
+    // 0: 9+1=10 (0, c1)
+    // 1: 2+8+1=11 (1, c1)
+    // 2: 5+4+1=10 (0, c1)
+    // 3: 8+9+1=18 (8, c1)
+    // 4: 7+6+1=14 (4, c1)
+    // 5: 4+1+1=6 (6, c0)
+    
+    let addColIndex = 0;
+    const addResults = [0, 1, 0, 8, 4, 6];
+    const addCarries = [1, 1, 1, 1, 1, 0];
+    const colNames = ["Ones", "Tens", "Hundreds", "Thousands", "Ten Thousands", "Hundred Thousands"];
+
+    function solveNextColumn() {
+        if (addColIndex > 5) return;
+
+        // 1. Highlight current col
+        clearHighlights();
+        
+        // 2. Show result
+        const resultCell = document.getElementById(`r-${addColIndex}`);
+        resultCell.textContent = addResults[addColIndex];
+        resultCell.classList.add('highlight-cell');
+        
+        // 3. Show carry if exists
+        if (addCarries[addColIndex] === 1 && addColIndex < 5) {
+            const carryCell = document.getElementById(`c-${addColIndex + 1}`);
+            const span = document.createElement('span');
+            span.textContent = '1';
+            span.className = 'carry-digit';
+            carryCell.appendChild(span);
+        }
+
+        // 4. Update Button & Feedback
+        addColIndex++;
+        const btn = document.getElementById('add-btn');
+        const feedback = document.getElementById('add-feedback');
+
+        if (addColIndex > 5) {
+            btn.textContent = "Done! ✅";
+            btn.disabled = true;
+            feedback.textContent = "Calculation Complete: 648,010";
+            clearHighlights();
+        } else {
+            btn.textContent = `Solve ${colNames[addColIndex]}`;
+            feedback.textContent = `Solving: ${colNames[addColIndex]} Column...`;
+            // Highlight next
+            highlightColumn(addColIndex);
+        }
+    }
+
+    function highlightColumn(idx) {
+        // Table structure is fixed, let's just highlight using nth-child logic if needed
+        // Simpler: Just rely on the animation of the result appearing
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.highlight-cell').forEach(el => el.classList.remove('highlight-cell'));
+    }
+
+    function resetAddSim() {
+        addColIndex = 0;
+        for(let i=0; i<6; i++) {
+            document.getElementById(`r-${i}`).textContent = '';
+            document.getElementById(`c-${i}`).innerHTML = '';
+        }
+        const btn = document.getElementById('add-btn');
+        btn.textContent = "Solve Ones Column";
+        btn.disabled = false;
+        document.getElementById('add-feedback').textContent = "";
+    }
+
+    // --- Step 9: Sub Sim Logic (Borrowing) ---
+    // 5300 - 2578
+    let borrowStep = 0;
+    const subBtn = document.getElementById('sub-btn');
+    const subFeedback = document.getElementById('sub-feedback');
+
+    function nextBorrowStep() {
+        // Elements
+        const d2 = document.getElementById('sub-d-2'); // 3
+        const d1 = document.getElementById('sub-d-1'); // 0 (tens)
+        const d0 = document.getElementById('sub-d-0'); // 0 (ones)
+        const res = document.getElementById('sub-res');
+
+        if (borrowStep === 0) {
+            // Borrow from 3
+            d2.classList.add('strike-text');
+            d2.innerHTML = `3<div class='borrow-val'>2</div>`;
+            d1.classList.add('strike-text');
+            d1.innerHTML = `0<div class='borrow-val'>10</div>`;
+            subFeedback.textContent = "Exchanged 1 Hundred for 10 Tens.";
+            subBtn.textContent = "Borrow for Ones";
+            borrowStep++;
+        } else if (borrowStep === 1) {
+            // Borrow from 10 Tens
+            const tenVal = d1.querySelector('.borrow-val');
+            tenVal.classList.add('strike-text');
+            // We need to update the borrow val visuals
+            d1.innerHTML = `0<div class='borrow-val' style='text-decoration:line-through'>10</div><div class='borrow-val' style='top:-35px'>9</div>`;
+            
+            d0.classList.add('strike-text');
+            d0.innerHTML = `0<div class='borrow-val'>10</div>`;
+            
+            subFeedback.textContent = "Exchanged 1 Ten for 10 Ones.";
+            subBtn.textContent = "Solve!";
+            borrowStep++;
+        } else if (borrowStep === 2) {
+            // Solve
+            res.textContent = "2722";
+            res.style.color = "var(--primary)";
+            subFeedback.textContent = "Now we can subtract easily! 5290(10) - 2578 = 2722";
+            subBtn.disabled = true;
+            borrowStep++;
+        }
+    }
+
+    function resetSubSim() {
+        borrowStep = 0;
+        document.getElementById('sub-d-2').innerHTML = "3";
+        document.getElementById('sub-d-2').classList.remove('strike-text');
+        
+        document.getElementById('sub-d-1').innerHTML = "0";
+        document.getElementById('sub-d-1').classList.remove('strike-text');
+        
+        document.getElementById('sub-d-0').innerHTML = "0";
+        document.getElementById('sub-d-0').classList.remove('strike-text');
+        
+        document.getElementById('sub-res').textContent = "????";
+        document.getElementById('sub-res').style.color = "inherit";
+        
+        subBtn.textContent = "Start Borrowing";
+        subBtn.disabled = false;
+        subFeedback.textContent = "";
+    }
+
+    // --- Step 11 Keyword ---
+    function selectKeyword(el) {
+        const parent = el.parentElement;
+        parent.querySelectorAll('.interactive-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    // --- Quiz Logic ---
+    function checkMistake(el, isCorrect) {
+        checkAlignment(el, isCorrect);
+    }
+
+    function checkMastery(el, isCorrect) {
+        checkAlignment(el, isCorrect);
+        if(isCorrect) {
+            document.getElementById('mastery-feedback').style.display = 'block';
+        }
+    }
+
+    // Initial Load
+    updateUI();
+
+</script>
+</body>
+</html>

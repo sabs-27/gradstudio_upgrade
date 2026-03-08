@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+DESKTOP/
+*.tgz
+*.log
+_fix_*.js
+_deploy_*.ps1
+*.snapshot_*
+.gemini/

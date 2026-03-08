@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Architecture: Mental Model</title>
+    <!-- Fonts for tech look -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            /* Cloudflare/Architecture Brand Colors */
+            --primary: #f38020;
+            /* Cloudflare Orange */
+            --primary-dark: #c05d0d;
+            --secondary: #2f80ed;
+            /* Blue for Database/Storage */
+            --accent: #1a1a1a;
+            /* Dark Tech Grey */
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --text-main: #232f3e;
+            --text-secondary: #545b64;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --border: #dee2e6;
+            --code-font: 'JetBrains Mono', monospace;
+            --body-font: 'Inter', sans-serif;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --terminal-bg: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: var(--body-font);
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header & Progress --- */
+        header {
+            background-color: var(--accent);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+        }
+
+        .brand svg {
+            fill: var(--primary);
+            height: 30px;
+            width: 30px;
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .step-indicator {
+            font-size: 0.9rem;
+            color: #d5dbdb;
+            font-weight: 600;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        /* --- Main Layout --- */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+            touch-action: pan-y;
+        }
+
+        .simulation-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 900px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            min-height: 500px;
+        }
+
+        /* --- Content Areas (Steps) --- */
+        .step-content {
+            display: none;
+            padding: 3rem;
+            animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 75ch;
+        }
+
+        /* --- Visual Components --- */
+        .arch-diagram {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+            margin-bottom: 2rem;
+        }
+
+        .arch-node {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .arch-node.active-node {
+            border-color: var(--primary);
+            background: #fff5eb;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(243, 128, 32, 0.2);
+        }
+
+        .arch-label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: var(--accent);
+        }
+
+        .arch-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* --- Interactive Elements --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .interactive-card {
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            background: #fff;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interactive-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 128, 32, 0.15);
+        }
+
+        .interactive-card.selected {
+            border-color: var(--primary);
+            background-color: #fff5eb;
+            box-shadow: 0 0 0 3px rgba(243, 128, 32, 0.2);
+        }
+
+        .icon-box {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            line-height: 1;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: var(--body-font);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 50px;
+            /* Touch target */
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: #f2f3f3;
+            border-color: #999;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- Terminal Styling --- */
+        .terminal-window {
+            background: var(--terminal-bg);
+            color: #00ff00;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: var(--code-font);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            overflow-x: auto;
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* --- Footer Navigation --- */
+        footer {
+            background: #fff;
+            border-top: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 80px;
+        }
+
+        .feedback-area {
+            flex: 1;
+            margin: 0 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* --- Toast Notification --- */
+        #toast {
+            visibility: hidden;
+            min-width: 280px;
+            background-color: var(--accent);
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 100px;
+            transform: translateX(-50%);
+            font-size: 0.95rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 110px;
+        }
+
+        /* --- Mobile Swipe Hint --- */
+        .swipe-hint {
+            display: none;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 1rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-5px);
+            }
+
+            60% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* --- Mission Status --- */
+        .mission-briefing {
+            text-align: center;
+        }
+
+        .mission-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff0eb;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            border: 1px solid #ffd8c4;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            animation: pulse-orange 2s infinite;
+        }
+
+        @keyframes pulse-orange {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+
+            70% {
+                transform: scale(1);
+                opacity: 0;
+                box-shadow: 0 0 0 6px var(--primary);
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+        }
+
+        /* --- Info Box --- */
+        .info-box {
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            background: #e3f2fd;
+            border-left: 4px solid var(--secondary);
+            color: #0c3e6d;
+        }
+
+        /* --- Responsive Queries --- */
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .brand {
+                font-size: 1.1rem;
+            }
+
+            .progress-container {
+                margin: 0;
+                width: 100%;
+            }
+
+            .step-indicator {
+                display: none;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            .simulation-container {
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                min-height: auto;
+            }
+
+            .step-content {
+                padding: 1.5rem;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            footer {
+                padding: 1rem;
+                flex-direction: column-reverse;
+                gap: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .feedback-area {
+                margin: 0.5rem 0;
+                font-size: 0.85rem;
+            }
+
+            .swipe-hint {
+                display: block;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .arch-diagram {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <!-- Cloud Style Icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+            <span>Cloudflare Architecture</span>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="step-indicator" id="step-indicator">Step 1 / 15</div>
+    </header>
+
+    <main id="main-content">
+        <div class="simulation-container">
+
+            <!-- STEP 1: Mission Briefing -->
+            <div class="step-content active" id="step-1">
+                <div class="mission-briefing">
+                    <div class="mission-status">
+                        <span class="pulse-dot"></span> ARCHITECTURE PHASE 1
+                    </div>
+
+                    <h2>Step 1: The Foundation</h2>
+                    <p>Welcome, Architect. You are building a scalable educational platform. We will move beyond
+                        traditional servers to a <strong>Serverless Edge Architecture</strong> using Cloudflare.</p>
+
+                    <div
+                        style="background: var(--text-main); color: #fff; border-radius: 12px; padding: 2rem; margin: 2rem auto; text-align: left; max-width: 600px;">
+                        <h3
+                            style="color: var(--primary); text-transform: uppercase; font-size: 0.9rem; margin-bottom: 1rem; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                            🛡️ MISSION OBJECTIVES</h3>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin-bottom: 10px;">🌐 <strong>Frontend:</strong> Host HTML/JS on Cloudflare
+                                Pages.</li>
+                            <li style="margin-bottom: 10px;">⚡ <strong>Logic:</strong> Handle APIs with Edge Workers.
+                            </li>
+                            <li style="margin-bottom: 10px;">🗄️ <strong>Data:</strong> Store Relational (D1), Objects
+                                (R2), and Cache (KV).</li>
+                        </ul>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="navigateSteps(1)">
+                        Initialize Architecture 🚀
+                    </button>
+                </div>
+                <div class="swipe-hint">Swipe left to continue &larr;</div>
+            </div>
+
+            <!-- STEP 2: The User's Browser -->
+            <div class="step-content" id="step-2">
+                <h2>Step 2: The User's Browser</h2>
+                <p>Every interaction starts here. Your HTML, CSS, and JS provide the interface.</p>
+
+                <div class="arch-diagram">
+                    <div class="arch-node active-node">
+                        <span class="icon-box">💻</span>
+                        <span class="arch-label">User's Browser</span>
+                        <span class="arch-sub">Sidebar • Course Listings • Viewer Pane</span>
+                    </div>
+                </div>
+
+                <p>The browser is responsible for rendering the UI and making API calls to your backend.</p>
+
+                <div class="info-box">
+                    The content isn't embedded in the JS. The browser must <strong>fetch</strong> it.
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 3: Hosting (Pages) -->
+            <div class="step-content" id="step-3">
+                <h2>Step 3: Hosting with Cloudflare Pages</h2>
+                <p>Where does the HTML live? We use <strong>Cloudflare Pages</strong>. It connects to your Git
+                    repository and deploys your frontend globally.</p>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <div class="terminal-dot" style="background:#ff5f56"></div>
+                        <div class="terminal-dot" style="background:#ffbd2e"></div>
+                        <div class="terminal-dot" style="background:#27c93f"></div>
+                    </div>
+                    <div id="deploy-term">
+                        > git push origin main<br>
+                        <span style="color: #666;">Waiting for build...</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="btn-deploy" onclick="runDeploySim()">
+                    Simulate Deploy
+                </button>
+                <button class="btn btn-outline" onclick="resetDeploySim()">Reset</button>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 4: The Request Cycle -->
+            <div class="step-content" id="step-4">
+                <h2>Step 4: The Request Cycle</h2>
+                <p>When the user interacts with your app (e.g., clicks "Load Sim"), the browser sends a request.</p>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 2rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 2rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem;">💻</div>
+                        <small>Browser</small>
+                    </div>
+                    <div style="flex: 1; height: 2px; background: #ddd; margin: 0 1rem; position: relative;">
+                        <div id="request-packet"
+                            style="width: 10px; height: 10px; background: var(--primary); border-radius: 50%; position: absolute; top: -4px; left: 0; opacity: 0;">
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem;">☁️</div>
+                        <small>The Edge</small>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="runRequestSim()">Send API Request</button>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 5: Cloudflare Workers -->
+            <div class="step-content" id="step-5">
+                <h2>Step 5: Cloudflare Workers</h2>
+                <p>The request hits a <strong>Cloudflare Worker</strong>. This is your backend logic, but it's not a
+                    server in a basement. It's a function that runs on the Edge.</p>
+
+                <div class="terminal-window">
+                    <div style="color: #ccc;">// worker.js</div>
+                    <div style="color: #569cd6;">export default</div> {
+                    <div style="padding-left: 20px;">
+                        <span style="color: #dcdcaa;">fetch</span>(request, env) {
+                    </div>
+                    <div style="padding-left: 40px;">
+                        <span style="color: #c586c0;">return new</span> Response(<span style="color: #ce9178;">"Hello
+                            from the Edge!"</span>);
+                    </div>
+                    <div style="padding-left: 20px;">}</div>
+                    }
+                </div>
+
+                <div class="info-box">
+                    This single file handles API endpoints like <code>/api/courses</code> and <code>/api/likes</code>.
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 6: Why The "Edge"? -->
+            <div class="step-content" id="step-6">
+                <h2>Step 6: Understanding the Edge</h2>
+                <p>Unlike a traditional server located in one city (e.g., Virginia), your Worker runs in hundreds of
+                    cities worldwide.</p>
+
+                <div class="card-grid">
+                    <div class="interactive-card" id="card-trad" onclick="selectEdge('trad')">
+                        <span class="icon-box">🏢</span>
+                        <h3>Traditional</h3>
+                        <p>One Server.<br>Slow for distant users.</p>
+                    </div>
+                    <div class="interactive-card" id="card-edge" onclick="selectEdge('edge')">
+                        <span class="icon-box">🌍</span>
+                        <h3>Cloudflare Edge</h3>
+                        <p>Everywhere.<br>Fast for everyone.</p>
+                    </div>
+                </div>
+                <div id="edge-feedback"
+                    style="text-align: center; margin-top: 1rem; font-weight: bold; min-height: 24px;"></div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 7: The Data Layer -->
+            <div class="step-content" id="step-7">
+                <h2>Step 7: The Data Layer</h2>
+                <p>Code needs data. We have three types of data needs in this architecture. Click to reveal their
+                    Cloudflare solutions.</p>
+
+                <div class="card-grid">
+                    <div class="interactive-card" onclick="revealData(this, 'D1')">
+                        <h3>Structured Data</h3>
+                        <p>Users, Comments, Tags</p>
+                        <p style="display:none; color: var(--primary); font-weight: bold; margin-top: 5px;">Solution: D1
+                            (SQL)</p>
+                    </div>
+                    <div class="interactive-card" onclick="revealData(this, 'R2')">
+                        <h3>Large Files</h3>
+                        <p>HTML Content, Images</p>
+                        <p style="display:none; color: var(--primary); font-weight: bold; margin-top: 5px;">Solution: R2
+                            (Object Storage)</p>
+                    </div>
+                    <div class="interactive-card" onclick="revealData(this, 'KV')">
+                        <h3>High Speed</h3>
+                        <p>View Counts, Sessions</p>
+                        <p style="display:none; color: var(--primary); font-weight: bold; margin-top: 5px;">Solution: KV
+                            (Cache)</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline" style="margin-top: 2rem; width: 100%;"
+                    onclick="resetDataReveal()">Reset</button>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 8: D1 (SQL Database) -->
+            <div class="step-content" id="step-8">
+                <h2>Step 8: Cloudflare D1</h2>
+                <p>D1 is our SQLite database. It stores the metadata: simulation titles, tags, and comment threads.</p>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <span style="font-weight: bold;">D1 Console</span>
+                    </div>
+                    <div>> SELECT * FROM simulations;</div>
+                    <div id="d1-result" style="margin-top: 10px; display: none;">
+                        <table style="width: 100%; border-collapse: collapse; color: #ccc; font-size: 0.8rem;">
+                            <tr style="border-bottom: 1px solid #555;">
+                                <th>id</th>
+                                <th>title</th>
+                                <th>tags</th>
+                            </tr>
+                            <tr>
+                                <td>aws-01</td>
+                                <td>EC2 Basics</td>
+                                <td>cloud,compute</td>
+                            </tr>
+                            <tr>
+                                <td>sql-01</td>
+                                <td>Select Qs</td>
+                                <td>db,query</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="runSQLSim()">Run Query</button>
+                <button class="btn btn-outline" onclick="resetSQLSim()">Clear</button>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 9: R2 (Object Storage) -->
+            <div class="step-content" id="step-9">
+                <h2>Step 9: Cloudflare R2</h2>
+                <p>R2 is for object storage. We store the raw HTML files for the simulations here, organized by folder.
+                </p>
+
+                <div
+                    style="background: #fff; border: 2px solid var(--border); border-radius: 8px; padding: 1rem; max-width: 400px; margin: 0 auto;">
+                    <h4
+                        style="margin-bottom: 10px; color: var(--text-secondary); border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                        📁 /simulations/</h4>
+                    <div style="font-family: monospace; line-height: 1.8;">
+                        <div onclick="toggleFolder('aws')" style="cursor:pointer">📂 aws/</div>
+                        <div id="folder-aws" style="display:none; padding-left: 20px; border-left: 1px solid #eee;">
+                            <div>📂 ec2-basics/</div>
+                            <div style="padding-left: 20px; color: var(--primary);">📄 index.html</div>
+                            <div>📂 s3-basics/</div>
+                            <div style="padding-left: 20px; color: var(--primary);">📄 index.html</div>
+                        </div>
+                        <div onclick="toggleFolder('sql')" style="cursor:pointer">📂 sql/</div>
+                        <div id="folder-sql" style="display:none; padding-left: 20px; border-left: 1px solid #eee;">
+                            <div>📂 select-queries/</div>
+                            <div style="padding-left: 20px; color: var(--primary);">📄 index.html</div>
+                        </div>
+                    </div>
+                </div>
+                <p style="text-align: center; font-size: 0.9rem; margin-top: 1rem;">Click folders to expand.</p>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 10: KV (Key-Value) -->
+            <div class="step-content" id="step-10">
+                <h2>Step 10: Cloudflare KV</h2>
+                <p>KV is a low-latency key-value store. It's perfect for things that need to be fast, like view counters
+                    and "Likes".</p>
+
+                <div
+                    style="text-align: center; padding: 2rem; background: #e3f2fd; border-radius: 12px; border: 1px solid #90caf9;">
+                    <div style="font-size: 1.2rem; margin-bottom: 10px;">Key: <code
+                            style="background: #fff; padding: 2px 8px; border-radius: 4px;">view:sim-001</code></div>
+                    <div style="font-size: 3rem; font-weight: bold; color: var(--primary);" id="kv-counter">4251</div>
+                    <div>Value</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 1.5rem;">
+                    <button class="btn btn-primary" onclick="incrementKV()">+1 Visit</button>
+                    <button class="btn btn-outline" onclick="resetKV()">Reset</button>
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 11: System Integration -->
+            <div class="step-content" id="step-11">
+                <h2>Step 11: Connecting the Dots</h2>
+                <p>Let's visualize the full backend connection. The Worker acts as the traffic controller.</p>
+
+                <div class="arch-diagram">
+                    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                        <div class="arch-node" style="width: 100%;">
+                            Worker API
+                        </div>
+                        <div style="font-size: 1.5rem;">↓</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;">
+                            <div class="arch-node" id="node-d1" style="background: #e3f2fd;">D1<br><small>Meta</small>
+                            </div>
+                            <div class="arch-node" id="node-r2" style="background: #fff3e0;">R2<br><small>Files</small>
+                            </div>
+                            <div class="arch-node" id="node-kv" style="background: #e8f5e9;">KV<br><small>Cache</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p>Select a data type to trace the path:</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-outline" onclick="tracePath('d1')">Search</button>
+                    <button class="btn btn-outline" onclick="tracePath('r2')">Download</button>
+                    <button class="btn btn-outline" onclick="tracePath('kv')">Like</button>
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 12: Search Flow (Worker + D1) -->
+            <div class="step-content" id="step-12">
+                <h2>Step 12: The Search Flow</h2>
+                <p>When a user searches for "AWS", the Worker queries <strong>D1</strong> to find matches in the `tags`
+                    or `title` columns.</p>
+
+                <div style="display: flex; gap: 10px; max-width: 500px; margin: 0 auto 1rem auto;">
+                    <input type="text" value="AWS" readonly
+                        style="flex:1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button class="btn btn-primary" style="min-height: auto; padding: 0.5rem 1.5rem;"
+                        onclick="runSearchSim()">Search</button>
+                </div>
+
+                <div id="search-results"
+                    style="background: #fff; border: 1px solid #eee; padding: 1rem; border-radius: 8px; min-height: 80px; display: none;">
+                    <!-- Results injected here -->
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 13: Content Load Flow (Worker + R2) -->
+            <div class="step-content" id="step-13">
+                <h2>Step 13: The Content Flow</h2>
+                <p>When clicking a simulation, the Worker fetches the specific `index.html` file from
+                    <strong>R2</strong>.</p>
+
+                <div
+                    style="background: #252526; color: #fff; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem;">
+                    <div>GET /api/simulations/ec2-basics</div>
+                    <div style="color: #666; margin: 10px 0;">↓ Worker logic...</div>
+                    <div style="color: var(--primary);">await env.MY_BUCKET.get('aws/ec2-basics/index.html');</div>
+                    <div id="r2-output"
+                        style="border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; display: none; color: #a6e22e;">
+                        &lt;html&gt;...Simulation Content...&lt;/html&gt;
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="runR2Sim()">Fetch File</button>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 14: Like Counter Flow (Worker + KV) -->
+            <div class="step-content" id="step-14">
+                <h2>Step 14: The "Like" Flow</h2>
+                <p>Updates must be instant. When a user clicks "Like", the Worker updates <strong>KV</strong>
+                    immediately, then lazily updates D1 later for permanence.</p>
+
+                <div class="card-grid">
+                    <div class="interactive-card" onclick="triggerLike(this)">
+                        <span style="font-size: 2rem;">❤️</span>
+                        <h3 id="like-count-display">89</h3>
+                        <p>Click to Like</p>
+                    </div>
+                </div>
+
+                <div id="kv-log"
+                    style="font-family: monospace; font-size: 0.8rem; margin-top: 1rem; color: #666; min-height: 20px;">
+                </div>
+
+                <div class="swipe-hint">&larr; Swipe to navigate &rarr;</div>
+            </div>
+
+            <!-- STEP 15: Summary & Resources -->
+            <div class="step-content" id="step-15">
+                <h2>Step 15: Mission Complete</h2>
+                <p>You have successfully modeled the architecture for Phase 1. You are ready to build.</p>
+
+                <div
+                    style="background: white; border-radius: 8px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 2rem;">
+                    <h3>Architecture Recap</h3>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Frontend:</strong> Cloudflare Pages</li>
+                        <li><strong>Backend:</strong> Cloudflare Workers (Edge)</li>
+                        <li><strong>Database:</strong> D1 (SQLite)</li>
+                        <li><strong>Storage:</strong> R2 (Object Storage)</li>
+                        <li><strong>Caching:</strong> KV (Key-Value)</li>
+                    </ul>
+                </div>
+
+                <button class="btn btn-primary" onclick="location.reload()"
+                    style="width: 100%; margin-bottom: 2rem;">Restart Simulation 🔄</button>
+
+                <div style="background: #f0f4f8; padding: 2rem; border-radius: 8px; border: 1px solid var(--border);">
+                    <h3 style="color: var(--accent); margin-bottom: 1rem;">📚 Official Resources</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 10px;"><a href="https://developers.cloudflare.com/pages/"
+                                target="_blank"
+                                style="color: var(--primary); text-decoration: none; font-weight: 500;">Cloudflare Pages
+                                Docs</a></li>
+                        <li style="margin-bottom: 10px;"><a href="https://developers.cloudflare.com/workers/"
+                                target="_blank"
+                                style="color: var(--primary); text-decoration: none; font-weight: 500;">Cloudflare
+                                Workers Docs</a></li>
+                        <li style="margin-bottom: 10px;"><a href="https://developers.cloudflare.com/d1/" target="_blank"
+                                style="color: var(--primary); text-decoration: none; font-weight: 500;">Cloudflare D1
+                                (SQL) Docs</a></li>
+                        <li style="margin-bottom: 10px;"><a href="https://developers.cloudflare.com/r2/" target="_blank"
+                                style="color: var(--primary); text-decoration: none; font-weight: 500;">Cloudflare R2
+                                (Storage) Docs</a></li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <button class="btn btn-outline" id="prev-btn" disabled onclick="navigateSteps(-1)">
+            &larr; Previous
+        </button>
+        <div class="feedback-area" id="feedback-msg">Step 1: The Foundation</div>
+        <button class="btn btn-primary" id="next-btn" onclick="navigateSteps(1)">
+            Next Step &rarr;
+        </button>
+    </footer>
+
+    <div id="toast">Message here</div>
+
+    <script>
+        // --- State Management ---
+        let currentStep = 1;
+        const totalSteps = 15;
+
+        // --- DOM Elements ---
+        const progressBar = document.getElementById('progress-bar');
+        const stepIndicator = document.getElementById('step-indicator');
+        const feedbackMsg = document.getElementById('feedback-msg');
+        const toast = document.getElementById('toast');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const mainContent = document.getElementById('main-content');
+
+        // --- Navigation Logic ---
+        function navigateSteps(direction) {
+            const newStep = currentStep + direction;
+            if (newStep >= 1 && newStep <= totalSteps) {
+                goToStep(newStep);
+            }
+        }
+
+        function goToStep(step) {
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            currentStep = step;
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            mainContent.scrollTop = 0;
+            updateUI();
+        }
+
+        function updateUI() {
+            prevBtn.disabled = currentStep === 1;
+            if (currentStep === totalSteps) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'inline-flex';
+            }
+
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+            stepIndicator.textContent = `Step ${currentStep} / ${totalSteps}`;
+
+            const titles = {
+                1: "Step 1: The Foundation",
+                2: "Step 2: The User's Browser",
+                3: "Step 3: Hosting with Cloudflare Pages",
+                4: "Step 4: The Request Cycle",
+                5: "Step 5: Cloudflare Workers",
+                6: "Step 6: Understanding the Edge",
+                7: "Step 7: The Data Layer",
+                8: "Step 8: Cloudflare D1",
+                9: "Step 9: Cloudflare R2",
+                10: "Step 10: Cloudflare KV",
+                11: "Step 11: Connecting the Dots",
+                12: "Step 12: The Search Flow",
+                13: "Step 13: The Content Flow",
+                14: "Step 14: The \"Like\" Flow",
+                15: "Step 15: Mission Complete"
+            };
+            feedbackMsg.textContent = titles[currentStep];
+        }
+
+        // --- Swipe Logic ---
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        mainContent.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        mainContent.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const threshold = 50;
+            if (touchEndX < touchStartX - threshold) {
+                if (currentStep < totalSteps) navigateSteps(1);
+            }
+            if (touchEndX > touchStartX + threshold) {
+                if (currentStep > 1) navigateSteps(-1);
+            }
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        /* --- Simulations --- */
+
+        // Step 3: Deploy
+        function runDeploySim() {
+            const term = document.getElementById('deploy-term');
+            const btn = document.getElementById('btn-deploy');
+            btn.disabled = true;
+            term.innerHTML += '<br>> Building...';
+            setTimeout(() => {
+                term.innerHTML += '<br><span style="color: #27c93f;">> Success! Deployed to Pages.</span>';
+                btn.disabled = false;
+            }, 1000);
+        }
+
+        function resetDeploySim() {
+            document.getElementById('deploy-term').innerHTML = '> git push origin main<br><span style="color: #666;">Waiting for build...</span>';
+        }
+
+        // Step 4: Request Cycle
+        function runRequestSim() {
+            const dot = document.getElementById('request-packet');
+            dot.style.transition = 'none';
+            dot.style.left = '0%';
+            dot.style.opacity = '1';
+
+            // Force reflow
+            void dot.offsetWidth;
+
+            dot.style.transition = 'left 1s ease-in-out';
+            dot.style.left = '95%';
+
+            setTimeout(() => {
+                dot.style.opacity = '0';
+                showToast("Worker Received Request");
+            }, 1000);
+        }
+
+        // Step 6: Edge vs Trad
+        function selectEdge(type) {
+            const fb = document.getElementById('edge-feedback');
+            document.getElementById('card-trad').classList.remove('selected');
+            document.getElementById('card-edge').classList.remove('selected');
+
+            if (type === 'trad') {
+                document.getElementById('card-trad').classList.add('selected');
+                fb.textContent = "High Latency 🐢. User in Tokyo waits for Virginia.";
+                fb.style.color = "var(--danger)";
+            } else {
+                document.getElementById('card-edge').classList.add('selected');
+                fb.textContent = "Low Latency ⚡. Code runs in Tokyo for Tokyo users.";
+                fb.style.color = "var(--success)";
+            }
+        }
+
+        // Step 7: Data Reveal
+        function revealData(el, type) {
+            const p = el.querySelector('p:last-child');
+            p.style.display = 'block';
+            el.classList.add('selected');
+        }
+
+        function resetDataReveal() {
+            const container = document.getElementById('step-7');
+            container.querySelectorAll('.interactive-card').forEach(c => {
+                c.classList.remove('selected');
+                c.querySelector('p:last-child').style.display = 'none';
+            });
+        }
+
+        // Step 8: SQL
+        function runSQLSim() {
+            const res = document.getElementById('d1-result');
+            res.style.display = 'none';
+            setTimeout(() => {
+                res.style.display = 'block';
+                showToast("Query Executed");
+            }, 300);
+        }
+
+        function resetSQLSim() {
+            document.getElementById('d1-result').style.display = 'none';
+        }
+
+        // Step 9: Folders
+        function toggleFolder(name) {
+            const el = document.getElementById('folder-' + name);
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Step 10: KV Counter
+        function incrementKV() {
+            const el = document.getElementById('kv-counter');
+            let val = parseInt(el.textContent);
+            el.textContent = val + 1;
+            el.style.transform = "scale(1.2)";
+            setTimeout(() => el.style.transform = "scale(1)", 100);
+        }
+
+        function resetKV() {
+            document.getElementById('kv-counter').textContent = "4251";
+        }
+
+        // Step 11: Trace
+        function tracePath(node) {
+            const nodes = ['node-d1', 'node-r2', 'node-kv'];
+            nodes.forEach(n => document.getElementById(n).classList.remove('active-node'));
+
+            const target = document.getElementById('node-' + node);
+            target.classList.add('active-node');
+
+            let msg = "";
+            if (node === 'd1') msg = "Search Query sent to D1";
+            if (node === 'r2') msg = "File Fetch sent to R2";
+            if (node === 'kv') msg = "Update sent to KV";
+            showToast(msg);
+        }
+
+        // Step 12: Search
+        function runSearchSim() {
+            const res = document.getElementById('search-results');
+            res.innerHTML = "Searching...";
+            res.style.display = 'block';
+            setTimeout(() => {
+                res.innerHTML = `
+                <div style="padding: 5px; border-bottom: 1px solid #eee;"><strong>EC2 Basics</strong> <span style="background: #eee; border-radius: 4px; padding: 2px 4px; font-size: 0.7rem;">cloud</span></div>
+                <div style="padding: 5px;"><strong>S3 Intro</strong> <span style="background: #eee; border-radius: 4px; padding: 2px 4px; font-size: 0.7rem;">cloud</span></div>
+            `;
+            }, 600);
+        }
+
+        // Step 13: R2
+        function runR2Sim() {
+            const out = document.getElementById('r2-output');
+            out.style.display = 'none';
+            setTimeout(() => out.style.display = 'block', 500);
+        }
+
+        // Step 14: Like
+        function triggerLike(el) {
+            // Visual
+            el.classList.add('selected');
+            setTimeout(() => el.classList.remove('selected'), 200);
+
+            // Counter
+            const count = document.getElementById('like-count-display');
+            count.innerText = parseInt(count.innerText) + 1;
+
+            // Log
+            const log = document.getElementById('kv-log');
+            log.innerText = `> PUT likes:sim-001 ${count.innerText} (Lat: 5ms)`;
+        }
+
+        // --- Init ---
+        updateUI();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1612 @@
+
+        const API_BASE = '';
+        let allCourses = [], allCategories = [], allCarousels = [], currentCourse = null, currentCourseData = null;
+        let allCarouselCards = [], currentCarouselId = null, currentCarouselHeader = '';
+        let pendingFocusSimId = null;
+        let pendingFocusSectionId = null;
+
+        // Auth helpers - shared token with main site
+        function getAuthToken() { return localStorage.getItem('lp_auth_token') || ''; }
+        function authHeaders() { const t = getAuthToken(); return t ? { 'Authorization': 'Bearer ' + t } : {}; }
+        function authJsonHeaders() { return { 'Content-Type': 'application/json', ...authHeaders() }; }
+
+        // Redirect to login if not authenticated
+        (function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            // Verify token is valid by calling an admin endpoint
+            fetch(API_BASE + '/api/auth/me', { headers: authHeaders() })
+                .then(r => { if (r.status === 401 || r.status === 403) { localStorage.removeItem('lp_auth_token'); window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname); } })
+                .catch(() => { });
+        })();
+
+        function showToast(m, t = 'success') { const toast = document.getElementById('toast'); toast.className = 'toast ' + t + ' show'; toast.innerHTML = '<i class="fas fa-' + (t === 'success' ? 'check' : 'exclamation') + '-circle"></i> ' + (typeof m === 'object' ? JSON.stringify(m) : m); setTimeout(() => toast.classList.remove('show'), 3000) }
+        function showModal(h) { document.getElementById('modal-content').innerHTML = h; document.getElementById('modal-overlay').classList.add('active') }
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('active') }
+        function esc(s) { return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '' }
+        function broadcastAdminUpdate() { try { localStorage.setItem('lp_admin_refresh', String(Date.now())); } catch (e) { /* ignore */ } }
+
+        async function loadData() {
+            console.log('[ADMIN] Starting data load...');
+            const sidebar = document.getElementById('sidebar-content');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                console.warn('[ADMIN] Data load timed out!');
+                controller.abort();
+            }, 15000); // Increased to 15s
+
+            try {
+                const results = await Promise.allSettled([
+                    fetch(API_BASE + '/api/courses?t=' + Date.now(), { signal: controller.signal }),
+                    fetch(API_BASE + '/api/categories?t=' + Date.now(), { signal: controller.signal }),
+                    fetch(API_BASE + '/api/admin/carousels?t=' + Date.now(), { headers: authHeaders(), signal: controller.signal })
+                ]);
+                clearTimeout(timeoutId);
+
+                const [cRes, catRes, carouselRes] = results;
+                console.log('[ADMIN] Fetches settled:', results.map(r => r.status));
+
+                if (cRes.status === 'fulfilled' && cRes.value.ok) {
+                    const cData = await cRes.value.json();
+                    allCourses = cData.courses || [];
+                } else {
+                    console.error('[ADMIN] Failed to load courses:', cRes.reason || cRes.value?.status);
+                }
+
+                if (catRes.status === 'fulfilled' && catRes.value.ok) {
+                    const catData = await catRes.value.json();
+                    allCategories = catData.categories || [];
+                } else {
+                    console.error('[ADMIN] Failed to load categories:', catRes.reason || catRes.value?.status);
+                }
+
+                if (carouselRes.status === 'fulfilled' && carouselRes.value.ok) {
+                    allCarousels = await carouselRes.value.json() || [];
+                } else {
+                    console.error('[ADMIN] Failed to load carousels:', carouselRes.reason || carouselRes.value?.status);
+                    allCarousels = []; // Fallback
+                }
+
+                console.log('[ADMIN] Rendering sidebar with:', { courses: allCourses.length, cats: allCategories.length, carousels: allCarousels.length });
+                renderSidebar();
+            } catch (e) {
+                console.error('[ADMIN] Fatal load error:', e);
+                if (sidebar) sidebar.innerHTML = `
+                    <div style="padding:20px;color:var(--error);text-align:center;">
+                        <strong>Fatal Error during load</strong><br>
+                        <small style="display:block;margin:5px 0;">${esc(e.message)}</small>
+                        <button class="btn btn-sm" style="margin-top:10px;background:var(--primary);color:white;" onclick="loadData()">Retry</button>
+                    </div>`;
+            }
+        }
+
+        function renderSidebar() {
+            let h = '';
+
+            h += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+                    <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Layouts & Carousels</div>
+                    <button class="icon-btn" onclick="openAddCarouselModal()" title="Add Carousel"><i class="fas fa-plus"></i></button>
+                </div>
+            `;
+
+            allCarousels.forEach(carousel => {
+                const isOrange = carousel.id == 2;
+                h += `
+                    <div class="carousel-editor-box draggable-carousel" draggable="true" data-id="${carousel.id}" onclick="openCarouselManager(${carousel.id})" style="${isOrange ? 'background: #1e3a5f; border-color: #38bdf8;' : ''}">
+                        <i class="fas fa-grip-vertical drag-handle" style="color: rgba(255,255,255,0.3);"></i>
+                        <i class="${isOrange ? 'fas fa-magic' : 'fas fa-images'}" style="${isOrange ? 'color: #f97316;' : ''}"></i>
+                        <div style="flex: 1;">
+                            <div style="font-weight:700;font-size:14px;">${esc(carousel.name)}</div>
+                            <div style="font-size:11px;opacity:0.8;">${esc(carousel.header || 'Carousel Editor')}</div>
+                        </div>
+                        <div class="category-actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); openEditCarouselModal(${carousel.id})" style="color: white;"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="icon-btn delete" onclick="event.stopPropagation(); deleteCarousel(${carousel.id})" style="color: white;"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            h += '<div style="height: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;"></div>';
+
+            h += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+                    <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Navigation & Courses</div>
+                    <button class="icon-btn" onclick="openAddCategoryModal()" title="Add Category"><i class="fas fa-plus"></i></button>
+                </div>
+            `;
+
+            allCategories.forEach(cat => {
+                // Filter courses for this category AND ensure they don't have a parent_course_id (top level in category)
+                const courses = allCourses.filter(c => (c.category || 'skill') === cat.id && !c.parent_course_id);
+                courses.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+                h += `
+                    <div class="category-section" data-id="${cat.id}">
+                        <div class="category-header">
+                            <i class="fas fa-grip-vertical drag-handle"></i>
+                            <span class="category-title" title="${esc(cat.name)}">${esc(cat.name)}</span>
+                            <div class="category-actions">
+                                <button class="icon-btn" onclick="openAddCourseModal('${cat.id}')" title="Add Course to ${esc(cat.name)}" style="color:var(--accent)"><i class="fas fa-plus"></i></button>
+                                <button class="icon-btn" onclick="openEditCategoryModal('${cat.id}','${esc(cat.name)}')" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="icon-btn delete" onclick="deleteCategory('${cat.id}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>
+                        <ul class="course-list">
+                `;
+
+                if (courses.length === 0) {
+                    h += '<li style="padding:10px;color:var(--muted);font-size:13px;text-align:center;">No courses</li>';
+                } else {
+                    courses.forEach(course => {
+                        h += renderCourseSidebarItem(course, 0);
+                    });
+                }
+                h += '</ul></div>';
+            });
+
+            h += '<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:10px;">';
+            h += '<button class="add-btn" onclick="openRecycleBin()" style="border-color:var(--muted);color:var(--text2);margin-bottom:10px;"><i class="fas fa-trash-restore"></i> Recycle Bin</button>';
+            h += '<button class="add-btn" onclick="triggerMigration()" style="border-color:var(--error);color:var(--error);font-weight:700;"><i class="fas fa-database"></i> CRITICAL: FIX DATABASE & PURGE DELETED</button>';
+            h += '</div>';
+            document.getElementById('sidebar-content').innerHTML = h;
+            if (window.initDragAndDrop) window.initDragAndDrop();
+        }
+
+        function renderCourseSidebarItem(course, depth = 0) {
+            const hasChildren = allCourses.some(c => c.parent_course_id === course.id);
+            const children = allCourses.filter(c => c.parent_course_id === course.id).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+            let html = `
+                <li class="course-item ${currentCourse === course.id ? 'active' : ''}" data-id="${course.id}" onclick="selectCourse('${course.id}')" style="margin-left: ${depth * 16}px">
+                    <i class="fas fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                    <i class="${course.icon_class || 'fas fa-book'}"></i>
+                    <span title="${esc(course.title)}">${esc(course.title)}</span>
+                    <span class="count">${course.simulation_count || 0}</span>
+                    <div class="item-actions">
+                        <button class="icon-btn" onclick="event.stopPropagation(); openAddCourseModal('${course.category}', '${course.id}')" title="Add Sub-course" style="color: var(--accent);"><i class="fas fa-layer-group"></i></button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); openAddSectionModal('${course.id}')" title="Add Section" style="color: var(--success);"><i class="fas fa-plus"></i></button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); openEditCourseModal('${course.id}')" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="icon-btn delete" onclick="event.stopPropagation(); deleteCourse('${course.id}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </li>
+            `;
+
+            if (children.length > 0) {
+                children.forEach(child => {
+                    html += renderCourseSidebarItem(child, depth + 1);
+                });
+            }
+            return html;
+        }
+
+        async function triggerMigration() {
+            if (!confirm('CRITICAL ACTION: This will fix missing database columns AND PERMANENTLY WIPE ALL DELETED CONTENT from the cloud. This cannot be undone. Proceed?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/migrate', { method: 'POST', headers: authHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast('Migration successful: ' + data.message);
+                    loadData();
+                }
+                else { showToast('Migration failed', 'error'); }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function selectCourse(id, force = false) {
+            if (currentCourse === id && !force) return;
+            currentCourse = id;
+            // Optimization: Toggle active class without full re-render
+            document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+            const activeItem = document.querySelector('.course-item[data-id="' + id + '"]');
+            if (activeItem) activeItem.classList.add('active');
+
+            const course = allCourses.find(c => c.id === id); if (!course) return;
+            document.getElementById('main-title').innerHTML = '<i class="' + (course.icon_class || 'fas fa-book') + '"></i> ' + esc(course.title);
+            document.getElementById('header-actions').innerHTML = '<button class="btn" onclick="openEditCourseModal(\'' + id + '\')"><i class="fas fa-edit"></i> Edit</button><button class="btn btn-primary" onclick="openAddSectionModal(\'' + id + '\')"><i class="fas fa-plus"></i> Add Section</button>';
+            document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+            try { const res = await fetch(API_BASE + '/api/courses/' + id + '?t=' + Date.now()); currentCourseData = await res.json(); renderContent() }
+            catch (e) { document.getElementById('main-content').innerHTML = '<div class="empty-state"><h3>Failed to Load</h3><button class="btn" onclick="selectCourse(\'' + id + '\')">Retry</button></div>' }
+        }
+
+        // ... renderContent ...
+
+        // ... Modals ...
+
+        async function handleEditCategory(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { id, name: f.name.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Category updated'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditCategoryModal(id, name) {
+            const cat = allCategories.find(c => c.id === id);
+            const order = cat ? (cat.display_order || 0) : 0;
+            const html = `
+                <div class="modal-header"><h3>Edit Category</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-cat-form" onsubmit="handleEditCategory(event, '${id}')">
+                        <div class="form-group"><label>ID</label><input type="text" value="${id}" disabled></div>
+                        <div class="form-group"><label>Name *</label><input type="text" name="name" value="${esc(name)}" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${order}"><small>Lower numbers appear first</small></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" form="edit-cat-form" class="btn btn-primary">Save</button>
+                </div>
+            `;
+            showModal(html);
+        }
+
+        function openAddCategoryModal() {
+            const orders = allCategories.map(c => c.display_order || 0);
+            const nextOrder = orders.length > 0 ? (Math.max(...orders) + 1) : 1;
+            const html = `
+                <div class="modal-header"><h3>Add Category</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-cat-form" onsubmit="handleAddCategory(event)">
+                        <div class="form-group"><label>ID (unique, lowercase, no spaces) *</label><input type="text" name="id" required pattern="[a-z0-9-]+"></div>
+                        <div class="form-group"><label>Name *</label><input type="text" name="name" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}" readonly></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-cat-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddCategory(e) {
+            e.preventDefault();
+            const f = e.target;
+            const idValue = f.elements['id'] ? f.elements['id'].value : '';
+            const data = { id: idValue, name: f.name.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Category created'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Delete this category?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/categories/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openAddCourseModal(catId, parentCourseId = null) {
+            // Filter courses by category to find max order in this specific category
+            const siblings = allCourses.filter(c => (c.category || 'skill') === catId && (c.parent_course_id || null) === (parentCourseId || null));
+            const orders = siblings.map(c => c.display_order || 0);
+            const nextOrder = orders.length > 0 ? (Math.max(...orders) + 1) : 1;
+
+            const html = `
+                <div class="modal-header"><h3>Add ${parentCourseId ? 'Sub-course' : 'Course'}</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-course-form" onsubmit="handleAddCourse(event)">
+                        <div class="form-group"><label>ID (unique) *</label><input type="text" name="id" required></div>
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>Parent (Category or Course)</label>
+                            <select name="parent_selector" required>
+                                <optgroup label="Categories">
+                                    ${allCategories.map(c => `<option value="cat:${c.id}" ${c.id === catId && !parentCourseId ? 'selected' : ''}>Category: ${esc(c.name)}</option>`).join('')}
+                                </optgroup>
+                                <optgroup label="Courses">
+                                    ${allCourses.filter(c => !c.is_deleted).map(c => `<option value="course:${c.id}" ${c.id === parentCourseId ? 'selected' : ''}>Course: ${esc(c.title)}</option>`).join('')}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Node Type</label>
+                            <select name="type">
+                                <option value="course" selected>Course (Leaf Node)</option>
+                                <option value="subcategory">Subcategory (Expandable Container)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Icon Class</label><input type="text" name="icon_class" value="fas fa-book" placeholder="fas fa-book"></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-course-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddCourse(e) {
+            e.preventDefault();
+            const f = e.target;
+            const parentVal = f.parent_selector.value;
+            let category = '';
+            let parent_course_id = null;
+
+            if (parentVal.startsWith('cat:')) {
+                category = parentVal.replace('cat:', '');
+            } else {
+                parent_course_id = parentVal.replace('course:', '');
+                // Find parent course to get its category
+                const parentCourse = allCourses.find(c => c.id === parent_course_id);
+                category = parentCourse ? (parentCourse.category || 'skill') : 'skill';
+            }
+
+            const data = {
+                id: f.elements['id'] ? f.elements['id'].value : '',
+                title: f.title.value,
+                category: category,
+                parent_course_id: parent_course_id,
+                type: f.type.value,
+                icon_class: f.icon_class.value,
+                display_order: parseInt(f.display_order.value) || 0
+            };
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Course created'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditCourseModal(id) {
+            const c = allCourses.find(x => x.id === id);
+            if (!c) return;
+
+            const html = `
+                <div class="modal-header"><h3>Edit Course</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-course-form" onsubmit="handleEditCourse(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(c.title)}" required></div>
+                        <div class="form-group"><label>Parent (Category or Course)</label>
+                            <select name="parent_selector" required>
+                                <optgroup label="Categories">
+                                    ${allCategories.map(cat => `<option value="cat:${cat.id}" ${!c.parent_course_id && (c.category || 'skill') === cat.id ? 'selected' : ''}>Category: ${esc(cat.name)}</option>`).join('')}
+                                </optgroup>
+                                <optgroup label="Courses">
+                                    ${allCourses.filter(x => x.id !== id && !x.is_deleted).map(x => `<option value="course:${x.id}" ${c.parent_course_id === x.id ? 'selected' : ''}>Course: ${esc(x.title)}</option>`).join('')}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Node Type</label>
+                            <select name="type">
+                                <option value="course" ${c.type === 'course' ? 'selected' : ''}>Course (Leaf Node)</option>
+                                <option value="subcategory" ${c.type === 'subcategory' ? 'selected' : ''}>Subcategory (Expandable Container)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Icon Class</label><input type="text" name="icon_class" value="${esc(c.icon_class || 'fas fa-book')}"></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${c.display_order || 0}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-course-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleEditCourse(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const parentVal = f.parent_selector.value;
+            let category = '';
+            let parent_course_id = null;
+
+            if (parentVal.startsWith('cat:')) {
+                category = parentVal.replace('cat:', '');
+            } else {
+                parent_course_id = parentVal.replace('course:', '');
+                const parentCourse = allCourses.find(c => c.id === parent_course_id);
+                category = parentCourse ? (parentCourse.category || 'skill') : 'skill';
+            }
+
+            const data = {
+                id,
+                title: f.title.value,
+                category: category,
+                parent_course_id: parent_course_id,
+                type: f.type.value,
+                icon_class: f.icon_class.value,
+                display_order: parseInt(f.display_order.value) || 0
+            };
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) {
+                    showToast('Updated!');
+                    closeModal();
+                    await loadData();
+                    broadcastAdminUpdate();
+                }
+                else showToast('Failed', 'error')
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+
+        function openAddSectionModal(courseId) {
+            let nextOrder = 1;
+            if (currentCourseData && currentCourseData.sections) {
+                const orders = currentCourseData.sections.map(s => s.display_order || 0);
+                if (orders.length > 0) nextOrder = Math.max(...orders) + 1;
+            }
+
+            const html = `
+                <div class="modal-header"><h3>Add Section</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-sec-form" onsubmit="handleAddSection(event, '${courseId}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${nextOrder}" readonly></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-sec-form" class="btn btn-primary">Create</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddSection(e, courseId) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { course_id: courseId, title: f.title.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections', { method: 'POST', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                const d = await res.json().catch(() => null);
+                if (res.ok) {
+                    pendingFocusSectionId = d?.id || null;
+                    showToast('Section created');
+                    closeModal();
+                    selectCourse(courseId, true);
+                    broadcastAdminUpdate();
+                } else {
+                    showToast(d?.error || 'Failed', 'error');
+                }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditSectionModal(id, title, order) {
+            const html = `
+                <div class="modal-header"><h3>Edit Section</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-sec-form" onsubmit="handleEditSection(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(title)}" required></div>
+                        <div class="form-group"><label>Order</label><input type="number" name="display_order" value="${order || 0}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-sec-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleEditSection(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = { id, title: f.title.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Section updated'); closeModal(); if (currentCourse) selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteSection(id) {
+            if (!confirm('Delete this section?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/sections/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); if (currentCourse) selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openAddSimulationModal(sectionId) {
+            let nextOrder = 1;
+            if (currentCourseData && currentCourseData.sections) {
+                const sec = currentCourseData.sections.find(s => s.id === sectionId);
+                if (sec && sec.items) {
+                    const orders = sec.items.map(s => s.display_order || 0);
+                    if (orders.length > 0) nextOrder = Math.max(...orders) + 1;
+                }
+            }
+
+            const html = `
+                <div class="modal-header"><h3>Add Topic</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-sim-form" onsubmit="handleAddSimulation(event, '${sectionId}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>HTML File *</label><input type="file" name="file" accept=".html" required></div>
+                        <div class="form-group"><label>Metadata</label><small>Slug will be auto-generated from title</small></div>
+                        <input type="hidden" name="display_order" value="${nextOrder}">
+                        <div class="form-check"><input type="checkbox" name="has_simulation" value="1" checked><label>Has Simulation Content</label></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="add-sim-form" class="btn btn-primary">Upload</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddSimulation(e, sectionId) {
+            e.preventDefault();
+            const f = e.target;
+            const fileInput = f.querySelector('input[type="file"][name="file"]');
+            const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+            if (!file) { showToast('Please select a file to upload', 'error'); return; }
+            // File size limit removed
+            const formData = new FormData(f);
+            formData.append('course_id', currentCourse);
+            formData.append('section_id', sectionId);
+
+            // Ensure display_order is explicitly set
+            const displayOrder = f.display_order ? f.display_order.value : '1';
+            if (!formData.get('display_order')) {
+                formData.set('display_order', displayOrder);
+            }
+
+            console.log('[ADD TOPIC] Sending display_order:', formData.get('display_order'));
+
+            showToast('Uploading...', 'success');
+
+            // DEBUG: Auth Check
+            console.log('[UPLOAD] Auth token:', getAuthToken() ? 'present' : 'MISSING');
+            console.log('[UPLOAD] Headers:', JSON.stringify(authHeaders()));
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/upload-simulation', { method: 'POST', headers: authHeaders(), body: formData });
+                const text = await res.text();
+                let d = null;
+                try { d = text ? JSON.parse(text) : null; } catch (_) { d = null; }
+
+                if (res.ok) {
+                    console.log('[ADD TOPIC] Server response:', d);
+                    showToast('Topic added');
+                    pendingFocusSimId = d?.id || null;
+                    closeModal();
+                    selectCourse(currentCourse, true);
+                    broadcastAdminUpdate();
+                } else {
+                    console.error('Upload failed:', res.status, text);
+                    const msg = typeof d?.error === 'object' ? JSON.stringify(d.error) : (d?.error || text || `Upload failed (${res.status})`);
+                    showToast(msg, 'error');
+                }
+            } catch (err) { showToast('Error: ' + err.message, 'error') }
+        }
+
+        function openEditSimulationModal(id) {
+            // Find sim data
+            if (!currentCourseData) return;
+            let sim = null;
+            let sectionId = null;
+            currentCourseData.sections.forEach(s => {
+                const found = s.items.find(x => x.id === id);
+                if (found) {
+                    sim = found;
+                    sectionId = s.id;
+                }
+            });
+            if (!sim) return;
+
+            // Get max order in this section for validation hint
+            const section = currentCourseData.sections.find(s => s.id === sectionId);
+            const maxOrder = section && section.items ? Math.max(...section.items.map(i => i.display_order || 0)) : 1;
+
+            const html = `
+                <div class="modal-header"><h3>Edit Topic</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-sim-form" onsubmit="handleEditSimulation(event, '${id}')">
+                        <div class="form-group"><label>Title *</label><input type="text" name="title" value="${esc(sim.name)}" required></div>
+                        <div class="form-group"><label>Position (1-${maxOrder})</label><input type="number" name="display_order" value="${sim.display_order || 1}" min="1" max="${maxOrder}"><small>Change position within this section</small></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-sim-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleEditSimulation(e, id) {
+            e.preventDefault();
+            const f = e.target;
+            const data = {
+                id,
+                title: f.title.value,
+                display_order: parseInt(f.display_order.value) || 1
+            };
+
+            console.log('[EDIT TOPIC] Sending:', data);
+
+            try {
+                const res = await fetch(API_BASE + '/api/admin/simulations', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) { showToast('Updated'); closeModal(); selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteSimulation(id) {
+            if (!confirm('Delete this topic?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/simulations/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); selectCourse(currentCourse, true); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+
+
+        function openBulkImportModal(sectionId) {
+            const html = `
+                <div class="modal-header"><h3><i class="fas fa-database"></i> Bulk Import Topics</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="bulk-import-form" onsubmit="handleBulkImport(event, '${sectionId}')">
+                        <div class="form-group">
+                            <label>Select HTML Files</label>
+                            <input type="file" id="bulk-files" accept=".html" multiple required style="padding:8px;">
+                            <small>Select multiple HTML files from your desktop</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Topic Metadata (JSON)</label>
+                            <textarea id="bulk-json" placeholder="Paste your JSON array here..." style="min-height:200px;font-family:monospace;font-size:13px;" required></textarea>
+                            <small>Provide title and display_order for each file (in same order as selected files)</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-upload"></i> Upload & Import</button>
+                        
+                        <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+                            <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2);">Example JSON Format</h4>
+                            <pre style="background:var(--bg-tertiary);padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;margin:0;">[
+  {
+    "title": "IAM",
+    "display_order": 1
+  },
+  {
+    "title": "ELB",
+    "display_order": 2
+  }
+]</pre>
+                            <small style="display:block;margin-top:8px;color:var(--muted);">Files will be uploaded to: simulations/${currentCourse}/</small>
+                        </div>
+                    </form>
+                </div>
+            `;
+            showModal(html);
+        }
+
+
+
+
+        async function handleBulkImport(e, sectionId) {
+            e.preventDefault();
+            const files = document.getElementById('bulk-files').files;
+            const jsonInput = document.getElementById('bulk-json').value.trim();
+
+            if (files.length === 0) {
+                showToast('No files selected', 'error');
+                return;
+            }
+
+            if (!jsonInput) {
+                showToast('No JSON provided', 'error');
+                return;
+            }
+
+            let metadata;
+            try {
+                metadata = JSON.parse(jsonInput);
+            } catch (err) {
+                showToast('Invalid JSON: ' + err.message, 'error');
+                return;
+            }
+
+            if (!Array.isArray(metadata)) {
+                showToast('JSON must be an array', 'error');
+                return;
+            }
+
+            if (files.length !== metadata.length) {
+                showToast(`Mismatch: ${files.length} files but ${metadata.length} metadata entries`, 'error');
+                return;
+            }
+
+            showToast(`Uploading ${files.length} files...`, 'success');
+
+            try {
+                // Upload each file and create database record
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const meta = metadata[i];
+
+                    // Generate slug from filename
+                    const filename = file.name;
+                    const slug = filename.replace(/\.html$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+                    // Upload + create record
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('course_id', currentCourse);
+                    formData.append('section_id', sectionId);
+                    formData.append('title', meta.title || filename.replace(/\.html$/i, ''));
+                    formData.append('slug', slug);
+                    formData.append('has_simulation', '1');
+                    formData.append('display_order', meta.display_order || (i + 1));
+
+                    const uploadRes = await fetch(API_BASE + '/api/admin/upload-simulation', {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: formData
+                    });
+
+                    if (!uploadRes.ok) {
+                        const errText = await uploadRes.text();
+                        let err;
+                        try { err = errText ? JSON.parse(errText) : null; } catch (_) { err = null; }
+                        throw new Error(`Upload failed for ${filename}: ${err?.error || errText || uploadRes.status}`);
+                    }
+
+                    showToast(`✓ Uploaded ${i + 1}/${files.length}: ${meta.title}`, 'success');
+                }
+
+                showToast(`Successfully imported ${files.length} topics!`, 'success');
+                closeModal();
+                selectCourse(currentCourse, true);
+                broadcastAdminUpdate();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+
+        async function handleEditCourse(e, id) {
+            e.preventDefault();
+            const f = e.target, data = { id, title: f.title.value, category: f.category.value, icon_class: f.icon_class.value, display_order: parseInt(f.display_order.value) || 0 };
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses', { method: 'PUT', headers: authJsonHeaders(), body: JSON.stringify(data) });
+                if (res.ok) {
+                    showToast('Updated!');
+                    closeModal();
+                    // Update local state
+                    const c = allCourses.find(x => x.id === id);
+                    const catChanged = c && c.category !== data.category;
+                    // Reload data to ensure sync
+                    await loadData();
+                    if (currentCourse === id) {
+                        // Reselect optimistically
+                        document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+                        const activeItem = document.querySelector('.course-item[data-id="' + id + '"]');
+                        if (activeItem) activeItem.classList.add('active');
+                    }
+                    broadcastAdminUpdate();
+                }
+                else showToast('Failed', 'error')
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteCourse(id) {
+            if (!confirm('Delete this course? All sections and topics will be deleted.')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/courses/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Course deleted'); currentCourse = null; loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error'); }
+        }
+
+        function renderContent() {
+            if (!currentCourseData) return;
+            const sections = currentCourseData.sections || [];
+            sections.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+            let html = '';
+            if (sections.length === 0) {
+                html = '<div class="empty-state"><h3>No Content</h3><p>This course has no sections yet.</p><button class="btn btn-primary" onclick="openAddSectionModal(\'' + currentCourse + '\')">Create Section</button></div>';
+            } else {
+                sections.forEach(sec => {
+                    html += `<div class="section-card draggable-section" draggable="true" data-id="${sec.id}" data-course-id="${currentCourse}">
+                        <div class="section-header">
+                            <i class="fas fa-grip-vertical drag-handle"></i>
+                            <div class="section-title">
+                                <span>${esc(sec.title)}</span>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="icon-btn" onclick="openEditSectionModal('${sec.id}', '${esc(sec.title)}', ${sec.display_order})" title="Edit Section"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="icon-btn delete" onclick="deleteSection('${sec.id}')" title="Delete Section"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <ul class="topic-list" data-section-id="${sec.id}">`;
+
+                    const sims = sec.items || [];
+                    sims.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+                    if (sims.length === 0) {
+                        html += `<li style="padding:10px;text-align:center;color:var(--muted);list-style:none;">No topics</li>`;
+                    } else {
+                        sims.forEach(sim => {
+                            html += `<li class="topic-item draggable-topic" draggable="true" data-id="${sim.id}" data-section-id="${sec.id}">
+                                <i class="fas fa-grip-vertical drag-handle"></i>
+                                <div class="topic-info">
+                                    <div class="topic-title">${esc(sim.name)}</div>
+                                    <div class="topic-meta">${esc(sim.slug)}</div>
+                                </div>
+                                <div class="topic-actions">
+                                    <button class="icon-btn" onclick="openEditSimulationModal('${sim.id}')"><i class="fas fa-pencil-alt"></i></button>
+                                    <button class="icon-btn delete" onclick="deleteSimulation('${sim.id}')"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </li>`;
+                        });
+                    }
+
+                    html += `</ul>
+                            <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center;">
+                                <button class="btn btn-sm" onclick="openAddSimulationModal('${sec.id}')"><i class="fas fa-plus"></i> Add Topic</button>
+                                <button class="btn btn-sm" onclick="openBulkImportModal('${sec.id}')" style="background:var(--success);"><i class="fas fa-file-import"></i> Bulk Import</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            document.getElementById('main-content').innerHTML = html;
+            if (window.initDragAndDrop) window.initDragAndDrop();
+
+            if (pendingFocusSimId) {
+                const target = document.querySelector('.topic-item[data-id="' + pendingFocusSimId + '"]');
+                if (target) {
+                    document.querySelectorAll('.topic-item.focused').forEach(el => el.classList.remove('focused'));
+                    target.classList.add('focused');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => target.classList.remove('focused'), 2000);
+                }
+                pendingFocusSimId = null;
+            }
+
+            if (pendingFocusSectionId) {
+                const sectionTarget = document.querySelector('.section-card[data-id="' + pendingFocusSectionId + '"]');
+                if (sectionTarget) {
+                    document.querySelectorAll('.section-card.focused').forEach(el => el.classList.remove('focused'));
+                    sectionTarget.classList.add('focused');
+                    sectionTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => sectionTarget.classList.remove('focused'), 2000);
+                }
+                pendingFocusSectionId = null;
+            }
+        }
+
+        async function openRecycleBin() {
+            currentCourse = null;
+            document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('main-title').innerHTML = '<i class="fas fa-trash-restore"></i> Recycle Bin';
+            document.getElementById('header-actions').innerHTML = '<button class="btn btn-sm" onclick="openRecycleBin()"><i class="fas fa-sync"></i> Refresh</button>';
+            const content = document.getElementById('main-content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading trash...</div>';
+
+            try {
+                const [catRes, courseRes, secRes, simRes] = await Promise.all([
+                    fetch(API_BASE + '/api/admin/categories/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/courses/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/sections/deleted', { headers: authHeaders() }),
+                    fetch(API_BASE + '/api/admin/simulations/deleted', { headers: authHeaders() })
+                ]);
+
+                const cats = await catRes.json();
+                const courses = await courseRes.json();
+                const sections = await secRes.json();
+                const sims = await simRes.json();
+
+                let html = `
+                <div class="header">
+                    <div class="header-left">
+                        <h2><i class="fas fa-trash-alt"></i> Recycle Bin</h2>
+                        <p class="text-muted">Manage deleted items</p>
+                    </div>
+                </div>
+                <div class="content-body" style="padding: 24px">
+            `;
+
+                // Categories
+                if (cats.categories && cats.categories.length > 0) {
+                    html += `<h3>Deleted Categories</h3><table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Actions</th></tr></thead><tbody>`;
+                    cats.categories.forEach(c => {
+                        html += `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.name}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('categories', '${c.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('categories', '${c.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Courses
+                if (courses.courses && courses.courses.length > 0) {
+                    html += `<h3>Deleted Courses</h3><table class="data-table"><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Actions</th></tr></thead><tbody>`;
+                    courses.courses.forEach(c => {
+                        html += `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.title}</td>
+                            <td>${c.category}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('courses', '${c.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('courses', '${c.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Sections
+                if (sections.sections && sections.sections.length > 0) {
+                    html += `<h3>Deleted Sections</h3><table class="data-table"><thead><tr><th>ID</th><th>Title</th><th>Course</th><th>Actions</th></tr></thead><tbody>`;
+                    sections.sections.forEach(s => {
+                        html += `
+                        <tr>
+                            <td>${s.id}</td>
+                            <td>${s.title}</td>
+                            <td>${s.course_title || s.course_id}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('sections', '${s.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('sections', '${s.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table><br>`;
+                }
+
+                // Topics
+                if (sims.simulations && sims.simulations.length > 0) {
+                    html += `<h3>Deleted Topics</h3><table class="data-table"><thead><tr><th>Title</th><th>Slug</th><th>Actions</th></tr></thead><tbody>`;
+                    sims.simulations.forEach(s => {
+                        html += `
+                        <tr>
+                            <td>${s.title}</td>
+                            <td>${s.slug}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="handleRestore('simulations', '${s.id}')"><i class="fas fa-undo"></i> Restore</button>
+                                <button class="btn btn-sm btn-danger" onclick="handlePermanentDelete('simulations', '${s.id}')"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    });
+                    html += `</tbody></table>`;
+                }
+
+                if (!cats.count && !courses.count && !sections.count && !sims.count) {
+                    html += `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-trash"></i></div><h3>Trash is empty</h3></div>`;
+                }
+
+                html += `</div>`;
+                content.innerHTML = html;
+
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = '<div class="empty-state" style="color:var(--error);"><h3>Error Loading Recycle Bin</h3><p>' + e.message + '</p><button class="btn" onclick="openRecycleBin()">Retry</button></div>';
+            }
+        }
+
+        async function handleRestore(type, id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/${type}/${id}/restore`, { method: 'POST' });
+                if (res.ok) { showToast('Restored!'); openRecycleBin(); loadData(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function handlePermanentDelete(type, id) {
+            if (!confirm('Permanently delete this item? This CANNOT be undone.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/${type}/${id}/permanent`, { method: 'DELETE' });
+                if (res.ok) { showToast('Deleted forever'); openRecycleBin(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        // --- CAROUSEL MANAGER ---
+        allCarouselCards = [];
+        currentCarouselId = 1;
+        currentCarouselHeader = '';
+
+        async function openCarouselManager(carouselId = 1) {
+            currentCarouselId = carouselId;
+            currentCourse = null;
+            document.querySelectorAll('.course-item').forEach(el => el.classList.remove('active'));
+
+            const carousel = allCarousels.find(c => c.id == carouselId);
+            const carouselName = carousel ? carousel.name : `Carousel ${carouselId}`;
+
+            document.getElementById('main-title').innerHTML = `<i class="fas fa-images"></i> ${esc(carouselName)}`;
+            document.getElementById('header-actions').innerHTML = `
+                <button class="btn btn-sm" onclick="openCarouselManager(${carouselId})"><i class="fas fa-sync"></i> Refresh</button>
+                <button class="btn btn-sm" onclick="openEditHeaderModal(${carouselId})"><i class="fas fa-heading"></i> Edit Header</button>
+                <button class="btn btn-primary" onclick="openAddCarouselCardModal()"><i class="fas fa-plus"></i> Add Card</button>
+            `;
+            const content = document.getElementById('main-content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading cards...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/carousel?type=${carouselId}`, { headers: authHeaders() });
+                const data = await res.json();
+                allCarouselCards = data.cards || [];
+                currentCarouselHeader = data.header || '';
+                renderCarouselCards();
+            } catch (e) {
+                content.innerHTML = '<div class="empty-state"><h3>Error</h3><p>' + e.message + '</p></div>';
+            }
+        }
+
+        function openAddCarouselModal() {
+            const html = `
+                <div class="modal-header"><h3>Add New Carousel</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="add-carousel-form" onsubmit="handleAddCarousel(event)">
+                        <div class="form-group"><label>Name (Internal reference) *</label><input type="text" name="name" required placeholder="e.g. Featured Courses"></div>
+                        <div class="form-group"><label>Header (Frontend display title)</label><input type="text" name="header" placeholder="e.g. Free Interactive Demos"></div>
+                        <div class="form-group"><label>Display Order</label><input type="number" name="display_order" value="${allCarousels.length + 1}"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" form="add-carousel-form" class="btn btn-primary">Create Carousel</button>
+                </div>
+            `;
+            showModal(html);
+        }
+
+        async function handleAddCarousel(e) {
+            e.preventDefault();
+            const data = {
+                name: e.target.name.value,
+                header: e.target.header.value,
+                display_order: parseInt(e.target.display_order.value) || 0
+            };
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/carousels`, {
+                    method: 'POST',
+                    headers: authJsonHeaders(),
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) { showToast('Carousel created'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditCarouselModal(id) {
+            const carousel = allCarousels.find(c => c.id == id);
+            if (!carousel) return;
+            const html = `
+                <div class="modal-header"><h3>Edit Carousel</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-carousel-form" onsubmit="handleUpdateCarousel(event, ${id})">
+                        <div class="form-group"><label>Name *</label><input type="text" name="name" value="${esc(carousel.name)}" required></div>
+                        <div class="form-group"><label>Header</label><input type="text" name="header" value="${esc(carousel.header || '')}"></div>
+                        <div class="form-group"><label>Display Order</label><input type="number" name="display_order" value="${carousel.display_order || 0}"></div>
+                        <div class="form-check"><input type="checkbox" name="is_active" id="edit-carousel-active" ${carousel.is_active ? 'checked' : ''}><label for="edit-carousel-active">Active</label></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" form="edit-carousel-form" class="btn btn-primary">Save Changes</button>
+                </div>
+            `;
+            showModal(html);
+        }
+
+        async function handleUpdateCarousel(e, id) {
+            e.preventDefault();
+            const data = {
+                id,
+                name: e.target.name.value,
+                header: e.target.header.value,
+                display_order: parseInt(e.target.display_order.value) || 0,
+                is_active: e.target.is_active.checked ? 1 : 0
+            };
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/carousels`, {
+                    method: 'PUT',
+                    headers: authJsonHeaders(),
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) { showToast('Carousel updated'); closeModal(); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        async function deleteCarousel(id) {
+            if (!confirm('Delete this carousel and all its cards? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/carousels/${id}`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                if (res.ok) { showToast('Carousel deleted'); loadData(); broadcastAdminUpdate(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function openEditHeaderModal(carouselId) {
+            const html = `
+                <div class="modal-header"><h3>Edit Carousel Header</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <div class="modal-body">
+                    <form id="edit-header-form" onsubmit="handleHeaderSubmit(event, ${carouselId})">
+                        <div class="form-group">
+                            <label>Header Text</label>
+                            <input type="text" name="header" value="${esc(currentCarouselHeader)}" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-header-form" class="btn btn-primary">Save</button></div>
+            `;
+            showModal(html);
+        }
+
+        async function handleHeaderSubmit(e, carouselId) {
+            e.preventDefault();
+            const header = e.target.header.value;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/carousel`, {
+                    method: 'PUT',
+                    headers: authJsonHeaders(),
+                    body: JSON.stringify({ type: 'header', carousel_id: carouselId, header })
+                });
+                if (res.ok) {
+                    showToast('Header updated');
+                    closeModal();
+                    await loadData(); // Refresh sidebar list
+                    openCarouselManager(carouselId);
+                    broadcastAdminUpdate();
+                }
+                else { const d = await res.json(); showToast(d.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function renderCarouselCards() {
+            const content = document.getElementById('main-content');
+
+            let html = `
+                <div style="padding: 24px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div>
+                        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Current Carousel Header</div>
+                        <div style="font-size: 20px; font-weight: 700; color: var(--text);">${esc(currentCarouselHeader || 'No Header Set')}</div>
+                    </div>
+                    <button class="btn btn-sm" onclick="openEditHeaderModal(${currentCarouselId})"><i class="fas fa-edit"></i> Edit Header</button>
+                </div>
+            `;
+
+            if (allCarouselCards.length === 0) {
+                html += `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-images"></i></div>
+                        <h3>No Carousel Cards</h3>
+                        <p>Click Add Card to start or seed from default cards.</p>
+                        <button class="btn btn-primary" onclick="seedCarouselFromDemos()">Seed Default Cards</button>
+                    </div>
+                `;
+                content.innerHTML = html;
+                return;
+            }
+
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 16px;">';
+            allCarouselCards.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+            allCarouselCards.forEach(card => {
+                const isActive = card.is_active === 1 || card.is_active === true;
+                const contentType = card.content_type || 'standard';
+                const isFullBleed = card.full_bleed === 1;
+
+                let iconHtml = `<i class="${card.icon_class || 'fas fa-star'}"></i>`;
+                if (card.image_url) {
+                    iconHtml = `<img src="${card.image_url}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">`;
+                }
+
+                html += `
+                    <div class="carousel-card-item draggable-carousel-card" draggable="true" data-id="${card.id}" style="${!isActive ? 'opacity: 0.6; background: #f8fafc;' : ''}">
+                        <i class="fas fa-grip-vertical drag-handle" style="margin-right: 12px; color: var(--muted);"></i>
+                        <div class="carousel-card-color" style="background:${card.color_hex || '#3b82f6'}">
+                            ${iconHtml}
+                        </div>
+                        <div class="carousel-card-info">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div class="carousel-card-title">${esc(card.title)}</div>
+                                ${!isActive ? '<span style="font-size:10px; padding:2px 6px; background:#fee2e2; color:#ef4444; border-radius:4px; font-weight:700;">INACTIVE</span>' : ''}
+                                ${isFullBleed ? '<span style="font-size:10px; padding:2px 6px; background:#e0f2fe; color:#0ea5e9; border-radius:4px; font-weight:700;">FULL BLEED</span>' : ''}
+                            </div>
+                            <div style="font-size:13px; color:var(--text2); margin-top:2px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${esc(card.description || 'No description')}</div>
+                            <div style="font-size:11px; color:var(--muted); margin-top:6px; display:flex; gap:12px;">
+                                <span><i class="fas fa-tag"></i> ${esc(contentType)}</span>
+                                <span><i class="fas fa-link"></i> ${esc(card.target_type)}: ${esc(card.target_id || 'None')}</span>
+                                <span><i class="fas fa-sort-numeric-down"></i> Order: ${card.display_order || 0}</span>
+                            </div>
+                        </div>
+                        <div class="carousel-card-actions">
+                            <button class="icon-btn" onclick="openEditCarouselCardModal(${card.id})" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="icon-btn delete" onclick="deleteCarouselCard(${card.id})" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        async function seedCarouselFromDemos() {
+            if (!confirm('This will seed the 8 default subjects. Continue?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/migrate', { method: 'POST', headers: authHeaders() });
+                if (res.ok) { showToast('Seeded!'); openCarouselManager(1); }
+                else { showToast('Failed to seed', 'error'); }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function updateTargetOptions(type, selectId, currentValue = '') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            let options = '<option value="none" ' + (currentValue === 'none' || !currentValue ? 'selected' : '') + '>None (No Link)</option>';
+
+            // Only show non-deleted categories
+            const activeCategories = (allCategories || []).filter(cat => !cat.is_deleted);
+            const activeCatIds = new Set(activeCategories.map(c => c.id));
+
+            if (type === 'course') {
+                // Only show non-deleted courses in active categories
+                const activeCourses = (allCourses || []).filter(c => !c.is_deleted && activeCatIds.has(c.category || 'skill'));
+                activeCourses.forEach(c => {
+                    options += `<option value="${c.id}" ${c.id === currentValue ? 'selected' : ''}>${esc(c.title)}</option>`;
+                });
+            } else if (type === 'category') {
+                activeCategories.forEach(cat => {
+                    options += `<option value="${cat.id}" ${cat.id === currentValue ? 'selected' : ''}>${esc(cat.name)}</option>`;
+                });
+            }
+            select.innerHTML = options;
+
+            // Trigger section dropdown update
+            if (selectId === 'modal-target-id') {
+                updateSectionDropdown(select.value, currentValue === select.value ? null : '');
+            }
+        }
+
+        async function updateSectionDropdown(courseId, currentSectionId = null) {
+            console.log('[updateSectionDropdown] courseId:', courseId, 'currentSectionId:', currentSectionId);
+            const sectionSelect = document.getElementById('modal-section-id');
+            const sectionGroup = document.getElementById('section-id-group');
+            const modal = document.getElementById('modal-content');
+
+            // Robust target type detection - find the one in the modal first
+            let targetTypeSelect = modal ? modal.querySelector('select[name="target_type"]') : null;
+            if (!targetTypeSelect) {
+                targetTypeSelect = document.querySelector('#card-form select[name="target_type"]') || document.querySelector('select[name="target_type"]');
+            }
+
+            if (!sectionSelect || !sectionGroup || !targetTypeSelect) {
+                console.warn('[updateSectionDropdown] Missing elements:', { sectionSelect: !!sectionSelect, sectionGroup: !!sectionGroup, targetTypeSelect: !!targetTypeSelect });
+                // Fallback: If targetTypeSelect is missing but we're here, maybe it's course by default
+                if (sectionGroup && courseId && courseId !== 'none') {
+                    // Still show it if courseId is valid
+                } else {
+                    return;
+                }
+            }
+
+            const targetType = targetTypeSelect ? targetTypeSelect.value : 'course';
+            console.log('[updateSectionDropdown] targetType:', targetType);
+
+            // If targetType is 'course', show the group and fetch sections
+            if (targetType === 'course') {
+                sectionGroup.style.display = 'block';
+                sectionGroup.style.visibility = 'visible'; // Force visibility
+                sectionGroup.style.opacity = '1';
+                if (!courseId || courseId === 'none') {
+                    sectionSelect.innerHTML = '<option value="">All Sections (Default)</option>';
+                } else {
+                    sectionSelect.innerHTML = '<option value="">Loading sections...</option>';
+                    try {
+                        const sections = await loadSectionsForCourse(courseId);
+                        let html = '<option value="">All Sections (Default)</option>';
+                        sections.forEach(sec => {
+                            html += `<option value="${sec.id}" ${sec.id == currentSectionId ? 'selected' : ''}>${esc(sec.title)}</option>`;
+                        });
+                        sectionSelect.innerHTML = html;
+                    } catch (e) {
+                        console.error('[updateSectionDropdown] Error loading sections:', e);
+                        sectionSelect.innerHTML = '<option value="">Error loading sections</option>';
+                    }
+                }
+            } else {
+                sectionGroup.style.display = 'none';
+                sectionSelect.innerHTML = '<option value="">All Sections (Default)</option>';
+            }
+        }
+
+        async function loadSectionsForCourse(courseId) {
+            try {
+                const res = await fetch(API_BASE + '/api/courses/' + courseId + '?t=' + Date.now());
+                const data = await res.json();
+                return data.sections || [];
+            } catch (e) {
+                console.error('Failed to load sections:', e);
+                return [];
+            }
+        }
+
+        function openAddCarouselCardModal() {
+            renderCarouselCardModal();
+        }
+
+        async function openEditCarouselCardModal(id) {
+            const card = allCarouselCards.find(c => c.id === id);
+            if (!card) return;
+            renderCarouselCardModal(card);
+        }
+
+        function renderCarouselCardModal(card = null) {
+            const id = card ? card.id : null;
+            const contentType = card ? (card.content_type || 'standard') : 'standard';
+            const isActive = card ? (card.is_active === 1 || card.is_active === true) : true;
+            const fullBleed = card ? (card.full_bleed === 1) : false;
+
+            const html = `
+                <div class="modal-header">
+                    <h3>${id ? 'Edit' : 'Add'} Carousel Card</h3>
+                    <button class="modal-close" onclick="closeModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <form id="card-form" onsubmit="handleCarouselCardSubmit(event, ${id || ''})">
+                        <input type="hidden" name="carousel_id" value="${currentCarouselId}">
+                        
+                        <!-- 1. Media Content Selection -->
+                        <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
+                            <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">1. CHOOSE CONTENT TYPE</label>
+                            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="content_type" value="image" ${contentType === 'image' ? 'checked' : ''} onchange="toggleContentFields(this.value, 'modal')" style="display: none;">
+                                    <div class="type-btn" data-type="image" style="text-align: center; padding: 10px; border: 2px solid ${contentType === 'image' ? 'var(--accent)' : '#cbd5e1'}; border-radius: 6px; background: white;">
+                                        <i class="fas fa-image"></i><br><span style="font-size:12px;">Image URL</span>
+                                    </div>
+                                </label>
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="content_type" value="html" ${contentType === 'html' ? 'checked' : ''} onchange="toggleContentFields(this.value, 'modal')" style="display: none;">
+                                    <div class="type-btn" data-type="html" style="text-align: center; padding: 10px; border: 2px solid ${contentType === 'html' ? 'var(--accent)' : '#cbd5e1'}; border-radius: 6px; background: white;">
+                                        <i class="fas fa-code"></i><br><span style="font-size:12px;">HTML Snippet</span>
+                                    </div>
+                                </label>
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="content_type" value="iframe" ${contentType === 'iframe' ? 'checked' : ''} onchange="toggleContentFields(this.value, 'modal')" style="display: none;">
+                                    <div class="type-btn" data-type="iframe" style="text-align: center; padding: 10px; border: 2px solid ${contentType === 'iframe' ? 'var(--accent)' : '#cbd5e1'}; border-radius: 6px; background: white;">
+                                        <i class="fas fa-window-maximize"></i><br><span style="font-size:12px;">Iframe URL</span>
+                                    </div>
+                                </label>
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="content_type" value="standard" ${contentType === 'standard' ? 'checked' : ''} onchange="toggleContentFields(this.value, 'modal')" style="display: none;">
+                                    <div class="type-btn" data-type="standard" style="text-align: center; padding: 10px; border: 2px solid ${contentType === 'standard' ? 'var(--accent)' : '#cbd5e1'}; border-radius: 6px; background: white;">
+                                        <i class="fas fa-star"></i><br><span style="font-size:12px;">Icon</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div id="modal-image-fields" style="display: ${contentType === 'image' ? 'block' : 'none'};">
+                                <div class="form-group"><label>Upload Image from Computer</label><input type="file" name="image_file" accept="image/*" onchange="this.form.image_url.value = ''"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label>OR Use Image URL</label><input type="text" name="image_url" value="${esc(card?.image_url || '')}" placeholder="https://..."></div>
+                            </div>
+
+                            <div id="modal-html-fields" style="display: ${contentType === 'html' ? 'block' : 'none'};">
+                                <div class="form-group"><label>Upload HTML Snippet File</label><input type="file" name="html_file" accept=".html" onchange="this.form.content_html.value = ''"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label>OR Paste HTML Content</label><textarea name="content_html" rows="4" placeholder="<div>...</div>">${esc(card?.content_html || '')}</textarea></div>
+                            </div>
+
+                            <div id="modal-iframe-fields" style="display: ${contentType === 'iframe' ? 'block' : 'none'};">
+                                <div class="form-group"><label>Upload HTML File (as Iframe)</label><input type="file" name="iframe_file" accept=".html" onchange="this.form.iframe_url.value = ''"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label>OR Use Page URL</label><input type="text" name="iframe_url" value="${esc(card?.iframe_url || '')}" placeholder="https://..."></div>
+                            </div>
+
+                            <div id="modal-standard-fields" style="display: ${contentType === 'standard' ? 'block' : 'none'};">
+                                <div style="display:flex; gap:12px;">
+                                    <div class="form-group" style="flex:1; margin-bottom:0;"><label>Icon Class</label><input type="text" name="icon_class" value="${esc(card?.icon_class || 'fa-solid fa-star')}"></div>
+                                    <div class="form-group" style="width:80px; margin-bottom:0;"><label>Color</label><input type="color" name="color_hex" value="${card?.color_hex || '#3b82f6'}" style="height:42px; padding:4px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Text Content -->
+                        <div style="background: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
+                              <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">2. TEXT CONTENT</label>
+                              <div class="form-group"><label>Header Title (Kicker) *</label><input type="text" name="title" value="${esc(card?.title || '')}" required placeholder="e.g. AWS SPECIALIST"></div>
+                              <div class="form-group" style="margin-bottom:0;"><label>Description (Main Headline)</label><textarea name="description" rows="2" placeholder="e.g. Master cloud concepts.">${esc(card?.description || '')}</textarea></div>
+
+                        </div>
+
+                        <!-- 3. Navigation -->
+                        <div style="background: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
+                            <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">3. NAVIGATION (CLICK ACTION)</label>
+                            <div style="display:flex; gap:12px;">
+                                <div class="form-group" style="flex:1;">
+                                    <label>Target Type</label>
+                                    <select name="target_type" onchange="updateTargetOptions(this.value, 'modal-target-id')">
+                                        <option value="none" ${card?.target_type === 'none' ? 'selected' : ''}>None (No Link)</option>
+                                        <option value="course" ${(card?.target_type || 'course') === 'course' ? 'selected' : ''}>Course</option>
+                                        <option value="category" ${card?.target_type === 'category' ? 'selected' : ''}>Category</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex:2;">
+                                    <label>Target ID</label>
+                                    <select name="target_id" id="modal-target-id" onchange="updateSectionDropdown(this.value)"></select>
+                                </div>
+                                <div class="form-group" style="flex:2; display:none;" id="section-id-group">
+                                    <label>Specific Section (Optional)</label>
+                                    <select name="section_id" id="modal-section-id">
+                                        <option value="">All Sections (Default)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Layout & Sizing -->
+                        <div style="background: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
+                            <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">4. LAYOUT & SIZING</label>
+                            <div style="display:flex; gap:12px; margin-bottom: 12px;">
+                                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Width (e.g. 400px)</label><input type="text" name="width" value="${esc(card?.width || '400px')}" placeholder="400px"></div>
+                                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Height (e.g. 500px)</label><input type="text" name="height_px" value="${esc(card?.height_px || '500px')}" placeholder="500px"></div>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" name="full_bleed" id="modal-full-bleed" ${fullBleed ? 'checked' : ''}>
+                                <label for="modal-full-bleed" style="font-weight: 600;">Full Bleed (Apple Style: Text overlays media)</label>
+                            </div>
+                        </div>
+
+                        <!-- 5. Status & Order -->
+                        <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display:flex; gap:20px; align-items: center;">
+                            <div class="form-group" style="width: 120px; margin-bottom:0;"><label>Display Order</label><input type="number" name="display_order" value="${card?.display_order || 0}"></div>
+                            <div class="form-check" style="margin-top:10px;"><input type="checkbox" name="is_active" id="modal-is-active" ${isActive ? 'checked' : ''}><label for="modal-is-active">Card is Active</label></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" form="card-form" class="btn btn-primary">${id ? 'Save Changes' : 'Create Card'}</button>
+                </div>
+                <style>
+                    .type-btn { transition: all 0.2s; border: 2px solid #cbd5e1; }
+                    .type-btn i { font-size: 18px; margin-bottom: 4px; color: #64748b; }
+                    input[name="content_type"]:checked + .type-btn { border-color: var(--accent) !important; background: #eff6ff !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+                    input[name="content_type"]:checked + .type-btn i { color: var(--accent); }
+                </style>
+            `;
+            showModal(html);
+            updateTargetOptions(card?.target_type || 'course', 'modal-target-id', card?.target_id || '');
+            if (card?.section_id) {
+                setTimeout(() => updateSectionDropdown(card.target_id, card.section_id), 100);
+            }
+        }
+
+        function toggleContentFields(type, prefix) {
+            document.getElementById(`${prefix}-standard-fields`).style.display = type === 'standard' ? 'block' : 'none';
+            document.getElementById(`${prefix}-image-fields`).style.display = type === 'image' ? 'block' : 'none';
+            document.getElementById(`${prefix}-html-fields`).style.display = type === 'html' ? 'block' : 'none';
+            document.getElementById(`${prefix}-iframe-fields`).style.display = type === 'iframe' ? 'block' : 'none';
+
+            // Highlight selected button
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                if (btn.dataset.type === type) {
+                    btn.style.borderColor = 'var(--accent)';
+                    btn.style.background = '#eff6ff';
+                } else {
+                    btn.style.borderColor = '#cbd5e1';
+                    btn.style.background = 'white';
+                }
+            });
+        }
+
+
+        async function handleCarouselCardSubmit(e, id = null) {
+            e.preventDefault();
+            const f = e.target;
+            const submitBtn = f.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                // 1. Handle File Uploads first if present
+                let imageUrl = f.image_url ? f.image_url.value : null;
+                let htmlContent = f.content_html ? f.content_html.value : null;
+                let iframeUrl = f.iframe_url ? f.iframe_url.value : null;
+
+                const contentType = f.content_type.value;
+
+                if (contentType === 'image' && f.image_file && f.image_file.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', f.image_file.files[0]);
+                    formData.append('type', 'image');
+                    const res = await fetch(API_BASE + '/api/admin/carousel/upload', { method: 'POST', headers: authHeaders(), body: formData });
+                    const d = await res.json();
+                    if (res.ok) imageUrl = d.url;
+                    else throw new Error(d.error || 'Image upload failed');
+                } else if (contentType === 'html' && f.html_file && f.html_file.files.length > 0) {
+                    const text = await f.html_file.files[0].text();
+                    htmlContent = text;
+                } else if (contentType === 'iframe' && f.iframe_file && f.iframe_file.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', f.iframe_file.files[0]);
+                    formData.append('type', 'html');
+                    const res = await fetch(API_BASE + '/api/admin/carousel/upload', { method: 'POST', headers: authHeaders(), body: formData });
+                    const d = await res.json();
+                    if (res.ok) iframeUrl = d.url;
+                    else throw new Error(d.error || 'HTML upload failed');
+                }
+
+                // Dimension helper: ensures 'px' is added if only a number is provided
+                const formatDim = (val) => {
+                    if (!val || val === 'auto') return val;
+                    if (/^\d+$/.test(val)) return val + 'px';
+                    return val;
+                };
+
+                const data = {
+                    id,
+                    carousel_id: parseInt(f.carousel_id.value),
+                    title: f.title.value,
+                    description: f.description.value,
+                    content_type: contentType,
+                    icon_class: f.icon_class ? f.icon_class.value : null,
+                    color_hex: f.color_hex ? f.color_hex.value : null,
+                    image_url: imageUrl,
+                    content_html: htmlContent,
+                    iframe_url: iframeUrl,
+                    width: formatDim(f.width.value),
+                    height_px: formatDim(f.height_px.value),
+                    full_bleed: f.full_bleed.checked ? 1 : 0,
+                    target_type: f.target_type.value,
+                    target_id: f.target_id.value,
+                    section_id: f.section_id ? f.section_id.value : null,
+                    display_order: parseInt(f.display_order.value) || 0,
+                    is_active: f.is_active.checked ? 1 : 0
+                };
+
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(API_BASE + '/api/admin/carousel', {
+                    method,
+                    headers: authJsonHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    showToast(id ? 'Updated' : 'Created');
+                    closeModal();
+                    openCarouselManager(data.carousel_id);
+                    broadcastAdminUpdate();
+                } else {
+                    showToast(d.error || d.message || 'Failed', 'error');
+                }
+            } catch (e) {
+                showToast(e.message || 'Error', 'error');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
+        async function deleteCarouselCard(id) {
+            if (!confirm('Delete this card?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/carousel/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { showToast('Deleted'); openCarouselManager(currentCarouselId); broadcastAdminUpdate(); }
+                else { showToast('Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error') }
+        }
+
+        function broadcastAdminUpdate() {
+            localStorage.setItem('lp_admin_refresh', Date.now());
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            const params = new URLSearchParams(window.location.search);
+            const courseId = params.get('course');
+            if (courseId) {
+                selectCourse(courseId);
+                const action = params.get('action');
+                if (action === 'add-section') {
+                    setTimeout(() => openAddSectionModal(courseId), 500);
+                }
+            }
+        });
+    </script>
+    <script src="./admin-drag.js?v=1772607562490">

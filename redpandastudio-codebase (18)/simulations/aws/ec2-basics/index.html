@@ -1,0 +1,123 @@
+# ===================================================
+# GITHUB ACTIONS WORKFLOW
+# File: .github/workflows/upload-simulations.yml
+# 
+# Automatically uploads simulations when pushed to repo
+# ===================================================
+
+name: Upload Simulations
+
+# Trigger on push to specific paths
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'simulations/**/*.html'
+      - 'simulations/**/*.htm'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      course_id:
+        description: 'Course ID (e.g., aws, sql)'
+        required: true
+        type: string
+      section_id:
+        description: 'Section ID (e.g., aws-sec-003)'
+        required: true
+        type: string
+      simulation_path:
+        description: 'Path to simulations (e.g., simulations/aws/compute)'
+        required: true
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          npm install -g wrangler
+          npm install nanoid node-html-parser
+      
+      # 4. Detect changed files
+      - name: Detect changed simulations
+        id: changed-files
+        if: github.event_name == 'push'
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E '\.html?$' | grep '^simulations/' || echo "")
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No simulation files changed"
+            exit 0
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+      
+      # 5. Upload simulations (automatic on push)
+      - name: Upload changed simulations
+        if: github.event_name == 'push' && steps.changed-files.outputs.changed_files != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          CHANGED_FILES="${{ steps.changed-files.outputs.changed_files }}"
+          
+          for FILE in $CHANGED_FILES; do
+            echo "Processing: $FILE"
+            COURSE=$(echo $FILE | cut -d'/' -f2)
+            SECTION="${COURSE}-sec-001"
+            wrangler r2 object put learning-simulations/$FILE --file="$FILE"
+            echo "Uploaded: $FILE to R2"
+          done
+      
+      # 6. Upload simulations (manual trigger)
+      - name: Upload simulations (manual)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node scripts/upload-simulations.js \
+            --course "${{ github.event.inputs.course_id }}" \
+            --section "${{ github.event.inputs.section_id }}" \
+            --path "${{ github.event.inputs.simulation_path }}"
+      
+      # 7. Invalidate CDN cache
+      - name: Invalidate cache
+        if: success()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          curl -X POST "${{ secrets.WORKER_URL }}/api/admin/invalidate-cache" \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_TOKEN }}"
+```
+
+5. **Save the file** (Ctrl+S)
+
+---
+
+## ✅ Confirmation
+
+You should now see:
+```
+.github/
+└── workflows/
+    └── upload-simulations.yml  ← NEW!

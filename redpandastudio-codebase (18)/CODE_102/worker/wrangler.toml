@@ -1,0 +1,81 @@
+name = "learning-platform-api"
+main = "src/index.js"
+compatibility_date = "2024-01-20"
+workers_dev = true
+compatibility_flags = [ "nodejs_compat" ]
+
+# ===== PRODUCTION =====
+# These routes ONLY apply to the default (production) environment.
+# Deploy with: npx wrangler deploy
+routes = [
+	{ pattern = "gradstudio.org/*", zone_name = "gradstudio.org" },
+	{ pattern = "www.gradstudio.org/*", zone_name = "gradstudio.org" },
+	{ pattern = "api.gradstudio.org", custom_domain = true }
+]
+
+# D1 Database binding (shared across environments)
+[[d1_databases]]
+binding = "DB"
+database_name = "learning-platform-db"
+database_id = "b1f24bfd-4ca5-4c2b-94af-8037cd68422f"
+
+# KV Namespace bindings (shared)
+[[kv_namespaces]]
+binding = "KV"
+id = "e5dc25fdeb9d42eb8947287323cf7027"
+
+[[kv_namespaces]]
+binding = "REFRESH_TOKENS"
+id = "92489a91aab6495ab072d7e2715eb8e0"
+
+[[kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "dd4395372be745e5b7d5f63acddb002a"
+
+# R2 Bucket binding (shared)
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "learning-simulations"
+
+[vars]
+ENVIRONMENT = "production"
+ALLOWED_ORIGINS = "https://gradstudio.org,https://www.gradstudio.org,https://learning-platform-api.sabareeshrao.workers.dev,http://localhost:3000,http://localhost:5173"
+MAX_CACHE_TTL = "900"
+
+# ===== DEV ENVIRONMENT =====
+# Deploy with: npx wrangler deploy --env dev
+# This ONLY deploys to learning-platform-api.sabareeshrao.workers.dev
+# It does NOT touch gradstudio.org production routes.
+[env.dev]
+workers_dev = true
+# No routes = workers.dev only (no production domains)
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "learning-platform-db"
+database_id = "b1f24bfd-4ca5-4c2b-94af-8037cd68422f"
+
+[[env.dev.kv_namespaces]]
+binding = "KV"
+id = "e5dc25fdeb9d42eb8947287323cf7027"
+
+[[env.dev.kv_namespaces]]
+binding = "REFRESH_TOKENS"
+id = "92489a91aab6495ab072d7e2715eb8e0"
+
+[[env.dev.kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "dd4395372be745e5b7d5f63acddb002a"
+
+[[env.dev.r2_buckets]]
+binding = "R2"
+bucket_name = "learning-simulations"
+
+[env.dev.vars]
+ENVIRONMENT = "dev"
+ALLOWED_ORIGINS = "https://learning-platform-api-dev.sabareeshrao.workers.dev,http://localhost:3000,http://localhost:5173"
+MAX_CACHE_TTL = "900"
+
+# Scheduled job for syncing KV to D1
+#[[triggers.crons]]
+#cron = "0 3 * * *"

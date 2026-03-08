@@ -1,0 +1,41 @@
+1556: // Skip landing page if restoring a topic OR targeting a section from carousel
+4283: // --- carousel scroll logic ---
+4284: window.scrollcarousel = function (direction, carouselId = 'subject-carousel') {
+4285: const container = document.getElementById(carouselId);
+4287: const scrollamount = carouselId === 'subject-carousel' ? 440 : 800;
+4292: window.scrollSecondaryCarousel = function(direction) {
+4293: window.scrollcarousel(direction, 'secondary-carousel');
+4573: // CRITICAL: Load carousels immediately without waiting for courses/categories
+4574: refreshCarousel();
+4575: refreshDynamicCarousels();
+5279: // --- Carousel dynamic rendering ---
+5280: async function refreshCarousel() {
+5281: const container = document.getElementById('subject-carousel');
+5296: const res = await fetch(`${API_CONFIG.baseUrl}/api/carousel?type=1&t=${Date.now()}`);
+5303: const headerEl = document.querySelector('.carousel-header-text');
+5350: console.warn('No active carousel cards found, falling back to mock data');
+5375: console.error('Failed to load dynamic carousel 1:', e);
+5378: window.refreshCarousel = refreshCarousel;
+5380: async function refreshDynamicCarousels() {
+5381: const mainContainer = document.getElementById('dynamic-carousels-container');
+5385: let carousels;
+5387: carousels = [
+5390: name: 'Carousel 2',
+5400: const res = await fetch(`${API_CONFIG.baseUrl}/api/carousels?t=${Date.now()}`);
+5402: carousels = await res.json();
+5406: const filteredCarousels = carousels.filter(c => c.id != 1);
+5408: filteredCarousels.forEach(carousel => {
+5409: const cards = carousel.cards || [];
+5410: const carouselId = `carousel-${carousel.id}`;
+5411: const headerId = `header-${carousel.id}`;
+5414: const headerText = carousel.header || '';
+5420: headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="display:block; opacity:1;"><span class="header-bold">${firstPart}.</span> <span class="header-gray">${secondPart}</span></h2>`;
+5422: headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="display:block; opacity:1;"><span class="header-bold">${headerText}</span></h2>`;
+5484: <div class="carousel-wrapper secondary-carousel-wrapper">
+5486: <div class="carousel-container" id="${carouselId}">
+5489: <button class="carousel-nav-btn nav-prev" onclick="window.scrollcarousel(-1, '${carouselId}')" aria-label="Previous">
+5492: <button class="carousel-nav-btn nav-next" onclick="window.scrollcarousel(1, '${carouselId}')" aria-label="Next">
+5501: console.error('Failed to load dynamic carousels:', e);
+5504: window.refreshDynamicCarousels = refreshDynamicCarousels;
+5506: function scrollcarousel(direction, containerId = 'subject-carousel') {
+5515: window.scrollcarousel = scrollcarousel;

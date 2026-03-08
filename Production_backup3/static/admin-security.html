@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Security Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .card {
+            @apply bg-white p-6 rounded-lg shadow-sm border border-gray-200;
+        }
+
+        .stat-value {
+            @apply text-2xl font-bold text-gray-800;
+        }
+
+        .stat-label {
+            @apply text-sm text-gray-500 uppercase tracking-wide;
+        }
+
+        .metric-red {
+            @apply text-red-600;
+        }
+
+        .metric-green {
+            @apply text-green-600;
+        }
+
+        .metric-yellow {
+            @apply text-yellow-600;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 font-sans">
+    <nav class="bg-white border-b border-gray-200 px-6 py-4 mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">🛡️ Admin Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-500">Auto-refresh: <span id="refresh-timer">60</span>s</div>
+                <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800">Logout</button>
+            </div>
+        </div>
+        <!-- Tabs -->
+        <div class="flex space-x-8 mt-6 -mb-4">
+            <button onclick="switchTab('security')" id="tab-btn-security"
+                class="pb-4 border-b-2 border-blue-600 text-blue-600 font-medium">Security</button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics"
+                class="pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">Content
+                Analytics</button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 pb-12">
+        <!-- SECURITY TAB -->
+        <div id="tab-security">
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="overview-cards">
+                <div class="card bg-gray-100 animate-pulse h-24"></div>
+                <!-- ... -->
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Auth Section -->
+                <section class="space-y-6">
+                    <h2 class="text-lg font-semibold text-gray-700">Authentication</h2>
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">Recent Failed Logins</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2">Email</th>
+                                        <th class="px-4 py-2">IP</th>
+                                        <th class="px-4 py-2">Attempts</th>
+                                        <th class="px-4 py-2">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="failed-logins-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">Locked Accounts</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2">Email</th>
+                                        <th class="px-4 py-2">Reason</th>
+                                        <th class="px-4 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="locked-accounts-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Threats Section -->
+                <section class="space-y-6">
+                    <h2 class="text-lg font-semibold text-gray-700">Threats & Incidents</h2>
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">Recent Security Events</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2">Type</th>
+                                        <th class="px-4 py-2">IP</th>
+                                        <th class="px-4 py-2">Endpoint</th>
+                                        <th class="px-4 py-2">Time</th>
+                                        <th class="px-4 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="threats-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ANALYTICS TAB -->
+        <div id="tab-analytics" class="hidden space-y-8">
+            <!-- Analytics Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-6" id="analytics-overview">
+                <div class="card bg-gray-100 animate-pulse h-24"></div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-sm font-medium text-gray-500 mb-4">Views (Last 30 Days)</h3>
+                    <canvas id="chart-views" class="w-full h-64"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="text-sm font-medium text-gray-500 mb-4">Top Content</h3>
+                    <canvas id="chart-top-content" class="w-full h-64"></canvas>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Moderation Queue</h3>
+                    <button onclick="loadReports()" class="text-xs text-blue-600 hover:underline">Refresh</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2">Reported Content</th>
+                                <th class="px-4 py-2">Reason</th>
+                                <th class="px-4 py-2">Reporter</th>
+                                <th class="px-4 py-2">Status</th>
+                                <th class="px-4 py-2">Date</th>
+                                <th class="px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE_METRICS = '/api/admin/metrics';
+        const API_BASE_ANALYTICS = '/api/admin/metrics/analytics';
+        let token = localStorage.getItem('lp_auth_token') || localStorage.getItem('token');
+        let charts = {};
+
+        // --- Tabs ---
+        function switchTab(tab) {
+            document.getElementById('tab-security').classList.toggle('hidden', tab !== 'security');
+            document.getElementById('tab-analytics').classList.toggle('hidden', tab !== 'analytics');
+
+            document.getElementById('tab-btn-security').className = tab === 'security'
+                ? 'pb-4 border-b-2 border-blue-600 text-blue-600 font-medium'
+                : 'pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium';
+
+            document.getElementById('tab-btn-analytics').className = tab === 'analytics'
+                ? 'pb-4 border-b-2 border-blue-600 text-blue-600 font-medium'
+                : 'pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium';
+
+            if (tab === 'analytics') loadAnalytics();
+        }
+
+        async function fetchAPI(url, method = 'GET', body = null) {
+            try {
+                const opts = {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (body) opts.body = JSON.stringify(body);
+
+                const res = await fetch(url, opts);
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/login.html';
+                    return null;
+                }
+                if (!res.ok) throw new Error('Request failed');
+                return await res.json();
+            } catch (err) {
+                console.error(err);
+                return null;
+            }
+        }
+
+        // --- Security Data ---
+        async function loadSecurityOverview() {
+            const data = await fetchAPI(`${API_BASE_METRICS}/overview`);
+            if (!data) return;
+
+            const cards = [
+                { label: 'Total Users', value: data.totalUsers, color: 'text-gray-800' },
+                { label: 'Active Sessions', value: data.activeSessionsCount, color: 'text-blue-600' },
+                { label: 'Failed Logins (24h)', value: data.failedLoginsToday, color: data.failedLoginsToday > 10 ? 'text-red-600' : 'text-green-600' },
+                { label: 'Threats Blocked (24h)', value: data.rateLimitHitsToday + data.botBlocksToday, color: 'text-purple-600' }
+            ];
+
+            document.getElementById('overview-cards').innerHTML = cards.map(c => `
+                <div class="card">
+                    <div class="stat-label">${c.label}</div>
+                    <div class="stat-value ${c.color}">${c.value}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadAuth() {
+            const data = await fetchAPI(`${API_BASE_METRICS}/auth`);
+            if (!data) return;
+            // Failed Logins
+            document.getElementById('failed-logins-table').innerHTML = data.failedLogins.map(l => `
+                <tr class="border-b">
+                    <td class="px-4 py-2 font-mono text-xs">${l.email}</td>
+                    <td class="px-4 py-2 font-mono text-xs">${l.ip}</td>
+                    <td class="px-4 py-2 text-center text-red-500 font-bold">${l.attempts}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">${new Date(l.lastAttempt).toLocaleTimeString()}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="p-4 text-center text-gray-400">No recent failures</td></tr>';
+
+            // Locked Accounts
+            document.getElementById('locked-accounts-table').innerHTML = data.lockedAccounts.map(l => `
+                <tr class="border-b">
+                    <td class="px-4 py-2 font-bold text-red-600">${l.email}</td>
+                    <td class="px-4 py-2 text-xs">${l.reason || 'Unknown'}</td>
+                    <td class="px-4 py-2">
+                        <button onclick="unlockAccount('${l.email}')" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Unlock</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="3" class="p-4 text-center text-gray-400">No locked accounts</td></tr>';
+        }
+
+        async function loadThreats() {
+            const data = await fetchAPI(`${API_BASE_METRICS}/threats`);
+            if (!data) return;
+            document.getElementById('threats-table').innerHTML = data.recentThreats.map(t => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold ${t.event_type.includes('block') ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${t.event_type.replace('_hit', '').replace('_', ' ')}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 font-mono text-xs">${t.ip}</td>
+                    <td class="px-4 py-2 text-xs truncate max-w-xs">${t.endpoint}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">${new Date(t.created_at).toLocaleTimeString()}</td>
+                     <td class="px-4 py-2">
+                        ${t.event_type.includes('ip_blocked') || t.event_type.includes('honeypot') ? `<button onclick="unblockIp('${t.ip}')" class="text-xs text-blue-600 hover:underline">Unblock</button>` : ''}
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="p-4 text-center text-gray-400">No recent threats</td></tr>';
+        }
+
+        // --- Analytics Data ---
+        async function loadAnalytics() {
+            loadAnalyticsOverview();
+            loadReports();
+            loadTrends(); // Charts
+        }
+
+        async function loadAnalyticsOverview() {
+            const data = await fetchAPI(`${API_BASE_ANALYTICS}/overview`);
+            if (!data) return;
+
+            const cards = [
+                { label: 'Total Views', value: data.totalViews, color: 'text-blue-600' },
+                { label: 'Shares', value: data.totalShares, color: 'text-purple-600' },
+                { label: 'Avg Duration', value: Math.round(data.avgDuration) + 's', color: 'text-green-600' },
+                { label: 'Engagement Rate', value: Math.round(data.engagementRate) + '%', color: 'text-yellow-600' },
+                { label: 'Pending Reports', value: data.totalReports, color: data.totalReports > 0 ? 'text-red-600' : 'text-gray-600' }
+            ];
+
+            document.getElementById('analytics-overview').innerHTML = cards.map(c => `
+                <div class="card">
+                    <div class="stat-label">${c.label}</div>
+                    <div class="stat-value ${c.color}">${c.value}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadReports() {
+            const data = await fetchAPI(`${API_BASE_ANALYTICS}/reports`);
+            if (!data) return;
+
+            document.getElementById('reports-table').innerHTML = data.reports.map(r => `
+                <tr class="border-b">
+                     <td class="px-4 py-2 text-xs truncate max-w-xs" title="${r.simulation_id}">${r.simulation_id}</td>
+                     <td class="px-4 py-2 text-xs font-semibold text-red-600">${r.reason}</td>
+                     <td class="px-4 py-2 text-xs text-gray-500">${r.user_id || 'Anonymous'}</td>
+                     <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800">${r.status}</span></td>
+                     <td class="px-4 py-2 text-xs text-gray-500">${new Date(r.created_at).toLocaleDateString()}</td>
+                     <td class="px-4 py-2 space-x-2">
+                        <button onclick="resolveReport('${r.id}', 'dismiss')" class="text-xs text-gray-600 hover:underline">Dismiss</button>
+                        <button onclick="resolveReport('${r.id}', 'remove_content')" class="text-xs text-red-600 hover:underline">Remove Content</button>
+                     </td>
+                </tr>
+             `).join('') || '<tr><td colspan="6" class="p-4 text-center text-gray-400">No pending reports</td></tr>';
+        }
+
+        async function loadTrends() {
+            const data = await fetchAPI(`${API_BASE_ANALYTICS}/trends`);
+            if (!data) return;
+
+            // View Chart
+            const ctxViews = document.getElementById('chart-views').getContext('2d');
+            if (charts.views) charts.views.destroy();
+
+            // Prepare Data (last 30 days)
+            // Mocking simpler data mapping if platformTrends complex
+            // Assuming dailyViews is [{date: '2023-01-01', count: 10}, ...]
+            const labels = data.dailyViews.map(d => new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+            const counts = data.dailyViews.map(d => d.count);
+
+            charts.views = new Chart(ctxViews, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Daily Views',
+                        data: counts,
+                        borderColor: 'rgb(59, 130, 246)',
+                        tension: 0.1,
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Top Content
+            const ctxContent = document.getElementById('chart-top-content').getContext('2d');
+            if (charts.content) charts.content.destroy();
+
+            // Top 5 by views
+            // data.popularContent = [{title, views}]
+            const top5 = data.popularContent.slice(0, 5);
+            charts.content = new Chart(ctxContent, {
+                type: 'bar',
+                data: {
+                    labels: top5.map(c => c.title || c.simulation_id.substring(0, 10)),
+                    datasets: [{
+                        label: 'Views',
+                        data: top5.map(c => c.views),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                        ]
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+            });
+        }
+
+        // --- Actions ---
+
+        async function resolveReport(reportId, action) {
+            if (!confirm(`Resolve report with action: ${action}?`)) return;
+            await fetchAPI(`${API_BASE_ANALYTICS}/reports/${reportId}/resolve`, 'POST', { action, notes: 'Admin action' });
+            loadReports();
+        }
+
+        async function unlockAccount(email) {
+            if (!confirm(`Unlock account ${email}?`)) return;
+            await fetchAPI(`${API_BASE_METRICS}/unlock-account`, 'POST', { email });
+            loadAuth();
+        }
+
+        async function unblockIp(ip) {
+            if (!confirm(`Unblock IP ${ip}?`)) return;
+            await fetchAPI(`${API_BASE_METRICS}/unblock-ip`, 'POST', { ip });
+            loadThreats();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        function init() {
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            // Default load
+            loadSecurityOverview();
+            loadAuth();
+            loadThreats();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
