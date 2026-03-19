@@ -3626,6 +3626,7 @@ async function switchprovider(provider, callback, opts = {}) {
     // Handle sidebar-opening target types
     if (targetType === 'course_sidebar' || targetType === 'category_sidebar') {
         // Open the hamburger sidebar
+        resetSidebarColumns();
         document.body.classList.add('sidebar-open');
 
         // Small delay to let sidebar render
@@ -4574,7 +4575,9 @@ function populateSidebarHierarchy(courses, categories) {
         }))
     ];
 
-    const renderColumn = (depth, items) => {
+    const isMobileSidebar = () => window.matchMedia('(max-width: 900px)').matches;
+
+    const renderColumn = (depth, items, parentTitle) => {
         // Clear subsequent columns
         container.querySelectorAll('.sidebar-column').forEach((col, idx) => {
             if (idx >= depth) col.remove();
@@ -4587,12 +4590,44 @@ function populateSidebarHierarchy(courses, categories) {
             sidebarEl.classList.add(`level-${Math.min(3, depth + 1)}`);
         }
 
+        // MOBILE DRILL-DOWN: hide previous columns, show only the new one
+        if (isMobileSidebar() && depth > 0) {
+            container.querySelectorAll('.sidebar-column').forEach(col => {
+                col.classList.add('sidebar-column-hidden');
+            });
+        }
+
         if (items.length === 0) return;
 
         const column = document.createElement('div');
         column.className = 'sidebar-column';
         if (depth === 0) column.classList.add('sidebar-categories');
         else column.classList.add('sidebar-courses');
+
+        // MOBILE: Add back button for deeper levels
+        if (isMobileSidebar() && depth > 0) {
+            const backBtn = document.createElement('div');
+            backBtn.className = 'sidebar-mega-back-btn';
+            backBtn.innerHTML = `<i class="fa-solid fa-chevron-left"></i> <span>${parentTitle || 'Back'}</span>`;
+            backBtn.onclick = (e) => {
+                if (e) e.stopPropagation();
+                // Remove this column
+                column.remove();
+                // Show previous columns
+                const cols = container.querySelectorAll('.sidebar-column');
+                if (cols.length > 0) {
+                    // Show only the last remaining column
+                    cols.forEach(col => col.classList.add('sidebar-column-hidden'));
+                    cols[cols.length - 1].classList.remove('sidebar-column-hidden');
+                }
+                // Update sidebar level
+                if (sidebarEl) {
+                    sidebarEl.classList.remove('level-1', 'level-2', 'level-3');
+                    sidebarEl.classList.add(`level-${Math.min(3, cols.length)}`);
+                }
+            };
+            column.appendChild(backBtn);
+        }
 
         items.sort((a, b) => (a.order || 0) - (b.order || 0) || a.title.localeCompare(b.title)).forEach(item => {
             const el = document.createElement('div');
@@ -4619,7 +4654,7 @@ function populateSidebarHierarchy(courses, categories) {
 
                 if (item.type !== 'course') {
                     const children = allNodes.filter(n => n.parentId === item.id);
-                    renderColumn(depth + 1, children);
+                    renderColumn(depth + 1, children, item.title);
                 } else {
                     // Leaf node - navigate
                     container.querySelectorAll('.sidebar-column').forEach((col, idx) => {
@@ -4921,12 +4956,35 @@ function toggleSidebarDrawer() {
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
     if (!isMobile) return;
 
+    resetSidebarColumns();
     document.body.classList.toggle('sidebar-open');
 }
 window.toggleSidebarDrawer = toggleSidebarDrawer;
 
+// Helper: reset sidebar to first column on mobile
+function resetSidebarColumns() {
+    if (!window.matchMedia('(max-width: 900px)').matches) return;
+    const container = document.getElementById('sidebar-mega-menu-container');
+    if (!container) return;
+    const cols = container.querySelectorAll('.sidebar-column');
+    cols.forEach((col, idx) => {
+        if (idx > 0) col.remove();
+        else col.classList.remove('sidebar-column-hidden');
+    });
+    // Also clear active state from first column items
+    const firstCol = container.querySelector('.sidebar-column');
+    if (firstCol) firstCol.querySelectorAll('.sidebar-mega-item').forEach(i => i.classList.remove('active'));
+    const sidebarEl = document.getElementById('main-sidebar');
+    if (sidebarEl) {
+        sidebarEl.classList.remove('level-1', 'level-2', 'level-3');
+        sidebarEl.classList.add('level-1');
+    }
+}
+window.resetSidebarColumns = resetSidebarColumns;
+
 // Desktop sidebar toggle function
 function toggleSidebar() {
+    resetSidebarColumns();
     document.body.classList.toggle('sidebar-open');
     // Re-initialize Lucide icons after toggle
     if (window.lucide) {

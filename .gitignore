@@ -1,9 +1,55 @@
+# Dependencies
 node_modules/
+
+# Environment & Secrets
+.env
+.env.*
+
+# Cloudflare Wrangler
 .wrangler/
-DESKTOP/
+worker/wrangler_dev.log
+
+# Deploy scripts & logs
+_deploy_*.ps1
+deploy_error.log
+deploy_error.txt
+
+# Temporary fix/debug scripts
+_fix_*.js
+_fix_*.html
+_fixed_*.html
+_served*.html
+_test.js
+
+# Temp files
+tmp_*.txt
+tmp_*.json
+out.txt
+latest_files.txt
+files.json
+
+# Backups
+production_backup/
+Production_backup2/
+Production_backup3/
+
+# Downloaded codebase archives
+redpandastudio-codebase*/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Gemini agent
+.gemini/
+
+# Misc
 *.tgz
 *.log
-_fix_*.js
-_deploy_*.ps1
 *.snapshot_*
-.gemini/
+DESKTOP/

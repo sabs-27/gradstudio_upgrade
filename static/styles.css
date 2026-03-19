@@ -9359,10 +9359,18 @@ body.canvas-mode .mobile-bottom-nav {
     .sidebar {
         width: 100vw !important;
         max-width: 100vw !important;
-        padding: 16px !important;
+        padding: 12px 16px 0 16px !important;
         height: 100vh !important;
+        height: 100dvh !important;
         top: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
         overflow-y: auto !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+        z-index: 10000 !important;
+        background: #111827 !important;
+        padding-bottom: 0 !important;
     }
 
     .sidebar.level-1,
@@ -9371,23 +9379,69 @@ body.canvas-mode .mobile-bottom-nav {
         width: 100vw !important;
     }
 
+    .sidebar-header-row {
+        margin-bottom: 10px !important;
+    }
+
+    .sidebar-divider {
+        margin: 10px -16px !important;
+    }
+
+    .sidebar-menu-top {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
     .sidebar-mega-menu {
         flex-direction: column;
         height: auto;
         overflow-y: visible;
+        width: 100% !important;
     }
 
     .sidebar-column {
+        width: 100% !important;
         max-width: 100% !important;
         flex: none !important;
         border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: none;
         height: auto;
         overflow-y: visible;
+        padding: 4px 0 !important;
     }
 
     .sidebar-column.sidebar-extensions {
         border-bottom: none;
+    }
+}
+
+/* Back button for mobile drill-down sidebar navigation */
+.sidebar-mega-back-btn {
+    display: none;
+}
+
+@media screen and (max-width: 900px) {
+    .sidebar-mega-back-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #f97316;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 4px;
+        transition: background 0.2s;
+    }
+
+    .sidebar-mega-back-btn:hover,
+    .sidebar-mega-back-btn:active {
+        background: rgba(249, 115, 22, 0.1);
+    }
+
+    .sidebar-mega-back-btn i {
+        font-size: 12px;
     }
 }
 
@@ -9724,5 +9778,104 @@ body.canvas-mode .mobile-bottom-nav {
 
     .ccp-course-title {
         font-size: 15px;
+    }
+}
+
+/* ========================================
+   FINAL FIX: Mobile iframe height — must be LAST to win cascade
+   Uses position:fixed on viewer-pane to bypass the broken flex
+   height chain caused by conflicting rules earlier in the file.
+   ======================================== */
+@media (max-width: 900px) {
+
+    /* Lock body in topic view */
+    body.is-topic-view {
+        overflow: hidden !important;
+        height: 100vh !important;
+        position: fixed !important;
+        width: 100% !important;
+    }
+
+    /* viewer-pane: FIXED position between header and bottom nav.
+       This completely bypasses the broken parent height chain. */
+    body.is-topic-view .viewer-pane {
+        position: fixed !important;
+        top: 54px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 44px !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        background: #000 !important;
+        z-index: 100 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Dark header (Bookmark / Fullscreen bar) stays compact at top */
+    body.is-topic-view .viewer-dark-header {
+        flex-shrink: 0 !important;
+    }
+
+    /* viewer-iframe-wrapper fills all remaining space */
+    body.is-topic-view .viewer-iframe-wrapper {
+        flex: 1 1 0% !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* viewer-screen fills wrapper */
+    body.is-topic-view .viewer-screen {
+        flex: 1 1 0% !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+        position: relative !important;
+        aspect-ratio: unset !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* iframe fills viewer-screen absolutely */
+    body.is-topic-view .viewer-screen iframe {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+        display: block !important;
+        transform: none !important;
+    }
+
+    /* Hide breadcrumb bar (back nav handled by mobile bottom nav) */
+    body.is-topic-view .mobile-topic-breadcrumb {
+        display: none !important;
+    }
+
+    /* Hide course-header in topic view — it overlaps the fixed viewer */
+    body.is-topic-view .course-header {
+        display: none !important;
+    }
+
+    /* Canvas / Fullscreen mode: no header or bottom nav visible,
+       so viewer-pane must cover the entire viewport. */
+    body.canvas-mode .viewer-pane {
+        top: 0 !important;
+        bottom: 0 !important;
+        z-index: 9999 !important;
     }
 }
