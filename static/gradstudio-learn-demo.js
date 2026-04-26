@@ -112,12 +112,19 @@
 
     let topics = [...fallbackTopics];
     let courses = fallbackCourses.slice();
+    let courseLookup = new Map(courses.map((course) => [course.id, course]));
+    let selectedCourseIds = null;
+    let selectedCourseTitle = "";
+    let featuredCarouselCards = [];
+    let compactCarouselCards = [];
+    let carouselCardMap = new Map();
 
     try {
         const localData = normalizeStoredData(JSON.parse(localStorage.getItem('gradstudio-data')));
         if (localData) {
             topics = ["All", ...localData.topics];
             courses = localData.courses;
+            courseLookup = new Map(courses.map((course) => [course.id, course]));
         }
     } catch(e) {
         console.warn("localStorage blocked or unreadable. Using default courses.", e);
@@ -204,6 +211,7 @@
 
         topics = normalized.topics;
         courses = normalized.courses;
+        courseLookup = new Map(normalized.allCourses.map((course) => [course.id, course]));
         if (!topics.includes(activeTopic)) activeTopic = "All";
         activePage = 1;
     }
@@ -231,7 +239,7 @@
             .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 
         const categoryMap = new Map(categories.map((category) => [category.id, category]));
-        const normalizedCourses = rawCourses
+        const normalizedAllCourses = rawCourses
             .filter((course) => course && course.is_active !== false && !course.parent_course_id)
             .filter((course) => categoryMap.has(String(course.category || "").trim()))
             .sort((a, b) => {
@@ -245,10 +253,20 @@
             })
             .map((course, index) => normalizeApiCourse(course, categoryMap, index))
             .filter(Boolean);
+        const normalizedCourseMap = new Map(normalizedAllCourses.map((course) => [course.id, course]));
+
+        rawCourses
+            .filter((course) => course && course.is_active !== false && course.parent_course_id)
+            .filter((course) => categoryMap.has(String(course.category || "").trim()))
+            .forEach((course, index) => {
+                const normalized = normalizeApiCourse(course, categoryMap, normalizedAllCourses.length + index);
+                if (normalized) normalizedCourseMap.set(normalized.id, normalized);
+            });
 
         return {
             topics: ["All", ...categories.map((category) => category.name)],
-            courses: normalizedCourses
+            courses: normalizedAllCourses,
+            allCourses: Array.from(normalizedCourseMap.values())
         };
     }
 
@@ -344,6 +362,109 @@
         return String(value || "").split("").reduce((hash, char) => {
             return ((hash << 5) - hash + char.charCodeAt(0)) | 0;
         }, 0);
+    }
+
+    async function loadCarouselsFromAPI() {
+        const resp = await fetch(`${API_BASE}/api/carousels?t=${Date.now()}`, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`Carousel API failed: ${resp.status}`);
+        const payload = await resp.json();
+        const carousels = Array.isArray(payload) ? payload : [];
+        const normalized = normalizeApiCarousels(carousels);
+        featuredCarouselCards = normalized.featured;
+        compactCarouselCards = normalized.compact;
+        carouselCardMap = new Map();
+    }
+
+    function normalizeApiCarousels(carousels) {
+        const sorted = carousels
+            .filter((carousel) => carousel && carousel.is_active !== 0 && carousel.is_active !== false)
+            .sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0));
+        const featuredCarousel = sorted.find((carousel) => String(carousel.id) === "1");
+        const compactCarousel = sorted.find((carousel) => String(carousel.id) === "2");
+
+        return {
+            featured: featuredCarousel ? normalizeCarouselCards(featuredCarousel, "featured") : [],
+            compact: compactCarousel ? normalizeCarouselCards(compactCarousel, "compact") : []
+        };
+    }
+
+    function normalizeCarouselCards(carousel, slot) {
+        const cards = Array.isArray(carousel.cards) ? carousel.cards : [];
+        return cards
+            .filter((card) => card && card.is_active !== 0 && card.is_active !== false)
+            .sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
+            .map((card, index) => {
+                const courseIds = parseCarouselCourseLinks(card.course_links);
+                const targetType = String(card.target_type || (courseIds.length ? "course_list" : "none"));
+                const key = `${slot}-${card.id || index}`;
+                return {
+                    key,
+                    id: String(card.id || key),
+                    title: String(card.title || "Carousel card"),
+                    eyebrow: String(card.description || carousel.header || ""),
+                    description: String(card.description || ""),
+                    contentType: String(card.content_type || "standard"),
+                    imageUrl: String(card.image_url || ""),
+                    iframeUrl: String(card.iframe_url || ""),
+                    contentHtml: String(card.content_html || ""),
+                    iconClass: String(card.icon_class || "fas fa-star"),
+                    colorHex: String(card.color_hex || "#3b82f6"),
+                    targetType,
+                    targetId: String(card.target_id || ""),
+                    courseIds,
+                    bg: card.bg_color || carouselGradient(card.color_hex || "#3b82f6", index)
+                };
+            });
+    }
+
+    function parseCarouselCourseLinks(value) {
+        if (Array.isArray(value)) return value.map(courseLinkId).filter(Boolean);
+        if (!value) return [];
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed.map(courseLinkId).filter(Boolean) : [];
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function courseLinkId(value) {
+        if (typeof value === "string") return value.trim();
+        if (value && typeof value === "object") {
+            return String(value.id || value.course_id || value.target_id || "").trim();
+        }
+        return "";
+    }
+
+    function carouselGradient(color, index) {
+        const palette = ["#111827", "#243a59", "#14532d", "#312e81", "#7c2d12"];
+        const base = palette[index % palette.length];
+        return `linear-gradient(135deg, ${base}, ${color || "#3b82f6"})`;
+    }
+
+    function fallbackFeaturedCards() {
+        return htmlDemoCards.map((card, index) => ({
+            key: `fallback-featured-${index}`,
+            title: card.title,
+            eyebrow: card.eyebrow,
+            contentType: "iframe",
+            iframeUrl: card.src,
+            targetType: "external",
+            href: card.src,
+            courseIds: []
+        }));
+    }
+
+    function fallbackCompactCards() {
+        return compactDemoCards.map((card, index) => ({
+            key: `fallback-compact-${index}`,
+            title: card.title,
+            eyebrow: card.meta,
+            contentType: "standard",
+            targetType: "none",
+            bg: card.bg,
+            courseIds: []
+        }));
     }
 
     function normalizeStoredData(data) {
@@ -536,6 +657,7 @@
         const visibleCourses = filtered.slice(start, start + pageSize);
 
         document.getElementById("courseCount").textContent = filtered.length.toString();
+        document.getElementById("catalogTitle").textContent = selectedCourseTitle || (activeTopic === "All" ? "All Courses" : activeTopic);
         renderActiveFilter(filtered.length);
         renderCourses(visibleCourses);
         renderPager(totalPages);
@@ -550,47 +672,53 @@
 
     function buildFeaturedCarousel() {
         const rail = document.getElementById("featuredDemoRail");
-        if (rail.children.length) return; /* already built */
+        const cards = featuredCarouselCards.length ? featuredCarouselCards : fallbackFeaturedCards();
+        const key = cards.map((card) => card.key).join("|");
+        if (rail.dataset.carouselKey === key) return;
+        rail.dataset.carouselKey = key;
 
-        const clones = FEATURED_VISIBLE;
-        const cards = htmlDemoCards;
+        const clones = Math.min(FEATURED_VISIBLE, cards.length);
         const all = [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
 
         rail.innerHTML = all.map((card, i) => {
             const idx = i < clones ? cards.length - clones + i : (i - clones) >= cards.length ? (i - clones - cards.length) : i - clones;
             return renderFeatureDemoCard(card, idx % 2 === 0 ? "is-primary" : "is-secondary");
         }).join("");
+        bindCarouselCardClicks(rail);
 
         featuredPos = 0;
         setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false);
 
-        rail.addEventListener("transitionend", () => {
+        rail.ontransitionend = () => {
             const n = cards.length;
             if (featuredPos >= n) { featuredPos -= n; setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false); }
             if (featuredPos < 0)  { featuredPos += n; setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false); }
             featuredBusy = false;
-        });
+        };
     }
 
     function buildCompactCarousel() {
         const rail = document.getElementById("compactDemoRail");
-        if (rail.children.length) return;
+        const cards = compactCarouselCards.length ? compactCarouselCards : fallbackCompactCards();
+        const key = cards.map((card) => card.key).join("|");
+        if (rail.dataset.carouselKey === key) return;
+        rail.dataset.carouselKey = key;
 
-        const clones = COMPACT_VISIBLE;
-        const cards = compactDemoCards;
+        const clones = Math.min(COMPACT_VISIBLE, cards.length);
         const all = [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
 
         rail.innerHTML = all.map((card) => renderCompactDemoCard(card)).join("");
+        bindCarouselCardClicks(rail);
 
         compactPos = 0;
         setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false);
 
-        rail.addEventListener("transitionend", () => {
+        rail.ontransitionend = () => {
             const n = cards.length;
             if (compactPos >= n) { compactPos -= n; setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false); }
             if (compactPos < 0)  { compactPos += n; setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false); }
             compactBusy = false;
-        });
+        };
     }
 
     function setTrackPos(rail, pos, cloneCount, visible, gap, animate) {
@@ -617,27 +745,95 @@
     }
 
     function renderFeatureDemoCard(card, variantClass) {
+        carouselCardMap.set(card.key, card);
         return `
-            <article class="demo-feature-card ${variantClass}">
-                <iframe title="${escapeHtml(card.title)}" src="${escapeHtml(card.src)}" loading="lazy" sandbox="allow-scripts"></iframe>
+            <article class="demo-feature-card ${variantClass}" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}">
+                ${renderCarouselCardMedia(card, "featured")}
                 <div class="demo-card-meta">
                     <div>
                         <h4>${escapeHtml(card.title)}</h4>
                         <span>${escapeHtml(card.eyebrow)}</span>
                     </div>
-                    <a href="${escapeHtml(card.src)}" target="_blank" rel="noopener">Open</a>
+                    <button type="button">${escapeHtml(carouselButtonLabel(card))}</button>
                 </div>
             </article>
         `;
     }
 
     function renderCompactDemoCard(card) {
+        carouselCardMap.set(card.key, card);
         return `
-            <article class="compact-demo-card" style="--compact-bg: ${escapeHtml(card.bg)}">
-                <b>${escapeHtml(card.title)}</b>
-                <span>${escapeHtml(card.meta)}</span>
+            <article class="compact-demo-card" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" style="--compact-bg: ${escapeHtml(card.bg || carouselGradient(card.colorHex, 0))}">
+                <div class="compact-card-media">${renderCarouselCardMedia(card, "compact")}</div>
+                <div class="compact-card-copy">
+                    <b>${escapeHtml(card.title)}</b>
+                    <span>${escapeHtml(card.eyebrow || carouselButtonLabel(card))}</span>
+                </div>
             </article>
         `;
+    }
+
+    function renderCarouselCardMedia(card, size) {
+        if (card.contentType === "image" && card.imageUrl) {
+            return `<img class="carousel-card-image" src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.title)} thumbnail" loading="lazy" decoding="async">`;
+        }
+        if (card.contentType === "iframe" && card.iframeUrl) {
+            return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(card.iframeUrl)}" loading="lazy" sandbox="allow-scripts"></iframe>`;
+        }
+        if (card.contentType === "html" && card.contentHtml) {
+            if (isFullHtmlDocument(card.contentHtml)) {
+                return `<iframe title="${escapeHtml(card.title)} thumbnail" srcdoc="${escapeHtml(card.contentHtml)}" loading="lazy" sandbox="allow-scripts"></iframe>`;
+            }
+            return `<div class="carousel-html-media">${sanitizeHtmlSnippet(card.contentHtml)}</div>`;
+        }
+        if (size === "compact") return "";
+        return `<div class="carousel-icon-media" style="--card-color:${escapeHtml(card.colorHex || "#3b82f6")}"><i class="${escapeHtml(card.iconClass || "fas fa-star")}"></i></div>`;
+    }
+
+    function carouselButtonLabel(card) {
+        if (card.targetType === "course") return "Start";
+        if (card.targetType === "course_list") return "View Cards";
+        if (card.targetType === "external") return "Open";
+        return "View";
+    }
+
+    function bindCarouselCardClicks(root) {
+        root.querySelectorAll("[data-carousel-card-key]").forEach((node) => {
+            const card = carouselCardMap.get(node.dataset.carouselCardKey);
+            if (!card) return;
+            node.addEventListener("click", () => handleCarouselCardClick(card));
+            node.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCarouselCardClick(card);
+                }
+            });
+        });
+    }
+
+    function handleCarouselCardClick(card, updateUrl = true) {
+        if (!card) return;
+        if (card.targetType === "course" && card.targetId) {
+            openCourse(card.targetId);
+            return;
+        }
+        if (card.targetType === "course_list" && card.courseIds.length) {
+            selectedCourseIds = new Set(card.courseIds);
+            selectedCourseTitle = card.title;
+            activeTopic = "All";
+            activePage = 1;
+            query = "";
+            const search = document.getElementById("courseSearch");
+            if (search) search.value = "";
+            setDetailVisible(false);
+            render();
+            if (updateUrl) history.pushState({ view: "carousel", cardId: card.id }, "", `#carousel/${encodeURIComponent(card.id)}`);
+            document.getElementById("courses").scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+        }
+        if (card.targetType === "external" && card.href) {
+            window.open(card.href, "_blank", "noopener");
+        }
     }
 
     function renderTopics() {
@@ -663,6 +859,8 @@
         topicList.querySelectorAll("button").forEach((button) => {
             button.addEventListener("click", () => {
                 activeTopic = button.dataset.topic;
+                selectedCourseIds = null;
+                selectedCourseTitle = "";
                 query = "";
                 document.getElementById("courseSearch").value = "";
                 activePage = 1;
@@ -673,7 +871,7 @@
 
     function renderActiveFilter(count) {
         const activeFilter = document.getElementById("activeFilter");
-        const hasFilter = activeTopic !== "All" || query.trim().length > 0;
+        const hasFilter = !!selectedCourseTitle || activeTopic !== "All" || query.trim().length > 0;
 
         if (!hasFilter) {
             activeFilter.hidden = true;
@@ -682,6 +880,7 @@
         }
 
         const parts = [];
+        if (selectedCourseTitle) parts.push(selectedCourseTitle);
         if (query.trim()) parts.push(`"${query.trim()}"`);
         if (activeTopic !== "All") parts.push(activeTopic);
         activeFilter.hidden = false;
@@ -766,7 +965,7 @@
 
     async function openCourse(courseId) {
         if (!courseId) return;
-        const course = courses.find((item) => item.id === courseId);
+        const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
         /* Try fetching real sections/lessons from API */
@@ -784,7 +983,7 @@
     }
 
     async function openLesson(courseId, lessonIndex = 0, replace = false) {
-        const course = courses.find((item) => item.id === courseId);
+        const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
         /* Ensure API data is loaded */
@@ -820,9 +1019,17 @@
 
     async function handleRoute() {
         const route = decodeURIComponent(window.location.hash.replace(/^#\/?/, ""));
+        if (route.startsWith("carousel/")) {
+            const [, cardId] = route.split("/");
+            const card = Array.from(carouselCardMap.values()).find((item) => item.id === cardId);
+            if (card) {
+                handleCarouselCardClick(card, false);
+                return;
+            }
+        }
         if (route.startsWith("course/")) {
             const [, courseId, routeType, routeIndex] = route.split("/");
-            const course = courses.find((item) => item.id === courseId);
+            const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
             if (course) {
                 /* Fetch API data if not already loaded */
                 if (!course._apiLessons) {
@@ -846,6 +1053,15 @@
                 setDetailVisible(true);
                 window.scrollTo({ top: 0, behavior: "auto" });
                 return;
+            }
+        }
+
+        if (route === "courses" || route === "about" || route === "") {
+            if (selectedCourseIds || selectedCourseTitle) {
+                selectedCourseIds = null;
+                selectedCourseTitle = "";
+                activePage = 1;
+                render();
             }
         }
 
@@ -1507,7 +1723,10 @@ $ status: loaded in iframe</code>
 
     function getFilteredCourses() {
         const normalizedQuery = query.trim().toLowerCase();
-        return courses.filter((course) => {
+        const baseCourses = selectedCourseIds
+            ? Array.from(selectedCourseIds).map((id) => courseLookup.get(id)).filter(Boolean)
+            : courses;
+        return baseCourses.filter((course) => {
             const topicMatch = activeTopic === "All" || course.topicFolder === activeTopic || course.tags.includes(activeTopic);
             const searchText = `${course.title} ${course.topicFolder || ""} ${course.tags.join(" ")} ${course.level}`.toLowerCase();
             const queryMatch = !normalizedQuery || searchText.includes(normalizedQuery);
@@ -1516,7 +1735,7 @@ $ status: loaded in iframe</code>
     }
 
     function sanitizeHtmlSnippet(html) {
-        const allowedTags = new Set(["DIV", "SPAN", "H1", "H2", "H3", "BR", "IMG"]);
+        const allowedTags = new Set(["DIV", "SPAN", "H1", "H2", "H3", "P", "STRONG", "B", "BR", "IMG"]);
         const allowedAttrs = new Set(["class", "aria-hidden", "src", "alt", "draggable"]);
         const allowedStyleVars = new Set([
             "--bg-dark-1",
@@ -1685,6 +1904,11 @@ $ status: loaded in iframe</code>
             await loadCatalogFromAPI();
         } catch (err) {
             console.warn("Using fallback catalog because the API catalog could not be loaded.", err);
+        }
+        try {
+            await loadCarouselsFromAPI();
+        } catch (err) {
+            console.warn("Using fallback carousel cards because the API carousel data could not be loaded.", err);
         }
 
         render();

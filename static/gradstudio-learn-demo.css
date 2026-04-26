@@ -1326,7 +1326,10 @@ a {
     font-size: 21px;
 }
 
-.demo-feature-card iframe {
+.demo-feature-card iframe,
+.demo-feature-card .carousel-card-image,
+.demo-feature-card .carousel-html-media,
+.demo-feature-card .carousel-icon-media {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -1334,6 +1337,29 @@ a {
     border: 0;
     background: #f4f6fa;
     pointer-events: none;
+}
+
+.demo-feature-card .carousel-card-image {
+    object-fit: cover;
+}
+
+.demo-feature-card .carousel-html-media {
+    background: #111827;
+}
+
+.demo-feature-card .carousel-html-media > * {
+    width: 100%;
+    min-height: 100%;
+}
+
+.carousel-icon-media {
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at 72% 28%, color-mix(in srgb, var(--card-color) 34%, transparent), transparent 28%),
+        linear-gradient(135deg, #111827, #243a59);
+    color: #ffffff;
+    font-size: 72px;
 }
 
 .demo-feature-card.is-loading::before {
@@ -1381,17 +1407,20 @@ a {
     font-weight: 650;
 }
 
-.demo-card-meta a {
+.demo-card-meta a,
+.demo-card-meta button {
     display: inline-flex;
     align-items: center;
     min-height: 34px;
     padding: 0 13px;
     border-radius: 999px;
+    border: 0;
     background: rgba(255, 255, 255, 0.92);
     color: #111827;
     font-size: 13px;
     font-weight: 760;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 .compact-demo-rail {
@@ -1415,6 +1444,7 @@ a {
     color: #ffffff;
     isolation: isolate;
     animation: demoCardIn 180ms ease both;
+    cursor: pointer;
 }
 
 @keyframes demoCardIn {
@@ -1445,6 +1475,32 @@ a {
     background:
         radial-gradient(circle at 78% 20%, rgba(255, 255, 255, 0.5), transparent 24%),
         linear-gradient(180deg, transparent 30%, rgba(8, 13, 25, 0.62));
+}
+
+.compact-card-media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+}
+
+.compact-card-media iframe,
+.compact-card-media img,
+.compact-card-media .carousel-html-media {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.compact-card-media .carousel-html-media > * {
+    width: 100%;
+    min-height: 100%;
+}
+
+.compact-card-copy {
+    position: relative;
+    z-index: 1;
 }
 
 .compact-demo-card b {

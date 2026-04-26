@@ -15,6 +15,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .sidebar-actions{display:flex;gap:8px;margin-bottom:10px}
 .btn-o{flex:1;padding:7px;background:var(--white);border:1px solid var(--border);border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)}
 .btn-o:hover{background:var(--hover)}
+.btn-o.full{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px}
 .btn-o.danger{border-color:var(--red);color:var(--red)}
 .btn-o.danger:hover:not(:disabled){background:#fff5f5}
 .btn-o:disabled{opacity:.4;cursor:not-allowed}
@@ -85,6 +86,24 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .preview-body{padding:12px}
 .preview-body strong{display:block;font-size:14px;margin-bottom:6px}
 .preview-meta{display:flex;gap:8px;color:var(--muted);font-size:12px}
+.carousel-toolbar{display:flex;gap:10px;align-items:end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap}
+.carousel-toolbar .fg{margin:0;min-width:220px}
+.carousel-cards{display:grid;gap:12px}
+.carousel-row{display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;border:1px solid var(--border);border-radius:8px;background:#fff;padding:10px}
+.carousel-thumb{height:62px;border-radius:6px;background:#111827;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.carousel-thumb img,.carousel-thumb iframe{width:100%;height:100%;border:0;object-fit:cover;background:#fff}
+.carousel-thumb .thumbnail-card,.carousel-thumb .html-thumb{min-height:62px;height:62px}
+.carousel-row h3{font-size:14px;margin:0 0 4px}
+.carousel-row p{font-size:12px;color:var(--text2);margin:0 0 4px;line-height:1.4}
+.carousel-row small{color:var(--muted);font-size:11px}
+.course-picker{border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto;background:#fff}
+.course-picker-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
+.course-picker-row:last-child{border-bottom:0}
+.course-picker-row:hover{background:var(--hover)}
+.course-picker-row span{display:block;color:var(--text);font-weight:600}
+.course-picker-row small{display:block;color:var(--muted);font-size:11px}
+.inline-check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2)}
+.modal-wide{max-width:920px}
 .modal .fg{margin-bottom:14px}
 .modal pre{white-space:pre-wrap;word-break:break-word}
 .recycle-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 22px}
@@ -132,6 +151,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
             <button class="btn-o" id="btnNewFolder">+ Folder</button>
             <button class="btn-o" id="btnNewCourse">+ Course</button>
         </div>
+        <button class="btn-o full" id="btnCarousel"><i class="fas fa-images"></i> Carousel Cards</button>
         <label class="folder-jump"><span>Jump to folder</span><select id="folderJump"><option value="">Select...</option></select></label>
         <button class="btn-o danger" id="btnDelFolder" disabled style="width:100%;margin-top:6px">Delete Folder</button>
     </div>
@@ -182,10 +202,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
         </div>
         <div id="sectionsList"></div>
     </div>
+    <div id="carouselArea" class="card" style="border-top-color:var(--accent)"></div>
     <div id="recycleArea" class="card" style="border-top-color:var(--red)"></div>
 </div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<script id="admin-js" src="gradstudio-learn-admin.js?v=20260426-collapse"></script>
+<script id="admin-js" src="gradstudio-learn-admin.js?v=20260426-carousel-upload"></script>
 </body>
 </html>

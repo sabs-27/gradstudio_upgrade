@@ -6,8 +6,11 @@
     const state = {
         categories: [],
         courses: [],
+        carousels: [],
+        carouselCards: [],
         activeFolderId: "",
         activeCourseId: "",
+        activeCarouselId: "1",
         expandedFolders: new Set(),
         mode: "idle",
         currentCourseData: null,
@@ -53,7 +56,7 @@
     function cacheEls() {
         [
             "tree", "folderJump", "btnNewFolder", "btnNewCourse", "btnDelFolder", "btnRecycle",
-            "emptyState", "courseForm", "contentsCard", "sectionsList", "recycleArea",
+            "btnCarousel", "emptyState", "courseForm", "contentsCard", "sectionsList", "carouselArea", "recycleArea",
             "formTitle", "cId", "cTitle", "cDescription", "cLevel", "cLabs", "cIcon", "cOrder",
             "cParent", "cType", "cTags", "cThumbType", "cThumbImage", "cThumbHtml", "coursePreview",
             "snippetLibrary", "btnSaveCourse", "btnDelCourse", "btnAddSection", "modalBg", "modalBox", "toast"
@@ -63,6 +66,7 @@
     function bindEvents() {
         els.btnNewFolder.addEventListener("click", openAddFolderModal);
         els.btnNewCourse.addEventListener("click", () => openCourseForm());
+        els.btnCarousel.addEventListener("click", openCarouselManager);
         els.btnDelFolder.addEventListener("click", () => deleteFolder(state.activeFolderId));
         els.btnRecycle.addEventListener("click", openRecycleBin);
         els.folderJump.addEventListener("change", () => {
@@ -125,13 +129,18 @@
     async function loadData(options = {}) {
         setLoading(true);
         try {
-            const [coursePayload, categoryPayload] = await Promise.all([
+            const [coursePayload, categoryPayload, carouselPayload] = await Promise.all([
                 apiJson("/api/courses?admin=1&t=" + Date.now()),
-                apiJson("/api/categories?t=" + Date.now())
+                apiJson("/api/categories?t=" + Date.now()),
+                apiJson("/api/admin/carousels?t=" + Date.now(), { headers: authHeaders() }).catch(() => [])
             ]);
 
             state.courses = normalizeCourses(coursePayload.courses || []);
             state.categories = normalizeCategories(categoryPayload.categories || []);
+            state.carousels = normalizeCarousels(Array.isArray(carouselPayload) ? carouselPayload : []);
+            if (!state.carousels.some((carousel) => String(carousel.id) === String(state.activeCarouselId))) {
+                state.activeCarouselId = state.carousels[0] ? String(state.carousels[0].id) : "1";
+            }
             renderSidebar();
             renderParentOptions();
 
@@ -188,6 +197,56 @@
                 parent_course_id: course.parent_course_id ? String(course.parent_course_id) : null,
                 type: String(course.type || (course.parent_course_id ? "course" : "course")),
                 cardMeta: parseCardMeta(course.color_theme)
+            }))
+            .sort((a, b) => (a.display_order - b.display_order) || a.title.localeCompare(b.title));
+    }
+
+    function normalizeCarousels(carousels) {
+        const existing = new Map((carousels || []).filter(Boolean).map((carousel) => [String(carousel.id), carousel]));
+        return [
+            fixedCarouselSlot("1", "Big Carousel", "Featured course paths", existing.get("1")),
+            fixedCarouselSlot("2", "Bottom Small Carousel", "Quick course paths", existing.get("2"))
+        ];
+    }
+
+    function fixedCarouselSlot(id, name, fallbackHeader, existing) {
+        return {
+            ...(existing || {}),
+            id,
+            name,
+            header: String(existing && existing.header ? existing.header : fallbackHeader),
+            display_order: Number(existing && existing.display_order ? existing.display_order : id),
+            is_active: !existing || (existing.is_active !== 0 && existing.is_active !== false)
+        };
+    }
+
+    function carouselSlotLabel(carousel) {
+        return carousel.id === "1" ? "Big Carousel" : "Bottom Small Carousel";
+    }
+
+    function normalizeCarouselCards(cards) {
+        return cards
+            .filter(Boolean)
+            .map((card) => ({
+                ...card,
+                id: String(card.id),
+                carousel_id: String(card.carousel_id || state.activeCarouselId || "1"),
+                title: String(card.title || "Untitled card"),
+                description: String(card.description || ""),
+                icon_class: String(card.icon_class || "fas fa-star"),
+                color_hex: String(card.color_hex || "#3b82f6"),
+                target_type: String(card.target_type || "course_list"),
+                target_id: String(card.target_id || "custom"),
+                display_order: Number(card.display_order || 0),
+                is_active: card.is_active !== 0 && card.is_active !== false,
+                content_type: String(card.content_type || "html"),
+                image_url: String(card.image_url || ""),
+                iframe_url: String(card.iframe_url || ""),
+                content_html: String(card.content_html || ""),
+                width: String(card.width || "400px"),
+                height_px: String(card.height_px || "420px"),
+                full_bleed: card.full_bleed === 1 || card.full_bleed === true,
+                course_links: parseCourseLinks(card.course_links)
             }))
             .sort((a, b) => (a.display_order - b.display_order) || a.title.localeCompare(b.title));
     }
@@ -251,6 +310,26 @@
             .map((tag) => tag.trim())
             .filter(Boolean)
             .filter((tag, index, all) => all.indexOf(tag) === index);
+    }
+
+    function parseCourseLinks(value) {
+        if (Array.isArray(value)) return value.map(normalizeCourseLink).filter(Boolean);
+        if (!value) return [];
+        try {
+            const parsed = JSON.parse(value);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map(normalizeCourseLink).filter(Boolean);
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function normalizeCourseLink(value) {
+        if (typeof value === "string") return value.trim();
+        if (value && typeof value === "object") {
+            return String(value.id || value.course_id || value.target_id || "").trim();
+        }
+        return "";
     }
 
     function renderSidebar() {
@@ -383,6 +462,7 @@
         els.emptyState.style.display = "block";
         els.courseForm.classList.remove("show");
         els.contentsCard.classList.remove("show");
+        els.carouselArea.classList.remove("show");
         els.recycleArea.classList.remove("show");
     }
 
@@ -403,6 +483,7 @@
         els.emptyState.style.display = "none";
         els.courseForm.classList.add("show");
         els.contentsCard.classList.remove("show");
+        els.carouselArea.classList.remove("show");
         els.recycleArea.classList.remove("show");
         els.formTitle.textContent = parentCourseId ? "Add Nested Card" : "Add Course Card";
         els.cId.disabled = false;
@@ -431,6 +512,7 @@
         state.mode = "edit";
         els.emptyState.style.display = "none";
         els.courseForm.classList.add("show");
+        els.carouselArea.classList.remove("show");
         els.recycleArea.classList.remove("show");
         els.formTitle.textContent = "Edit Course Card";
         els.cId.disabled = true;
@@ -1059,12 +1141,374 @@
         state.expandedFolders.add(course.category);
     }
 
+    async function openCarouselManager() {
+        state.mode = "carousel";
+        state.activeCourseId = "";
+        state.currentCourseData = null;
+        els.emptyState.style.display = "none";
+        els.courseForm.classList.remove("show");
+        els.contentsCard.classList.remove("show");
+        els.recycleArea.classList.remove("show");
+        els.carouselArea.classList.add("show");
+        renderSidebar();
+        updateHeaderState();
+        renderCarouselManager(true);
+        await loadCarouselCards(state.activeCarouselId);
+    }
+
+    async function loadCarouselCards(carouselId) {
+        state.activeCarouselId = String(carouselId || state.activeCarouselId || "1");
+        try {
+            const payload = await apiJson("/api/admin/carousel?type=" + encodeURIComponent(state.activeCarouselId) + "&t=" + Date.now(), {
+                headers: authHeaders()
+            });
+            state.carouselCards = normalizeCarouselCards(payload.cards || []);
+            const carousel = state.carousels.find((item) => item.id === state.activeCarouselId);
+            if (carousel && payload.header !== undefined) carousel.header = String(payload.header || carousel.header || "");
+            renderCarouselManager(false);
+        } catch (error) {
+            els.carouselArea.innerHTML = '<h1>Carousel Cards</h1><div class="empty-box">Failed to load carousel cards.<br><small>' + esc(error.message) + '</small></div>';
+        }
+    }
+
+    function renderCarouselManager(isLoading) {
+        const active = state.carousels.find((carousel) => carousel.id === state.activeCarouselId) || state.carousels[0] || {
+            id: state.activeCarouselId,
+            name: "Carousel",
+            header: "",
+            display_order: 1,
+            is_active: true
+        };
+        const options = state.carousels.map((carousel) => {
+            const label = carouselSlotLabel(carousel);
+            return '<option value="' + escAttr(carousel.id) + '"' + (carousel.id === active.id ? " selected" : "") + ">" + esc(label) + "</option>";
+        }).join("");
+
+        els.carouselArea.innerHTML = '' +
+            '<div class="carousel-toolbar">' +
+            '<div><h1 style="margin:0">Carousel Cards</h1><p class="hint">Big cards can open a custom set of course cards. Small cards can either open a course directly or open a custom set.</p></div>' +
+            '<div class="action-row">' +
+            '<button class="btn-a" type="button" id="btnAddCarouselCard"><i class="fas fa-plus"></i> Add Card</button>' +
+            '<button class="btn-s" type="button" id="btnRefreshCarousel"><i class="fas fa-sync"></i> Refresh</button>' +
+            '</div></div>' +
+            '<div class="carousel-toolbar" style="align-items:start">' +
+            '<div class="fg"><label>Carousel</label><select id="carouselSelect">' + options + '</select><small>Only these new admin slots are used. Old carousel records are hidden.</small></div>' +
+            '<div class="fg" style="flex:1"><label>Carousel Header</label><input id="carouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured paths"></div>' +
+            '<div class="fg" style="width:120px"><label>Order</label><input id="carouselOrder" type="number" value="' + escAttr(active.display_order || 1) + '"></div>' +
+            '<label class="inline-check" style="margin-top:28px"><input id="carouselActive" type="checkbox" ' + (active.is_active ? "checked" : "") + '> Active</label>' +
+            '<button class="btn-s" type="button" id="btnSaveCarouselSettings" style="margin-top:22px">Save Settings</button>' +
+            '</div>' +
+            (isLoading ? '<div style="display:flex;align-items:center;color:var(--muted)"><div class="spinner"></div> Loading carousel cards...</div>' : renderCarouselCardsList());
+
+        document.getElementById("carouselSelect").addEventListener("change", (event) => loadCarouselCards(event.target.value));
+        document.getElementById("btnAddCarouselCard").addEventListener("click", () => openCarouselCardModal());
+        document.getElementById("btnRefreshCarousel").addEventListener("click", () => loadCarouselCards(state.activeCarouselId));
+        document.getElementById("btnSaveCarouselSettings").addEventListener("click", saveCarouselSettings);
+        els.carouselArea.querySelectorAll("[data-edit-carousel-card]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const card = state.carouselCards.find((item) => item.id === button.dataset.editCarouselCard);
+                if (card) openCarouselCardModal(card);
+            });
+        });
+        els.carouselArea.querySelectorAll("[data-delete-carousel-card]").forEach((button) => {
+            button.addEventListener("click", () => deleteCarouselCard(button.dataset.deleteCarouselCard));
+        });
+    }
+
+    function renderCarouselCardsList() {
+        if (!state.carouselCards.length) {
+            return '<div class="empty-box"><strong>No carousel cards yet</strong><br><span class="hint">Add a card and choose whether it opens selected course cards or opens a course directly.</span></div>';
+        }
+        return '<div class="carousel-cards">' + state.carouselCards.map(renderCarouselCardRow).join("") + '</div>';
+    }
+
+    function renderCarouselCardRow(card) {
+        return '' +
+            '<div class="carousel-row">' +
+            '<div class="carousel-thumb">' + renderCarouselThumb(card) + '</div>' +
+            '<div><h3>' + esc(card.title) + (card.is_active ? "" : ' <small>(inactive)</small>') + '</h3>' +
+            '<p>' + esc(card.description || targetSummary(card)) + '</p>' +
+            '<small>' + esc(targetSummary(card)) + '</small></div>' +
+            '<div class="action-row">' +
+            '<button class="btn-s" type="button" data-edit-carousel-card="' + escAttr(card.id) + '"><i class="fas fa-pen"></i> Edit</button>' +
+            '<button class="btn-s btn-danger" type="button" data-delete-carousel-card="' + escAttr(card.id) + '"><i class="fas fa-trash"></i></button>' +
+            '</div></div>';
+    }
+
+    function renderCarouselThumb(card) {
+        if (card.content_type === "image" && card.image_url) {
+            return '<img src="' + escAttr(card.image_url) + '" alt="' + escAttr(card.title + " thumbnail") + '">';
+        }
+        if (card.content_type === "iframe" && card.iframe_url) {
+            return '<iframe title="' + escAttr(card.title) + '" src="' + escAttr(card.iframe_url) + '" loading="lazy"></iframe>';
+        }
+        if (card.content_type === "html" && card.content_html) {
+            return sanitizePreviewHtml(card.content_html);
+        }
+        return '<i class="' + escAttr(card.icon_class || "fas fa-star") + '"></i>';
+    }
+
+    function targetSummary(card) {
+        if (card.target_type === "course") {
+            const course = state.courses.find((item) => item.id === card.target_id);
+            return "Opens course directly: " + (course ? course.title : card.target_id);
+        }
+        if (card.target_type === "course_list") {
+            return "Shows selected course cards: " + card.course_links.length;
+        }
+        return "No click action";
+    }
+
+    function openCarouselCardModal(card) {
+        const isEdit = !!card;
+        const activeCarouselId = card ? String(card.carousel_id) : state.activeCarouselId;
+        const defaultTarget = activeCarouselId === "2" ? "course" : "course_list";
+        const selectedIds = card ? card.course_links : [];
+        const selectedCourse = card && card.target_type === "course" ? card.target_id : (state.courses[0] ? state.courses[0].id : "");
+        showModal({
+            title: isEdit ? "Edit Carousel Card" : "Add Carousel Card",
+            wide: true,
+            body: '' +
+                '<form id="carouselCardForm">' +
+                '<div class="row">' +
+                '<div class="fg"><label>Carousel</label><select id="ccCarousel">' + state.carousels.map((carousel) => '<option value="' + escAttr(carousel.id) + '"' + (carousel.id === activeCarouselId ? " selected" : "") + ">" + esc(carouselSlotLabel(carousel)) + "</option>").join("") + '</select></div>' +
+                '<div class="fg"><label>Display Order</label><input id="ccOrder" type="number" value="' + escAttr(card ? card.display_order : nextCarouselCardOrder(activeCarouselId)) + '"></div>' +
+                '</div>' +
+                '<div class="fg"><label>Title *</label><input id="ccTitle" required value="' + escAttr(card ? card.title : "") + '" placeholder="Fullstack"></div>' +
+                '<div class="fg"><label>Description</label><textarea id="ccDescription" placeholder="Short text shown on the carousel card">' + esc(card ? card.description : "") + '</textarea></div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Thumbnail Type</label><select id="ccContentType"><option value="html">HTML thumbnail</option><option value="image">Image URL</option><option value="iframe">Iframe URL</option><option value="standard">Icon card</option></select></div>' +
+                '<div class="fg"><label>Click Behavior</label><select id="ccTargetType"><option value="course_list">Show selected course cards</option><option value="course">Open course contents directly</option><option value="none">No click action</option></select></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Image URL</label><input id="ccImageUrl" value="' + escAttr(card ? card.image_url : "") + '" placeholder="https://... or /carousel/images/card.png"></div>' +
+                '<div class="fg"><label>Iframe URL</label><input id="ccIframeUrl" value="' + escAttr(card ? card.iframe_url : "") + '" placeholder="/carousel/html/card.html"></div>' +
+                '</div>' +
+                '<div class="fg"><label>Upload HTML Thumbnail File</label><div class="action-row"><input id="ccHtmlFile" type="file" accept=".html,text/html" style="flex:1"><button class="btn-s" type="button" id="ccUploadHtml"><i class="fas fa-upload"></i> Upload HTML</button></div><small>Uploads a standalone .html thumbnail and uses it as an iframe carousel thumbnail.</small></div>' +
+                '<div class="fg"><label>HTML Thumbnail</label><textarea id="ccContentHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>">' + esc(card ? card.content_html : snippets[3].html) + '</textarea><small>Use this for custom carousel HTML thumbnails.</small></div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Icon Class</label><input id="ccIcon" value="' + escAttr(card ? card.icon_class : "fas fa-layer-group") + '"></div>' +
+                '<div class="fg"><label>Accent Color</label><input id="ccColor" type="color" value="' + escAttr(card ? card.color_hex : "#3b82f6") + '"></div>' +
+                '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : (activeCarouselId === "2" ? "220px" : "400px")) + '"></div>' +
+                '<div class="fg"><label>Height</label><input id="ccHeight" value="' + escAttr(card ? card.height_px : (activeCarouselId === "2" ? "160px" : "420px")) + '"></div>' +
+                '</div>' +
+                '<label class="inline-check" style="margin-bottom:14px"><input id="ccActive" type="checkbox" ' + (!card || card.is_active ? "checked" : "") + '> Active card</label>' +
+                '<div id="ccDirectCourseWrap" class="fg"><label>Direct Course</label><select id="ccDirectCourse">' + renderCourseOptions(selectedCourse) + '</select><small>Used when click behavior opens course contents directly.</small></div>' +
+                '<div id="ccCourseListWrap" class="fg"><label>Courses to Display</label><small>Select the course cards shown after clicking this carousel card.</small>' + renderCoursePicker(selectedIds) + '</div>' +
+                '</form>' +
+                '<div id="ccPreview" class="preview-card"></div>',
+            footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselCardForm">' + (isEdit ? "Save Card" : "Create Card") + '</button>'
+        });
+
+        document.getElementById("ccContentType").value = card ? card.content_type : "html";
+        document.getElementById("ccTargetType").value = card ? card.target_type : defaultTarget;
+        ["ccCarousel", "ccTitle", "ccDescription", "ccContentType", "ccTargetType", "ccImageUrl", "ccIframeUrl", "ccContentHtml", "ccIcon", "ccColor", "ccDirectCourse"].forEach((id) => {
+            const node = document.getElementById(id);
+            if (node) {
+                node.addEventListener("input", updateCarouselCardModal);
+                node.addEventListener("change", updateCarouselCardModal);
+            }
+        });
+        els.modalBox.querySelectorAll('input[name="ccCourseLink"]').forEach((input) => input.addEventListener("change", updateCarouselCardModal));
+        document.getElementById("ccUploadHtml").addEventListener("click", uploadCarouselHtmlThumbnail);
+        document.getElementById("carouselCardForm").addEventListener("submit", (event) => saveCarouselCardFromModal(event, card));
+        updateCarouselCardModal();
+    }
+
+    function renderCourseOptions(selectedId) {
+        return state.courses.map((course) => {
+            return '<option value="' + escAttr(course.id) + '"' + (course.id === selectedId ? " selected" : "") + ">" + esc(course.title) + " (" + esc(categoryName(course.category)) + ")</option>";
+        }).join("");
+    }
+
+    function renderCoursePicker(selectedIds) {
+        const selected = new Set((selectedIds || []).map(String));
+        return '<div class="course-picker">' + state.courses.map((course) => {
+            const meta = categoryName(course.category) + (course.parent_course_id ? " / nested" : "");
+            return '<label class="course-picker-row"><input type="checkbox" name="ccCourseLink" value="' + escAttr(course.id) + '"' + (selected.has(course.id) ? " checked" : "") + '>' +
+                '<div><span>' + esc(course.title) + '</span><small>' + esc(meta) + '</small></div></label>';
+        }).join("") + '</div>';
+    }
+
+    function updateCarouselCardModal() {
+        const targetType = document.getElementById("ccTargetType").value;
+        const contentType = document.getElementById("ccContentType").value;
+        document.getElementById("ccDirectCourseWrap").style.display = targetType === "course" ? "block" : "none";
+        document.getElementById("ccCourseListWrap").style.display = targetType === "course_list" ? "block" : "none";
+        document.getElementById("ccImageUrl").closest(".fg").style.display = contentType === "image" ? "block" : "none";
+        document.getElementById("ccIframeUrl").closest(".fg").style.display = contentType === "iframe" ? "block" : "none";
+        document.getElementById("ccContentHtml").closest(".fg").style.display = contentType === "html" ? "block" : "none";
+        renderCarouselModalPreview();
+    }
+
+    function renderCarouselModalPreview() {
+        const contentType = document.getElementById("ccContentType").value;
+        const title = document.getElementById("ccTitle").value.trim() || "Carousel card";
+        const description = document.getElementById("ccDescription").value.trim() || targetLabelFromModal();
+        let media = "";
+        if (contentType === "image" && document.getElementById("ccImageUrl").value.trim()) {
+            media = '<img src="' + escAttr(document.getElementById("ccImageUrl").value.trim()) + '" alt="' + escAttr(title + " thumbnail") + '">';
+        } else if (contentType === "iframe" && document.getElementById("ccIframeUrl").value.trim()) {
+            media = '<iframe title="' + escAttr(title) + '" src="' + escAttr(document.getElementById("ccIframeUrl").value.trim()) + '" loading="lazy" style="width:100%;height:190px;border:0"></iframe>';
+        } else if (contentType === "html") {
+            media = sanitizePreviewHtml(document.getElementById("ccContentHtml").value) || '<div class="hint">HTML thumbnail preview</div>';
+        } else {
+            media = '<i class="' + escAttr(document.getElementById("ccIcon").value.trim() || "fas fa-star") + '" style="font-size:42px;color:' + escAttr(document.getElementById("ccColor").value || "#3b82f6") + '"></i>';
+        }
+        document.getElementById("ccPreview").innerHTML = '<div class="preview-media">' + media + '</div><div class="preview-body"><strong>' + esc(title) + '</strong><div class="preview-meta"><span>' + esc(description) + '</span></div></div>';
+    }
+
+    function targetLabelFromModal() {
+        const targetType = document.getElementById("ccTargetType").value;
+        if (targetType === "course") {
+            const id = document.getElementById("ccDirectCourse").value;
+            const course = state.courses.find((item) => item.id === id);
+            return "Opens " + (course ? course.title : "course");
+        }
+        if (targetType === "course_list") {
+            return "Shows " + selectedCarouselCourseIds().length + " selected course cards";
+        }
+        return "No click action";
+    }
+
+    function selectedCarouselCourseIds() {
+        return Array.from(els.modalBox.querySelectorAll('input[name="ccCourseLink"]:checked')).map((input) => input.value);
+    }
+
+    async function uploadCarouselHtmlThumbnail() {
+        const input = document.getElementById("ccHtmlFile");
+        const file = input && input.files ? input.files[0] : null;
+        if (!file) {
+            showToast("Choose an HTML thumbnail file", "err");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", "html");
+
+        try {
+            showToast("Uploading HTML thumbnail...", "ok");
+            const result = await apiJson("/api/admin/carousel/upload", {
+                method: "POST",
+                headers: authHeaders(),
+                body: formData
+            });
+            document.getElementById("ccContentType").value = "iframe";
+            document.getElementById("ccIframeUrl").value = result.url || "";
+            updateCarouselCardModal();
+            showToast("HTML thumbnail uploaded", "ok");
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
+    async function saveCarouselCardFromModal(event, existingCard) {
+        event.preventDefault();
+        const title = document.getElementById("ccTitle").value.trim();
+        if (!title) {
+            showToast("Carousel card title is required", "err");
+            return;
+        }
+        const targetType = document.getElementById("ccTargetType").value;
+        const directCourse = document.getElementById("ccDirectCourse").value;
+        const selectedIds = selectedCarouselCourseIds();
+        if (targetType === "course" && !directCourse) {
+            showToast("Choose a direct course", "err");
+            return;
+        }
+        if (targetType === "course_list" && !selectedIds.length) {
+            showToast("Select at least one course card to display", "err");
+            return;
+        }
+        const payload = {
+            title,
+            description: document.getElementById("ccDescription").value.trim(),
+            icon_class: document.getElementById("ccIcon").value.trim() || "fas fa-star",
+            color_hex: document.getElementById("ccColor").value || "#3b82f6",
+            target_type: targetType,
+            target_id: targetType === "course" ? directCourse : targetType === "course_list" ? "custom" : "none",
+            display_order: Number(document.getElementById("ccOrder").value || 0),
+            is_active: document.getElementById("ccActive").checked,
+            content_type: document.getElementById("ccContentType").value,
+            image_url: document.getElementById("ccImageUrl").value.trim(),
+            iframe_url: document.getElementById("ccIframeUrl").value.trim(),
+            content_html: document.getElementById("ccContentHtml").value,
+            width: document.getElementById("ccWidth").value.trim() || "400px",
+            height_px: document.getElementById("ccHeight").value.trim() || "420px",
+            full_bleed: true,
+            carousel_id: document.getElementById("ccCarousel").value,
+            course_links: targetType === "course_list" ? selectedIds : []
+        };
+        if (existingCard) payload.id = existingCard.id;
+
+        try {
+            await apiJson("/api/admin/carousel", {
+                method: existingCard ? "PUT" : "POST",
+                headers: authJsonHeaders(),
+                body: JSON.stringify(payload)
+            });
+            closeModal();
+            state.activeCarouselId = String(payload.carousel_id);
+            showToast(existingCard ? "Carousel card saved" : "Carousel card created", "ok");
+            broadcastAdminUpdate();
+            await loadCarouselCards(state.activeCarouselId);
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
+    async function saveCarouselSettings() {
+        const active = state.carousels.find((carousel) => carousel.id === state.activeCarouselId);
+        if (!active) return;
+        try {
+            await apiJson("/api/admin/carousels", {
+                method: "PUT",
+                headers: authJsonHeaders(),
+                body: JSON.stringify({
+                    id: active.id,
+                    name: active.name,
+                    header: document.getElementById("carouselHeader").value.trim(),
+                    display_order: Number(document.getElementById("carouselOrder").value || active.display_order || 1),
+                    is_active: document.getElementById("carouselActive").checked
+                })
+            });
+            showToast("Carousel settings saved", "ok");
+            broadcastAdminUpdate();
+            await loadData({ keepSelection: false });
+            await loadCarouselCards(state.activeCarouselId);
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
+    async function deleteCarouselCard(id) {
+        if (!confirm("Delete this carousel card?")) return;
+        try {
+            await apiJson("/api/admin/carousel/" + encodeURIComponent(id), {
+                method: "DELETE",
+                headers: authHeaders()
+            });
+            showToast("Carousel card deleted", "ok");
+            broadcastAdminUpdate();
+            await loadCarouselCards(state.activeCarouselId);
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
+    function nextCarouselCardOrder(carouselId) {
+        const cards = state.carouselCards.filter((card) => card.carousel_id === String(carouselId || state.activeCarouselId));
+        return cards.length ? Math.max(...cards.map((card) => card.display_order || 0)) + 1 : 1;
+    }
+
     async function openRecycleBin() {
         state.mode = "recycle";
         state.activeCourseId = "";
         els.emptyState.style.display = "none";
         els.courseForm.classList.remove("show");
         els.contentsCard.classList.remove("show");
+        els.carouselArea.classList.remove("show");
         els.recycleArea.classList.add("show");
         els.recycleArea.innerHTML = '<h1>Recycle Bin</h1><div style="display:flex;align-items:center;color:var(--muted)"><div class="spinner"></div> Loading deleted items...</div>';
         renderSidebar();
@@ -1144,7 +1588,8 @@
         }
     }
 
-    function showModal({ title, body, footer }) {
+    function showModal({ title, body, footer, wide }) {
+        els.modalBox.className = "modal" + (wide ? " modal-wide" : "");
         els.modalBox.innerHTML = '' +
             '<div class="modal-h"><h3>' + esc(title) + '</h3><button class="modal-x" type="button" data-close>&times;</button></div>' +
             '<div class="modal-b">' + body + '</div>' +
@@ -1158,6 +1603,7 @@
     function closeModal() {
         els.modalBg.classList.remove("show");
         els.modalBox.innerHTML = "";
+        els.modalBox.className = "modal";
     }
 
     async function apiJson(path, options = {}) {
