@@ -286,7 +286,7 @@ export default {
 
         // 9.6 Toggle bookmark
         // POST /api/bookmarks/:simId
-        if (path.match(/^\/api\/bookmarks\/[a-zA-Z0-9-]+$/) && request.method === 'POST') {
+        if (path.match(/^\/api\/bookmarks\/[a-zA-Z0-9_.:-]+$/) && request.method === 'POST') {
           const simId = path.split('/').pop();
           return await handleToggleBookmark(simId, request, env, corsHeaders);
         }
@@ -463,6 +463,28 @@ export default {
           await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN carousel_id INTEGER DEFAULT 1`).run().catch(() => { });
           await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN course_links TEXT DEFAULT NULL`).run().catch(() => { });
 
+          // Layout style columns (Apple-style layouts)
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN layout_style TEXT DEFAULT 'horizontal_scroll'`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN grid_columns INTEGER DEFAULT 2`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN infinite_scroll INTEGER DEFAULT 0`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN snap_scroll INTEGER DEFAULT 0`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN text_align TEXT DEFAULT 'left'`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN border_radius INTEGER DEFAULT 14`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN rounded_enabled INTEGER DEFAULT 1`).run().catch(() => { });
+
+          // Per-card styling columns
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN bg_color TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN chip_text TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN chip_color TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN chip_enabled INTEGER DEFAULT 1`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN heading_font TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN heading_size INTEGER DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN heading_color TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN sub_font TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN sub_size INTEGER DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN sub_color TEXT DEFAULT NULL`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousel_cards ADD COLUMN text_position TEXT DEFAULT 'bottom'`).run().catch(() => { });
+
           // Create metadata table if not exists
           await env.DB.prepare(`CREATE TABLE IF NOT EXISTS metadata (
                 key TEXT PRIMARY KEY,
@@ -508,6 +530,11 @@ export default {
           await env.DB.prepare(`UPDATE carousels SET is_active = 1 WHERE id = 1`).run().catch(() => { });
           await env.DB.prepare(`UPDATE carousel_cards SET is_active = 1 WHERE carousel_id = 2 AND (is_active IS NULL OR is_active = 0)`).run().catch(() => { });
           await env.DB.prepare(`UPDATE carousels SET is_active = 1 WHERE id = 2 AND (is_active IS NULL OR is_active = 0)`).run().catch(() => { });
+
+          // Header styling columns
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN header_font TEXT DEFAULT 'Inter'`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN header_font_size INTEGER DEFAULT 32`).run().catch(() => { });
+          await env.DB.prepare(`ALTER TABLE carousels ADD COLUMN header_color TEXT DEFAULT '#ffffff'`).run().catch(() => { });
 
           await env.KV.delete('courses:all').catch(() => { });
           return jsonResponse({ success: true, message: 'Migration done' }, 200, corsHeaders);
@@ -572,6 +599,7 @@ export default {
             const validationError = await validateBody({
               id: { type: 'id', required: true },
               name: { type: 'string', required: true, maxLength: 200 },
+              display_order: { type: 'integer', required: false, min: 0 },
               description: { type: 'string', required: false, maxLength: 1000, sanitizeHtml: true }
             })(request, env);
             if (validationError) return validationError;
@@ -2024,7 +2052,17 @@ async function getUniqueSlug(env, baseSlug) {
  * Add a new course
  */
 async function handleAdminAddCourse(data, env, corsHeaders) {
-  const { id, title, icon_class, category = 'skill', display_order = 0, parent_course_id = null, type = 'course' } = data;
+  const {
+    id,
+    title,
+    icon_class,
+    description = '',
+    color_theme = null,
+    category = 'skill',
+    display_order = 0,
+    parent_course_id = null,
+    type = 'course'
+  } = data;
 
   if (!id || !title || !icon_class) {
     return jsonResponse({ error: 'Missing required fields: id, title, icon_class' }, 400, corsHeaders);
@@ -2089,10 +2127,18 @@ async function handleAdminAddCourse(data, env, corsHeaders) {
       }
     }
 
-    await env.DB.prepare(`
-        INSERT INTO courses (id, title, icon_class, category, display_order, is_active, parent_course_id, type)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
-      `).bind(id, title, icon_class, category, display_order, parent_course_id || null, type || 'course').run();
+    try {
+      await env.DB.prepare(`
+          INSERT INTO courses (id, title, description, icon_class, color_theme, category, display_order, is_active, parent_course_id, type)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        `).bind(id, title, description || '', icon_class, color_theme, category, display_order, parent_course_id || null, type || 'course').run();
+    } catch (insertErr) {
+      if (!insertErr.message || !insertErr.message.includes('no such column')) throw insertErr;
+      await env.DB.prepare(`
+          INSERT INTO courses (id, title, icon_class, category, display_order, is_active, parent_course_id, type)
+          VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+        `).bind(id, title, icon_class, category, display_order, parent_course_id || null, type || 'course').run();
+    }
 
     // Invalidate cache
     await env.KV.delete('courses:all');
@@ -2443,7 +2489,7 @@ async function handleGetDeletedCourses(env, corsHeaders) {
 }
 
 async function handleAdminUpdateCourse(data, env, corsHeaders) {
-  const { id, title, icon_class, category, display_order, parent_course_id = null, type = 'course' } = data;
+  const { id, title, icon_class, description = '', color_theme = null, category, display_order, parent_course_id = null, type = 'course' } = data;
   if (!id) return jsonResponse({ error: 'Missing id' }, 400, corsHeaders);
   try {
     // Auto-create Main sub-course when moving a course under a parent that has existing sections but no sub-courses
@@ -2502,9 +2548,16 @@ async function handleAdminUpdateCourse(data, env, corsHeaders) {
       }
     }
 
-    await env.DB.prepare(
-      'UPDATE courses SET title = ?, icon_class = ?, category = ?, display_order = ?, parent_course_id = ?, type = ? WHERE id = ?'
-    ).bind(title, icon_class, category, display_order, parent_course_id || null, type || 'course', id).run();
+    try {
+      await env.DB.prepare(
+        'UPDATE courses SET title = ?, description = ?, icon_class = ?, color_theme = ?, category = ?, display_order = ?, parent_course_id = ?, type = ? WHERE id = ?'
+      ).bind(title, description || '', icon_class, color_theme, category, display_order, parent_course_id || null, type || 'course', id).run();
+    } catch (updateErr) {
+      if (!updateErr.message || !updateErr.message.includes('no such column')) throw updateErr;
+      await env.DB.prepare(
+        'UPDATE courses SET title = ?, icon_class = ?, category = ?, display_order = ?, parent_course_id = ?, type = ? WHERE id = ?'
+      ).bind(title, icon_class, category, display_order, parent_course_id || null, type || 'course', id).run();
+    }
 
     await env.KV.delete('courses:all');
     await env.KV.delete(`metadata:${id}`);

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Course Card – Standalone</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; }
+
+        body {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #f7f8fb;
+            font-family: Inter, system-ui, sans-serif;
+        }
+
+        /* ── Card wrapper ── */
+        .course-card {
+            width: 460px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(29, 41, 57, 0.08);
+            background: #fff;
+        }
+
+        /* ── Thumbnail area ── */
+        .card-thumb {
+            position: relative;
+            height: 260px;
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+
+            /* lavender background */
+            background: #e9e5ff;
+        }
+
+        /* dot pattern overlay */
+        .card-thumb::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(23, 32, 51, 0.12) 1px, transparent 1px);
+            background-size: 12px 12px;
+            opacity: 0.42;
+            pointer-events: none;
+        }
+
+        /* ── COURSE badge ── */
+        .badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            background: #101827;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Title text ── */
+        .card-thumb-title {
+            position: relative;
+            max-width: 55%;
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.15;
+            color: #111827;
+        }
+
+        /* ── 3D Orb ── */
+        .orb-wrap {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .orb {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            position: relative;
+            /* main gradient: purple orb */
+            background: radial-gradient(circle at 35% 28%,
+                rgba(255,255,255,0.94) 0%,
+                rgba(95,109,246,0.82) 56%,
+                rgba(95,109,246,0.52) 100%
+            );
+            box-shadow:
+                0 18px 36px rgba(23, 32, 51, 0.18),
+                inset 0 -8px 24px rgba(95,109,246,0.15);
+        }
+
+        /* highlight bubble */
+        .orb::before {
+            content: "";
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            top: 18px;
+            left: 42px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.28);
+        }
+
+        /* bottom shadow ellipse */
+        .orb::after {
+            content: "";
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(17, 24, 39, 0.08);
+            filter: blur(4px);
+        }
+
+        /* text on orb */
+        .orb-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.02em;
+            text-shadow: 0 2px 8px rgba(23, 32, 51, 0.18);
+        }
+
+        /* ── Card body (optional) ── */
+        .card-body {
+            padding: 20px 24px 22px;
+        }
+
+        .card-body h3 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+            color: #8a94a8;
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        .card-meta span + span::before {
+            content: "·";
+            margin-right: 10px;
+        }
+
+        .tag-list {
+            display: flex;
+            gap: 7px;
+            margin-top: 16px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            height: 26px;
+            padding: 0 10px;
+            border: 1px solid #5f6b7d;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #263348;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="course-card">
+        <!-- Thumbnail -->
+        <div class="card-thumb">
+            <span class="badge">COURSE</span>
+            <div class="card-thumb-title">Quick Start with Linux</div>
+            <div class="orb-wrap">
+                <div class="orb">
+                    <span class="orb-label">LINUX</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body (optional – remove if you only need the thumbnail) -->
+        <div class="card-body">
+            <h3>Quick Start with Linux</h3>
+            <div class="card-meta">
+                <span>Beginner</span>
+                <span>12 labs</span>
+            </div>
+            <div class="tag-list">
+                <span class="tag">Linux</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

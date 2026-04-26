@@ -50,6 +50,13 @@ Desktop.ini
 
 # Misc
 *.tgz
+*.zip
 *.log
 *.snapshot_*
 DESKTOP/
+
+# Local verification artifacts
+.chrome*/
+course-detail-check.png
+server.err.txt
+server.out.txt

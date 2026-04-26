@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://api.gradstudio.org https://learning-platform-api-dev.sabareeshrao.workers.dev; frame-src 'self' https://api.gradstudio.org https://learning-platform-api-dev.sabareeshrao.workers.dev;">
+    <title>GradStudio Learn Next</title>
+    <link rel="icon" type="image/png" href="/favicon-32.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="learn-next.css">
+</head>
+
+<body>
+    <main class="learn-next-shell" aria-label="GradStudio learning browser">
+        <section class="learn-column learn-topics" aria-labelledby="topicsTitle">
+            <header class="learn-column-head">
+                <div>
+                    <span>Topics</span>
+                    <h1 id="topicsTitle">GradStudio</h1>
+                </div>
+                <a href="/" aria-label="Back to GradStudio">Home</a>
+            </header>
+            <div id="topicList" class="learn-list" aria-live="polite"></div>
+        </section>
+
+        <section class="learn-column learn-cards" aria-labelledby="cardsTitle">
+            <header class="learn-column-head">
+                <div>
+                    <span id="activeTopicEyebrow">Select a topic</span>
+                    <h2 id="cardsTitle">Courses</h2>
+                </div>
+            </header>
+            <div id="courseList" class="learn-list" aria-live="polite"></div>
+        </section>
+
+        <section class="learn-column learn-content" aria-labelledby="contentTitle">
+            <header class="learn-column-head">
+                <div>
+                    <span id="contentEyebrow">Content</span>
+                    <h2 id="contentTitle">Choose a course</h2>
+                </div>
+                <button id="closeViewerButton" class="ghost-button" type="button" hidden>Close iframe</button>
+            </header>
+            <div id="contentList" class="learn-list" aria-live="polite"></div>
+            <section id="iframePanel" class="iframe-panel" hidden>
+                <iframe id="contentFrame" title="GradStudio content viewer" loading="lazy" allowfullscreen></iframe>
+            </section>
+        </section>
+    </main>
+
+    <script src="learn-next.js"></script>
+</body>
+
+</html>

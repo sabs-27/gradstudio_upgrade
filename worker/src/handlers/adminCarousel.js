@@ -119,20 +119,27 @@ export async function handleAdminGetCarousels(request, env, corsHeaders) {
  * Create a new carousel
  */
 export async function handleAdminAddCarousel(data, env, corsHeaders) {
-    const { name, header, display_order, is_active } = data;
+    const { name, header, display_order, is_active, layout_style, grid_columns, infinite_scroll, snap_scroll, text_align, border_radius, rounded_enabled } = data;
 
     if (!name) {
         return jsonResponse({ error: 'Name is required' }, 400, corsHeaders);
     }
 
     const result = await env.DB.prepare(`
-        INSERT INTO carousels (name, header, display_order, is_active)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO carousels (name, header, display_order, is_active, layout_style, grid_columns, infinite_scroll, snap_scroll, text_align, border_radius, rounded_enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         name,
         header || '',
         display_order || 0,
-        is_active !== undefined ? (is_active ? 1 : 0) : 1
+        is_active !== undefined ? (is_active ? 1 : 0) : 1,
+        layout_style || 'horizontal_scroll',
+        grid_columns || 2,
+        infinite_scroll ? 1 : 0,
+        snap_scroll ? 1 : 0,
+        text_align || 'left',
+        border_radius !== undefined ? border_radius : 14,
+        rounded_enabled !== undefined ? (rounded_enabled ? 1 : 0) : 1
     ).run();
 
     return jsonResponse({ success: true, id: result.meta.last_row_id }, 201, corsHeaders);
@@ -143,20 +150,40 @@ export async function handleAdminAddCarousel(data, env, corsHeaders) {
  * Update an existing carousel
  */
 export async function handleAdminUpdateCarousel(data, env, corsHeaders) {
-    const { id, name, header, display_order, is_active } = data;
-
+    const id = data.id;
     if (!id) {
         return jsonResponse({ error: 'ID is required' }, 400, corsHeaders);
     }
+
+    // D1 cannot bind undefined — convert all to null
+    const v = (x) => x !== undefined ? x : null;
+    const b = (x) => x !== undefined ? (x ? 1 : 0) : null;
 
     await env.DB.prepare(`
         UPDATE carousels 
         SET name = COALESCE(?, name),
             header = COALESCE(?, header),
             display_order = COALESCE(?, display_order),
-            is_active = COALESCE(?, is_active)
+            is_active = COALESCE(?, is_active),
+            layout_style = COALESCE(?, layout_style),
+            grid_columns = COALESCE(?, grid_columns),
+            infinite_scroll = COALESCE(?, infinite_scroll),
+            snap_scroll = COALESCE(?, snap_scroll),
+            text_align = COALESCE(?, text_align),
+            border_radius = COALESCE(?, border_radius),
+            rounded_enabled = COALESCE(?, rounded_enabled),
+            header_font = COALESCE(?, header_font),
+            header_font_size = COALESCE(?, header_font_size),
+            header_color = COALESCE(?, header_color)
         WHERE id = ?
-    `).bind(name, header, display_order, is_active, id).run();
+    `).bind(
+        v(data.name), v(data.header), v(data.display_order), v(data.is_active),
+        v(data.layout_style), v(data.grid_columns),
+        b(data.infinite_scroll), b(data.snap_scroll),
+        v(data.text_align), v(data.border_radius), b(data.rounded_enabled),
+        v(data.header_font), v(data.header_font_size), v(data.header_color),
+        id
+    ).run();
 
     return jsonResponse({ success: true }, 200, corsHeaders);
 }
@@ -181,7 +208,9 @@ export async function handleAdminDeleteCarousel(id, env, corsHeaders) {
 export async function handleAdminAddCarouselCard(data, env, corsHeaders) {
     const {
         title, description, icon_class, color_hex, target_type, target_id, section_id, display_order, is_active,
-        content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id, course_links
+        content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id, course_links,
+        bg_color, chip_text, chip_color, chip_enabled, heading_font, heading_size, heading_color,
+        sub_font, sub_size, sub_color, text_position
     } = data;
 
     if (!title || !target_type || !target_id) {
@@ -191,28 +220,22 @@ export async function handleAdminAddCarouselCard(data, env, corsHeaders) {
     const result = await env.DB.prepare(`
         INSERT INTO carousel_cards (
             title, description, icon_class, color_hex, target_type, target_id, section_id, display_order, is_active,
-            content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id, course_links
+            content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id, course_links,
+            bg_color, chip_text, chip_color, chip_enabled, heading_font, heading_size, heading_color,
+            sub_font, sub_size, sub_color, text_position
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-        title,
-        description || '',
-        icon_class || 'fas fa-book',
-        color_hex || '#3b82f6',
-        target_type,
-        target_id,
-        section_id || null,
-        display_order || 0,
+        title, description || '', icon_class || 'fas fa-book', color_hex || '#3b82f6',
+        target_type, target_id, section_id || null, display_order || 0,
         is_active !== undefined ? (is_active ? 1 : 0) : 1,
-        content_type || 'standard',
-        image_url || null,
-        iframe_url || null,
-        content_html || null,
-        width || '300px',
-        height_px || 'auto',
-        full_bleed ? 1 : 0,
-        carousel_id || 1,
-        course_links ? JSON.stringify(course_links) : null
+        content_type || 'standard', image_url || null, iframe_url || null, content_html || null,
+        width || '300px', height_px || 'auto', full_bleed ? 1 : 0, carousel_id || 1,
+        course_links ? JSON.stringify(course_links) : null,
+        bg_color || null, chip_text || null, chip_color || null,
+        chip_enabled !== undefined ? (chip_enabled ? 1 : 0) : 1,
+        heading_font || null, heading_size || null, heading_color || null,
+        sub_font || null, sub_size || null, sub_color || null, text_position || 'bottom'
     ).run();
 
     return jsonResponse({ success: true, id: result.meta.last_row_id }, 201, corsHeaders);
@@ -245,14 +268,15 @@ export async function handleAdminUpdateCarouselCard(data, env, corsHeaders) {
         return jsonResponse({ success: true }, 200, corsHeaders);
     }
 
-    const {
-        id, title, description, icon_class, color_hex, target_type, target_id, section_id, display_order, is_active,
-        content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id, course_links
-    } = data;
-
+    const id = data.id;
     if (!id) {
         return jsonResponse({ error: 'ID is required' }, 400, corsHeaders);
     }
+
+    // D1 cannot bind undefined — convert all to null
+    const v = (x) => x !== undefined ? x : null;
+    const b = (x) => x !== undefined ? (x ? 1 : 0) : null;
+    const n = (x) => x !== undefined ? (parseInt(x) || null) : null;
 
     await env.DB.prepare(`
         UPDATE carousel_cards 
@@ -273,12 +297,32 @@ export async function handleAdminUpdateCarouselCard(data, env, corsHeaders) {
             height_px = COALESCE(?, height_px),
             full_bleed = COALESCE(?, full_bleed),
             carousel_id = COALESCE(?, carousel_id),
-            course_links = ?
+            course_links = ?,
+            bg_color = ?,
+            chip_text = ?,
+            chip_color = ?,
+            chip_enabled = COALESCE(?, chip_enabled),
+            heading_font = ?,
+            heading_size = ?,
+            heading_color = ?,
+            sub_font = ?,
+            sub_size = ?,
+            sub_color = ?,
+            text_position = COALESCE(?, text_position)
         WHERE id = ?
     `).bind(
-        title, description, icon_class, color_hex, target_type, target_id, section_id || null, display_order, is_active,
-        content_type, image_url, iframe_url, content_html, width, height_px, full_bleed, carousel_id,
-        course_links !== undefined ? JSON.stringify(course_links) : null, id
+        v(data.title), v(data.description), v(data.icon_class), v(data.color_hex),
+        v(data.target_type), v(data.target_id), v(data.section_id) || null,
+        v(data.display_order), v(data.is_active),
+        v(data.content_type), v(data.image_url), v(data.iframe_url), v(data.content_html),
+        v(data.width), v(data.height_px), v(data.full_bleed), v(data.carousel_id),
+        data.course_links !== undefined ? JSON.stringify(data.course_links) : null,
+        v(data.bg_color) || null, v(data.chip_text) || null, v(data.chip_color) || null,
+        b(data.chip_enabled),
+        v(data.heading_font) || null, n(data.heading_size), v(data.heading_color) || null,
+        v(data.sub_font) || null, n(data.sub_size), v(data.sub_color) || null,
+        v(data.text_position),
+        id
     ).run();
 
     return jsonResponse({ success: true }, 200, corsHeaders);

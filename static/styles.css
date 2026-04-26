@@ -1411,16 +1411,8 @@ body.is-course-view .main-content {
     z-index: 25;
     isolation: isolate;
     overflow: hidden;
-    /* Performance optimizations */
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translateZ(0);
-    /* Force GPU */
-    /* Dark Glass Base */
-    background: rgba(15, 23, 42, 0.7) !important;
-    backdrop-filter: blur(8px) saturate(140%);
-    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    /* Solid dark background (backdrop-filter removed for scroll performance) */
+    background: rgba(15, 23, 42, 0.92) !important;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
@@ -1479,7 +1471,7 @@ body.is-course-view .main-content {
     border-radius: 18px;
     padding: 24px;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -1487,10 +1479,8 @@ body.is-course-view .main-content {
     z-index: 25;
     isolation: isolate;
     overflow: hidden;
-    /* Dark Glass Base */
-    background: rgba(15, 23, 42, 0.7) !important;
-    backdrop-filter: blur(8px) saturate(140%);
-    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    /* Solid dark background (backdrop-filter removed for scroll performance) */
+    background: rgba(15, 23, 42, 0.92) !important;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
@@ -1583,11 +1573,10 @@ body.is-course-view .main-content {
     font-family: 'Inter', sans-serif;
     border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
     margin-top: auto;
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 23, 42, 0.8);
     color: #ffffff;
-    backdrop-filter: blur(4px);
     width: fit-content;
 }
 
@@ -1621,7 +1610,7 @@ body.is-course-view .main-content {
     color: rgba(255, 255, 255, 0.03);
     z-index: 1;
     pointer-events: none;
-    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1), color 0.6s ease;
 }
 
 .subject-card:hover::after {
@@ -1725,9 +1714,6 @@ body.is-course-view .main-content {
     margin-bottom: 24px;
     opacity: 0;
     transition: opacity 0.5s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
 }
 
 .secondary-carousel-header .header-bold {
@@ -9043,11 +9029,6 @@ body.canvas-mode .mobile-bottom-nav {
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translateZ(0);
-    /* Force GPU */
 }
 
 .secondary-card:hover {
@@ -9115,9 +9096,13 @@ body.canvas-mode .mobile-bottom-nav {
 }
 
 .secondary-card.full-bleed .secondary-card-content {
-    background: transparent !important;
-    background-image: none !important;
-    box-shadow: none !important;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    padding: 24px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7)) !important;
 }
 
 .secondary-card.full-bleed .secondary-card-kicker,
@@ -9128,9 +9113,11 @@ body.canvas-mode .mobile-bottom-nav {
 
 @media (max-width: 900px) {
     .secondary-card {
-        width: 320px !important;
-        height: 400px !important;
-        flex: 0 0 320px !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 400px !important;
+        height: auto !important;
+        aspect-ratio: 3 / 4;
+        flex: 0 0 calc(100vw - 32px) !important;
     }
 
     .secondary-card-title {
@@ -9182,6 +9169,78 @@ body.canvas-mode .mobile-bottom-nav {
 .secondary-card:not(.full-bleed) .secondary-card-media img,
 .secondary-card:not(.full-bleed) .secondary-card-media iframe {
     object-fit: contain;
+}
+
+/* Home must remain document-scrollable. Course/topic/canvas views manage
+   their own fixed-height scroll containers separately. */
+body:not(.is-course-view):not(.is-topic-view):not(.canvas-mode) {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+}
+
+body:not(.is-course-view):not(.is-topic-view):not(.canvas-mode) .root-container,
+body:not(.is-course-view):not(.is-topic-view):not(.canvas-mode) .app-layout,
+body:not(.is-course-view):not(.is-topic-view):not(.canvas-mode) .main-content,
+body:not(.is-course-view):not(.is-topic-view):not(.canvas-mode) #view-home {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
+.carousel-container {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+}
+
+/* ===== LAYOUT MODE OVERRIDES ===== */
+
+/* Grid / Hero-Stack: cards must fill their grid cell */
+.layout-grid .secondary-card,
+.layout-hero-stack .secondary-card {
+    flex: 1 1 auto;
+    width: 100% !important;
+}
+
+/* Single-center: card fills edge-to-edge */
+.layout-single-center .secondary-card {
+    flex: 1 1 auto;
+    width: 100% !important;
+}
+
+.layout-single-center {
+    padding: 0 !important;
+}
+
+/* Full-bleed in layout modes: text overlay on top of media */
+.layout-grid .secondary-card.full-bleed .secondary-card-content,
+.layout-single-center .secondary-card.full-bleed .secondary-card-content,
+.layout-hero-stack .secondary-card.full-bleed .secondary-card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7)) !important;
+    padding: 24px;
+}
+
+/* Text alignment center for headers - override flex display */
+.secondary-carousel-header[style*="text-align:center"],
+.secondary-carousel-header[style*="text-align: center"] {
+    align-items: center;
+    text-align: center;
+}
+
+.secondary-carousel-header[style*="text-align:right"],
+.secondary-carousel-header[style*="text-align: right"] {
+    align-items: flex-end;
+    text-align: right;
 }
 
 /* --- SIDEBAR 3-COLUMN HIERARCHY --- */

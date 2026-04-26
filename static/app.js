@@ -4387,12 +4387,50 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 
 // --- carousel scroll logic ---
-window.scrollcarousel = function (direction, carouselId = 'subject-carousel') {
-    const container = document.getElementById(carouselId);
-    if (container) {
-        const scrollamount = carouselId === 'subject-carousel' ? 440 : 800;
-        container.scrollBy({ left: scrollamount * direction, behavior: 'smooth' });
+window.scrollcarousel = function (direction = 1, target = 'subject-carousel') {
+    let container = null;
+
+    if (target && typeof target.closest === 'function') {
+        const wrapper = target.closest('.carousel-wrapper');
+        container = wrapper ? wrapper.querySelector('.carousel-container') : null;
     }
+
+    if (!container && typeof target === 'string') {
+        container = document.getElementById(target);
+    }
+
+    if (!container) {
+        container = document.getElementById('subject-carousel');
+    }
+
+    if (!container) return;
+
+    container.style.overflowX = 'auto';
+    container.style.scrollBehavior = 'smooth';
+
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    if (maxScrollLeft <= 1) return;
+
+    const firstCard = container.querySelector('.subject-card, .secondary-card');
+    const styles = window.getComputedStyle(container);
+    const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : 0;
+    const fallbackAmount = container.clientWidth * 0.8;
+    const amount = Math.max(160, Math.min(container.clientWidth * 0.9, (cardWidth || fallbackAmount) + gap));
+    const startLeft = container.scrollLeft;
+    const nextLeft = Math.max(0, Math.min(maxScrollLeft, startLeft + (Number(direction) || 1) * amount));
+
+    if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    } else {
+        container.scrollLeft = nextLeft;
+    }
+
+    requestAnimationFrame(() => {
+        if (Math.abs(container.scrollLeft - startLeft) < 2) {
+            container.scrollLeft = nextLeft;
+        }
+    });
 };
 
 window.scrollSecondaryCarousel = function (direction) {
@@ -5747,107 +5785,201 @@ async function refreshDynamicCarousels() {
             const cards = carousel.cards || [];
             const carouselId = `carousel-${carousel.id}`;
             const headerId = `header-${carousel.id}`;
+            const layoutStyle = carousel.layout_style || 'horizontal_scroll';
+            const gridCols = carousel.grid_columns || 2;
+            const infiniteScroll = carousel.infinite_scroll == 1;
+            const textAlign = carousel.text_align || 'left';
+            const borderRadius = carousel.rounded_enabled !== 0 ? (carousel.border_radius || 14) : 0;
 
             let headerHtml = '';
             const headerText = carousel.header || '';
             if (headerText) {
+                const hFont = carousel.header_font || 'Inter';
+                const hSize = carousel.header_font_size || 32;
+                const hColor = carousel.header_color || '#ffffff';
+                const alignStyle = textAlign === 'center' ? 'text-align:center;' : textAlign === 'right' ? 'text-align:right;' : 'text-align:left;';
+                const hStyle = `display:block; opacity:1; ${alignStyle} font-family:'${hFont}',sans-serif; font-size:${hSize}px;`;
                 const dotIndex = headerText.indexOf('.');
                 if (dotIndex !== -1) {
                     const firstPart = headerText.substring(0, dotIndex);
                     const secondPart = headerText.substring(dotIndex + 1);
-                    headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="display:block; opacity:1;"><span class="header-bold">${firstPart}.</span> <span class="header-gray">${secondPart}</span></h2>`;
+                    headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="${hStyle}"><span class="header-bold" style="color:${hColor}">${firstPart}.</span> <span class="header-gray" style="color:${hColor}88">${secondPart}</span></h2>`;
                 } else {
-                    headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="display:block; opacity:1;"><span class="header-bold">${headerText}</span></h2>`;
+                    headerHtml = `<h2 class="secondary-carousel-header" id="${headerId}" style="${hStyle}"><span class="header-bold" style="color:${hColor}">${headerText}</span></h2>`;
                 }
             }
 
-            let cardsHtml = '';
-            if (cards.length > 0) {
-                const activeCards = cards.filter(c => c.is_active != 0 && c.is_active != false);
+            // --- Helper: build single card HTML ---
+            function buildCardHtml(card, forceW, forceH) {
+                const targetType = card.target_type || 'course';
+                const targetId = card.target_id || '';
+                const rawW = forceW || card.width || '400px';
+                const rawH = forceH || card.height_px || '500px';
+                const isFullBleed = card.full_bleed == 1 || card.full_bleed === true;
+                const contentType = card.content_type || 'standard';
+                const cardBg = card.bg_color || '';
+                const chipEnabled = card.chip_enabled !== 0;
+                const chipText = card.chip_text || 'Learn more';
+                const chipColor = card.chip_color || '#3b82f6';
+                const headingFont = card.heading_font || 'inherit';
+                const headingSize = card.heading_size || '';
+                const headingColor = card.heading_color || '';
+                const subFont = card.sub_font || 'inherit';
+                const subSize = card.sub_size || '';
+                const subColor = card.sub_color || '';
+                const textPosition = card.text_position || 'bottom';
 
-                if (activeCards.length > 0) {
-                    const firstCardHeight = (activeCards[0] && activeCards[0].height_px && activeCards[0].height_px !== 'auto')
-                        ? activeCards[0].height_px
-                        : '500px';
-
-                    activeCards.forEach(card => {
-                        const targetType = card.target_type || 'course';
-                        const targetId = card.target_id || '';
-                        const rawW = card.width || '400px';
-                        const rawH = firstCardHeight;
-                        const isFullBleed = card.full_bleed == 1 || card.full_bleed === true;
-                        const contentType = card.content_type || 'standard';
-
-                        // Mobile: scale both dimensions by same factor to preserve exact proportions
-                        const isMobile = window.innerWidth <= 768;
-                        const mobileScale = 0.4;
-                        const wPx = parseFloat(rawW) || 400;
-                        const hPx = parseFloat(rawH) || 500;
-                        const displayW = isMobile ? Math.round(wPx * mobileScale) + 'px' : rawW;
-                        const displayH = isMobile ? Math.round(hPx * mobileScale) + 'px' : rawH;
-
-                        let mediaHtml = '';
-                        if (contentType === 'image' && card.image_url) {
-                            mediaHtml = `<div class="secondary-card-media"><img src="${card.image_url}" alt="${card.title}" style="width:100%; height:100%; object-fit:cover;"></div>`;
-                        } else if (contentType === 'html' && card.content_html) {
-                            let rawHtml = card.content_html
-                                .replace(/&lt;/g, '<')
-                                .replace(/&gt;/g, '>')
-                                .replace(/&quot;/g, '"')
-                                .replace(/&#39;/g, "'")
-                                .replace(/&amp;/g, '&');
-                            mediaHtml = `<div class="secondary-card-media"><div class="html-content">${rawHtml}</div></div>`;
-                        } else if (contentType === 'iframe' && card.iframe_url) {
-                            mediaHtml = `<div class="secondary-card-media"><iframe src="${card.iframe_url}" style="width:100%; height:100%; border:none;"></iframe></div>`;
-                        } else if (contentType === 'standard' || !contentType) {
-                            mediaHtml = `<div class="secondary-card-media" style="background: ${card.color_hex || '#3b82f6'}; display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; width:100%; height:100%;"><i class="${card.icon_class || 'fa-solid fa-star'}"></i></div>`;
-                        }
-
-                        let clickAction;
-                        if (targetType === 'course_page') {
-                            const safeTitle = (card.title || '').replace(/'/g, "\\'");
-                            const safeIcon = (card.icon_class || '').replace(/'/g, "\\'");
-                            const color = card.color_hex || '#3b82f6';
-                            clickAction = `onclick="switchProvider('${card.id}', null, { type: 'course_page', card_id: '${card.id}', card_title: '${safeTitle}', card_icon: '${safeIcon}', card_color: '${color}' })"`;
-                        } else if (targetType === 'none' || !targetId || targetId === 'none') {
-                            clickAction = '';
-                        } else {
-                            clickAction = `onclick="switchProvider('${targetId}', null, { type: '${targetType}', section_id: '${card.section_id || ''}' })"`;
-                        }
-
-                        cardsHtml += `
-                                    <div class="secondary-card ${isFullBleed ? 'full-bleed' : ''}" 
-                                         style="width: ${displayW}; height: ${displayH}; flex: 0 0 ${displayW};"
-                                         ${clickAction}>
-                                        ${mediaHtml}
-                                        <div class="secondary-card-content">
-                                            <div class="secondary-card-kicker">${card.title}</div>
-                                            <div class="secondary-card-title">${card.description || ''}</div>
-                                        </div>
-                                    </div>
-                                `;
-                    });
+                const isMobile = window.innerWidth <= 768;
+                const wPx = parseFloat(rawW) || 400;
+                const hPx = parseFloat(rawH) || 500;
+                let displayW, displayH;
+                if (isMobile && layoutStyle === 'horizontal_scroll') {
+                    displayW = 'calc(100vw - 40px)';
+                    const ratio = hPx / wPx;
+                    const mobileW = window.innerWidth - 40;
+                    const scaledH = Math.round(mobileW * ratio);
+                    const maxH = Math.round(window.innerHeight * 0.65);
+                    displayH = Math.min(scaledH, maxH) + 'px';
+                } else if (layoutStyle !== 'horizontal_scroll') {
+                    // Grid, single_center, hero_stack: always full-width, auto-height
+                    displayW = '100%';
+                    displayH = rawH && rawH !== 'auto' && rawH !== '500px' ? rawH : '400px';
                 } else {
-                    cardsHtml = '<div style="padding:40px; color:#666; text-align:center; width:100%;">No cards available.</div>';
+                    displayW = rawW;
+                    displayH = rawH;
                 }
-            } else {
-                cardsHtml = '<div style="padding:40px; color:#666; text-align:center; width:100%;">No cards available.</div>';
-            }
 
-            mainHtml += `
-                        <div class="carousel-wrapper secondary-carousel-wrapper">
-                            ${headerHtml}
-                            <div class="carousel-container" id="${carouselId}">
-                                ${cardsHtml}
+                let mediaHtml = '';
+                if (contentType === 'image' && card.image_url) {
+                    mediaHtml = `<div class="secondary-card-media"><img src="${card.image_url}" alt="${card.title}" style="width:100%; height:100%; object-fit:cover; border-radius:${borderRadius}px;"></div>`;
+                } else if (contentType === 'html' && card.content_html) {
+                    let rawHtml = card.content_html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+                    mediaHtml = `<div class="secondary-card-media"><div class="html-content">${rawHtml}</div></div>`;
+                } else if (contentType === 'iframe' && card.iframe_url) {
+                    mediaHtml = `<div class="secondary-card-media"><iframe src="${card.iframe_url}" style="width:100%; height:100%; border:none;" loading="lazy"></iframe></div>`;
+                } else if (contentType === 'standard' || !contentType) {
+                    mediaHtml = `<div class="secondary-card-media" style="background: ${card.color_hex || '#3b82f6'}; display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; width:100%; height:100%;"><i class="${card.icon_class || 'fa-solid fa-star'}"></i></div>`;
+                }
+
+                // CTA Chip
+                const chipHtml = chipEnabled ? `<div style="margin-top:8px"><span style="display:inline-block;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;background:${chipColor};color:white;cursor:pointer">${chipText}</span></div>` : '';
+
+                let contentPosStyle = '';
+                if (isFullBleed) {
+                    if (textPosition === 'top') {
+                        contentPosStyle = 'position:absolute;top:0;left:0;right:0;bottom:auto;z-index:3;padding:24px;background:linear-gradient(rgba(0,0,0,0.7),transparent);';
+                    } else if (textPosition === 'center') {
+                        contentPosStyle = 'position:absolute;top:50%;left:0;right:0;bottom:auto;transform:translateY(-50%);z-index:3;padding:24px;background:rgba(0,0,0,0.5);';
+                    } else {
+                        contentPosStyle = 'position:absolute;bottom:0;left:0;right:0;z-index:3;padding:24px;background:linear-gradient(transparent, rgba(0,0,0,0.7));';
+                    }
+                }
+
+                // Heading/sub styles
+                const kickerStyle = `text-align:${textAlign};${headingFont !== 'inherit' ? 'font-family:'+headingFont+';' : ''}${headingSize ? 'font-size:'+headingSize+'px;' : ''}${headingColor ? 'color:'+headingColor+';' : ''}`;
+                const titleStyle = `text-align:${textAlign};${subFont !== 'inherit' ? 'font-family:'+subFont+';' : ''}${subSize ? 'font-size:'+subSize+'px;' : ''}${subColor ? 'color:'+subColor+';' : ''}`;
+
+                let clickAction;
+                if (targetType === 'course_page') {
+                    const safeTitle = (card.title || '').replace(/'/g, "\\'");
+                    const safeIcon = (card.icon_class || '').replace(/'/g, "\\'");
+                    const color = card.color_hex || '#3b82f6';
+                    clickAction = `onclick="switchProvider('${card.id}', null, { type: 'course_page', card_id: '${card.id}', card_title: '${safeTitle}', card_icon: '${safeIcon}', card_color: '${color}' })"`;
+                } else if (targetType === 'none' || !targetId || targetId === 'none') {
+                    clickAction = '';
+                } else {
+                    clickAction = `onclick="switchProvider('${targetId}', null, { type: '${targetType}', section_id: '${card.section_id || ''}' })"`;
+                }
+
+                const bgStyle = cardBg ? `background:${cardBg};` : '';
+                const flexBasis = (layoutStyle === 'grid' || layoutStyle === 'single_center' || layoutStyle === 'hero_stack') ? '' : `flex: 0 0 ${displayW};`;
+
+                return `<div class="secondary-card ${isFullBleed ? 'full-bleed' : ''}" 
+                             style="width:${displayW}; height:${displayH}; ${flexBasis} border-radius:${borderRadius}px; ${bgStyle} overflow:hidden;"
+                             ${clickAction}>
+                            ${mediaHtml}
+                            <div class="secondary-card-content" style="${contentPosStyle} text-align:${textAlign};">
+                                <div class="secondary-card-kicker" style="${kickerStyle}">${card.title}</div>
+                                <div class="secondary-card-title" style="${titleStyle}">${card.description || ''}</div>
+                                ${chipHtml}
                             </div>
-                            <button class="carousel-nav-btn nav-prev" onclick="window.scrollcarousel(-1, '${carouselId}')" aria-label="Previous">
-                                <i class="fa-solid fa-chevron-left"></i>
-                            </button>
-                            <button class="carousel-nav-btn nav-next" onclick="window.scrollcarousel(1, '${carouselId}')" aria-label="Next">
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </button>
+                        </div>`;
+            }
+
+            const activeCards = cards.filter(c => c.is_active != 0 && c.is_active != false);
+
+            if (activeCards.length === 0) {
+                mainHtml += `<div class="carousel-wrapper secondary-carousel-wrapper">${headerHtml}<div style="padding:40px;color:#666;text-align:center;width:100%">No cards available.</div></div>`;
+                return;
+            }
+
+            // --- Render based on layout_style ---
+            if (layoutStyle === 'grid') {
+                let gridCards = '';
+                activeCards.forEach(card => {
+                    gridCards += buildCardHtml(card, '100%', card.height_px || '300px');
+                });
+                mainHtml += `
+                    <div class="carousel-wrapper secondary-carousel-wrapper layout-grid">
+                        ${headerHtml}
+                        <div style="display:grid; grid-template-columns:repeat(${gridCols}, 1fr); gap:16px; padding:0 20px; max-width:1400px; margin:0 auto;">
+                            ${gridCards}
                         </div>
-                    `;
+                    </div>`;
+
+            } else if (layoutStyle === 'single_center') {
+                const card = activeCards[0];
+                const cardHtml = buildCardHtml(card, '100%', card.height_px || '500px');
+                mainHtml += `
+                    <div class="carousel-wrapper secondary-carousel-wrapper layout-single-center">
+                        ${headerHtml}
+                        <div style="padding:0; margin:0 auto; max-width:100%;">
+                            ${cardHtml}
+                        </div>
+                    </div>`;
+
+            } else if (layoutStyle === 'hero_stack') {
+                let stackCards = '';
+                activeCards.forEach(card => {
+                    stackCards += `<div style="margin-bottom:16px">${buildCardHtml(card, '100%', card.height_px || '500px')}</div>`;
+                });
+                mainHtml += `
+                    <div class="carousel-wrapper secondary-carousel-wrapper layout-hero-stack">
+                        ${headerHtml}
+                        <div style="max-width:1200px; margin:0 auto; padding:0 20px;">
+                            ${stackCards}
+                        </div>
+                    </div>`;
+
+            } else {
+                // Default: horizontal_scroll carousel
+                let cardsHtml = '';
+                const firstCardHeight = (activeCards[0] && activeCards[0].height_px && activeCards[0].height_px !== 'auto') ? activeCards[0].height_px : '500px';
+                activeCards.forEach(card => {
+                    cardsHtml += buildCardHtml(card, card.width || '400px', firstCardHeight);
+                });
+
+                // Infinite scroll: clone cards for seamless loop
+                if (infiniteScroll && activeCards.length > 1) {
+                    activeCards.forEach(card => {
+                        cardsHtml += buildCardHtml(card, card.width || '400px', firstCardHeight);
+                    });
+                }
+
+                mainHtml += `
+                    <div class="carousel-wrapper secondary-carousel-wrapper">
+                        ${headerHtml}
+                        <div class="carousel-container${infiniteScroll ? ' infinite-carousel' : ''}" id="${carouselId}">
+                            ${cardsHtml}
+                        </div>
+                        <button class="carousel-nav-btn nav-prev" onclick="window.scrollcarousel(-1, this)" aria-label="Previous">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button class="carousel-nav-btn nav-next" onclick="window.scrollcarousel(1, this)" aria-label="Next">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>`;
+            }
         });
 
         mainContainer.innerHTML = mainHtml;
@@ -6085,13 +6217,55 @@ function openCourseAutoFirst(courseId) {
 window.openCourseAutoFirst = openCourseAutoFirst;
 
 
-function scrollcarousel(direction, containerId = 'subject-carousel') {
-    const container = document.getElementById(containerId);
+function getCarouselContainer(target) {
+    if (target && typeof target.closest === 'function') {
+        const wrapper = target.closest('.carousel-wrapper');
+        const scopedContainer = wrapper ? wrapper.querySelector('.carousel-container') : null;
+        if (scopedContainer) return scopedContainer;
+    }
+
+    if (typeof target === 'string' && target) {
+        const byId = document.getElementById(target);
+        if (byId) return byId;
+    }
+
+    return document.getElementById('subject-carousel');
+}
+
+function getCarouselScrollAmount(container) {
+    const firstCard = container.querySelector('.subject-card, .secondary-card');
+    if (!firstCard) return Math.max(240, container.clientWidth * 0.8);
+
+    const styles = window.getComputedStyle(container);
+    const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    const cardWidth = firstCard.getBoundingClientRect().width;
+    return Math.max(160, Math.min(container.clientWidth * 0.9, cardWidth + gap));
+}
+
+function scrollcarousel(direction = 1, target = 'subject-carousel') {
+    const container = getCarouselContainer(target);
     if (!container) return;
-    const scrollAmount = container.clientWidth * 0.8;
-    container.scrollBy({
-        left: direction * scrollAmount,
-        behavior: 'smooth'
+
+    container.style.overflowX = 'auto';
+    container.style.scrollBehavior = 'smooth';
+
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    if (maxScrollLeft <= 1) return;
+
+    const startLeft = container.scrollLeft;
+    const amount = getCarouselScrollAmount(container);
+    const nextLeft = Math.max(0, Math.min(maxScrollLeft, startLeft + (Number(direction) || 1) * amount));
+
+    if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    } else {
+        container.scrollLeft = nextLeft;
+    }
+
+    requestAnimationFrame(() => {
+        if (Math.abs(container.scrollLeft - startLeft) < 2) {
+            container.scrollLeft = nextLeft;
+        }
     });
 }
 window.scrollcarousel = scrollcarousel;

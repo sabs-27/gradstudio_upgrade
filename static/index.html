@@ -38,7 +38,7 @@
     </noscript>
 
     <!-- Main stylesheet - render-blocking to prevent FOUC -->
-    <link rel="stylesheet" href="styles.css?v=1772858600000">
+    <link rel="stylesheet" href="styles.css?v=1777155180714">
 
     <!-- Critical CSS inline for instant first paint -->
     <style>
@@ -826,7 +826,11 @@
         }
 
         /* Firefox */
-        * {
+        .carousel-container,
+        .chapter-sidebar,
+        .sidebar-menu,
+        .viewer-pane,
+        .main-content {
             scrollbar-width: none;
         }
 
@@ -1117,13 +1121,11 @@
                         <div class="hero-content">
                             <span class="hero-kicker">GRAD STUDIO</span>
                             <h1 class="hero-headline" style="margin-bottom: 25px;">
-                                <span class="desktop-text">Designed to make learning technical concepts simple for
-                                    beginners while also helping learners<br class="desktop-br"> refresh and strengthen
-                                    their existing knowledge.</span><span class="mobile-text">Designed to make
-                                    learning<br class="mobile-br"> technical
-                                    concepts simple for<br class="mobile-br"> beginners while also helping<br
-                                        class="mobile-br"> learners refresh and strengthen their existing
-                                    knowledge.</span>
+                                Designed to make learning<span class="mobile-br"> </span><br class="mobile-br">
+                                technical concepts simple for<span class="mobile-br"> </span><br class="mobile-br">
+                                beginners while also helping<span class="mobile-br"> </span><br class="mobile-br">
+                                learners<span class="desktop-br"> </span><br class="desktop-br">
+                                refresh and strengthen their existing knowledge.
                             </h1>
                         </div>
 
@@ -1135,12 +1137,12 @@
 
                         <div class="carousel-wrapper">
                             <h2 class="carousel-header-text">Free Interactive Demos</h2>
-                            <button class="carousel-nav-btn nav-prev" onclick="window.scrollcarousel(-1)"
+                            <button class="carousel-nav-btn nav-prev" onclick="window.scrollcarousel(-1, this)"
                                 aria-label="Previous">
                                 <i class="fa-solid fa-chevron-left"></i>
                             </button>
                             <div id="subject-carousel" class="carousel-container"></div>
-                            <button class="carousel-nav-btn nav-next" onclick="window.scrollcarousel(1)"
+                            <button class="carousel-nav-btn nav-next" onclick="window.scrollcarousel(1, this)"
                                 aria-label="Next">
                                 <i class="fa-solid fa-chevron-right"></i>
                             </button>
@@ -1152,49 +1154,58 @@
                     </div>
                     <!-- ABOUT PAGE -->
                     <div id="page-about" class="info-page hidden">
-                        <div class="info-page-content">
-                            <h1>About Grad Studio</h1>
-                            <section>
-                                <h2>Our Mission</h2>
-                                <p>Grad Studio is on a mission to democratize technical education. We believe that
-                                    complex concepts don't have to be intimidating. By breaking down advanced
-                                    technologies into digestible, interactive modules, we empower learners of all levels
-                                    to master the skills of the future.</p>
+                        <div class="info-page-content" style="padding-top: 20px;">
+
+                            <h1>About Me</h1>
+                            <p>I'm Sabareesh, an MS Computer Science graduate who built GradStudio from scratch as a
+                                full-stack, serverless platform focused on interactive, system-driven learning.</p>
+                            <p>I focus on building complete systems end-to-end across backend, data processing, and
+                                AI/ML applications, with an emphasis on practical implementation and real-world usage.</p>
+
+                            <section style="margin-top: 40px;">
+                                <h2>About GradStudio</h2>
+                                <p>GradStudio is a full-stack, serverless platform designed and developed independently to
+                                    deliver interactive simulations across AI, cloud, and data engineering.</p>
+                                <p>The platform replaces static content with simulation-driven modules, allowing users to
+                                    interact with system behavior and understand how components work in practice.</p>
                             </section>
 
-                            <section>
-                                <h2>Why Grad Studio?</h2>
-                                <p>Traditional learning often fails by being too theoretical or too fragmented. Grad
-                                    Studio bridges this gap with:</p>
+                            <section style="margin-top: 40px;">
+                                <h2>Engineering Highlights</h2>
                                 <ul>
-                                    <li><strong>Interactive Simulations:</strong> Don't just read about it—see it in
-                                        action. Our hands-on demos let you visualize how systems work in real-time.</li>
-                                    <li><strong>Beginner to Pro:</strong> Whether you're a student starting out or a
-                                        professional looking to refresh your knowledge, our structured paths guide you
-                                        every step of the way.</li>
-                                    <li><strong>Focus on Foundations:</strong> We cut through the noise and focus on the
-                                        core concepts that actually matter, helping you build a solid foundation for
-                                        your career.</li>
+                                    <li>Built a serverless platform using Cloudflare Workers for backend APIs and routing</li>
+                                    <li>Designed relational data models using Cloudflare D1 to manage users, courses, and
+                                        structured content</li>
+                                    <li>Implemented R2 object storage to serve dynamic HTML-based simulation modules</li>
+                                    <li>Used KV storage for caching and rate limiting to improve performance and scalability</li>
+                                    <li>Developed interactive frontend modules using JavaScript, HTML, and Tailwind</li>
+                                    <li>Designed an API-driven architecture connecting frontend, backend, and storage layers</li>
+                                    <li>Structured a scalable content system (courses → sections → simulations)</li>
+                                    <li>Implemented full-text search (FTS5) for fast content discovery across large datasets</li>
                                 </ul>
                             </section>
 
-                            <section>
-                                <h2>Our Approach</h2>
-                                <p>We focus on clear explanations and practical application. Each module is carefully
-                                    crafted to ensure that you not only learn the "how" but also understand the "why"
-                                    behind every technical concept.</p>
+                            <section style="margin-top: 40px;">
+                                <h2>System Architecture</h2>
+                                <ul>
+                                    <li>Serverless backend deployed at the edge (Cloudflare Workers)</li>
+                                    <li>Distributed storage using D1 (database), R2 (object storage), and KV (caching)</li>
+                                    <li>API-based communication between frontend, backend, and data systems</li>
+                                    <li>Optimized for low-latency access and global availability</li>
+                                </ul>
                             </section>
 
-                            <section
-                                style="margin-top: 40px; padding: 40px; background: rgba(249, 115, 22, 0.05); border-radius: 20px; border: 1px solid rgba(249, 115, 22, 0.1);">
-                                <h2 style="color: #f97316; margin-top: 0;">Ready to start?</h2>
-                                <p>Join thousands of learners who are already building their foundations with Grad
-                                    Studio. Explore our courses today and start your journey towards technical mastery.
-                                </p>
-                                <button onclick="switchProvider('home'); window.scrollTo(0, 600); return false;"
-                                    style="background: #f97316; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; margin-top: 10px;">Browse
-                                    Courses</button>
+                            <section style="margin-top: 40px;">
+                                <h2>Key Features</h2>
+                                <ul>
+                                    <li>Interactive simulation-based learning modules</li>
+                                    <li>Full-text search for structured content discovery</li>
+                                    <li>Authentication system with session handling</li>
+                                    <li>Admin system for managing large-scale structured content</li>
+                                    <li>Real-time tracking of user interactions (views, likes, bookmarks)</li>
+                                </ul>
                             </section>
+
                         </div>
                     </div>
 
@@ -1527,7 +1538,7 @@
 
 
     <!-- Main application JS - deferred -->
-    <script src="app.js?v=1772838790088" defer></script>
+    <script src="app.js?v=1777155180714" defer></script>
 
     <!-- Google Auth - async -->
     <script src="https://accounts.google.com/gsi/client" async defer onload="initializeGoogleAuth()"></script>

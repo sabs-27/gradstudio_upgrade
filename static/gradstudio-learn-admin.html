@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradStudio Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f8fafc;--white:#fff;--hover:#f1f5f9;--text:#0f172a;--text2:#475569;--muted:#94a3b8;--border:#e2e8f0;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--r:8px}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+.sidebar{width:300px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);background:#f8f9fa}
+.sidebar-header h2{font-size:17px;margin-bottom:12px}
+.sidebar-actions{display:flex;gap:8px;margin-bottom:10px}
+.btn-o{flex:1;padding:7px;background:var(--white);border:1px solid var(--border);border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)}
+.btn-o:hover{background:var(--hover)}
+.btn-o.danger{border-color:var(--red);color:var(--red)}
+.btn-o.danger:hover:not(:disabled){background:#fff5f5}
+.btn-o:disabled{opacity:.4;cursor:not-allowed}
+.folder-jump{display:grid;gap:4px;margin-bottom:8px}
+.folder-jump span{color:var(--text2);font-size:11px;font-weight:700;text-transform:uppercase}
+.folder-jump select{width:100%;height:34px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px;padding:0 8px}
+.tree{padding:8px 0;flex:1;overflow-y:auto}
+.f-head{display:flex;align-items:center;padding:9px 16px;font-weight:600;font-size:14px;color:#3c4043;cursor:pointer}
+.f-head:hover{background:#f8f9fa}
+.f-head.active{background:#e8f5e9;color:#2e7d32}
+.f-head .ico{margin-right:8px}
+.f-head .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-head .chev{width:18px;margin-right:8px;color:var(--muted);transition:transform .15s ease}
+.f-head.expanded .chev{transform:rotate(90deg)}
+.f-head .cnt{margin-left:auto;font-size:11px;color:var(--muted);background:var(--hover);padding:1px 6px;border-radius:8px}
+.folder-children{display:none}
+.folder-children.open{display:block}
+.sf-item{padding:7px 16px 7px 42px;font-size:13px;color:var(--text2);cursor:pointer;display:flex;align-items:center}
+.sf-item:hover{background:#f8f9fa}
+.sf-item.active{background:#e8f5e9;color:#2e7d32;font-weight:500}
+.sf-item .ico{margin-right:7px;font-size:12px}
+.sf-item .cnt{margin-left:auto;font-size:10px;color:var(--muted);background:var(--hover);padding:1px 5px;border-radius:8px}
+.main{flex:1;overflow-y:auto;padding:32px}
+.empty-s{text-align:center;color:var(--muted);margin-top:80px}
+.card{background:var(--white);border-radius:var(--r);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:32px;border-top:8px solid var(--green);max-width:840px;margin:0 auto 24px;display:none}
+.card.show{display:block}
+.card h1{font-size:22px;margin-bottom:20px}
+.fg{margin-bottom:18px}
+.fg label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;font:inherit;font-size:14px}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 2px rgba(34,197,94,.15)}
+.fg textarea{height:120px;font-family:monospace;font-size:12px;resize:vertical}
+.fg small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.row{display:flex;gap:16px}
+.row>*{flex:1}
+.btn-p{background:var(--green);color:#fff;border:none;padding:12px 20px;font-size:15px;font-weight:600;border-radius:4px;cursor:pointer;width:100%;margin-top:16px}
+.btn-p:hover{background:#16a34a}
+.btn-s{background:var(--white);color:var(--text);border:1px solid var(--border);padding:8px 16px;font-size:13px;font-weight:600;border-radius:4px;cursor:pointer}
+.btn-s:hover{background:var(--hover)}
+.btn-a{background:var(--accent);color:#fff;border:none;padding:8px 16px;font-size:13px;font-weight:600;border-radius:4px;cursor:pointer}
+.btn-a:hover{background:#2563eb}
+.btn-danger{background:var(--red);color:#fff;border:none}
+.btn-danger:hover{background:#dc2626}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.form-grid .fg{margin-bottom:0}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{border:1px solid var(--border);background:var(--hover);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--text2)}
+.preview-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;margin-top:10px}
+.preview-media{min-height:170px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview-media img{width:100%;height:100%;object-fit:cover}
+.preview-media .thumbnail-card{width:100%;min-height:170px}
+.thumbnail-card{position:relative;min-height:170px;width:100%;padding:22px;color:#fff;background:radial-gradient(circle at top left,var(--glow-top-left,#38bdf8),transparent 34%),radial-gradient(circle at bottom right,var(--glow-bottom-right,#22c55e),transparent 38%),linear-gradient(135deg,var(--bg-dark-1,#0f172a),var(--bg-dark-2,#1e293b));overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.thumbnail-card h3{position:relative;font-size:22px;line-height:1.05;margin:0 0 8px;max-width:75%}
+.thumbnail-card p{position:relative;margin:0;font-size:12px;line-height:1.4;color:rgba(255,255,255,.78);max-width:78%}
+.thumb-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
+.thumb-badge,.cloud-node{position:absolute;right:18px;top:18px;width:54px;height:54px;border-radius:16px;background:var(--badge-bg,#22c55e);color:var(--badge-text,#fff);display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.04em;box-shadow:0 16px 34px rgba(0,0,0,.25)}
+.cloud-orbit{position:absolute;right:-18px;top:18px;width:145px;height:145px;border:1px solid rgba(255,255,255,.2);border-radius:50%}
+.cloud-orbit:before,.cloud-orbit:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.28)}
+.cloud-orbit:before{width:14px;height:14px;left:18px;top:28px}.cloud-orbit:after{width:9px;height:9px;right:24px;bottom:34px}
+.html-thumb{width:100%;min-height:170px;padding:20px;background:#111827;color:#e5e7eb;display:flex;flex-direction:column;justify-content:center;gap:12px;overflow:hidden}
+.terminal-bar{display:flex;gap:6px}.terminal-bar span{width:10px;height:10px;border-radius:50%;background:#ef4444}.terminal-bar span:nth-child(2){background:#f59e0b}.terminal-bar span:nth-child(3){background:#22c55e}
+.html-thumb pre{font:600 13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;color:#86efac;margin:0}
+.thumb-stack{background:linear-gradient(135deg,#172554,#1d4ed8);align-items:flex-start}.thumb-stack span{width:70%;height:16px;border-radius:999px;background:rgba(255,255,255,.22)}.thumb-stack span:nth-child(2){width:52%}.thumb-stack span:nth-child(3){width:84%}.thumb-stack strong,.thumb-circuit strong{font-size:24px}
+.thumb-circuit{background:radial-gradient(circle at 20% 20%,#22c55e,transparent 24%),linear-gradient(135deg,#111827,#312e81)}
+.thumb-circuit span{width:12px;height:12px;border-radius:50%;background:#a7f3d0;box-shadow:42px 24px 0 #38bdf8,92px -8px 0 #f472b6,130px 36px 0 #facc15}
+.thumb-cloud{background:linear-gradient(135deg,#082f49,#0f766e)}
+.preview-body{padding:12px}
+.preview-body strong{display:block;font-size:14px;margin-bottom:6px}
+.preview-meta{display:flex;gap:8px;color:var(--muted);font-size:12px}
+.modal .fg{margin-bottom:14px}
+.modal pre{white-space:pre-wrap;word-break:break-word}
+.recycle-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 22px}
+.recycle-table th,.recycle-table td{border-bottom:1px solid var(--border);padding:10px;text-align:left;vertical-align:middle}
+.recycle-table th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+.action-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.empty-box{padding:24px;border:1px dashed var(--border);border-radius:8px;color:var(--muted);text-align:center;background:#fff}
+.sec-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--hover);border-radius:var(--r) var(--r) 0 0;border-bottom:1px solid var(--border)}
+.sec-head b{font-size:14px}
+.sec-body{padding:10px 16px}
+.topic-row{display:flex;align-items:center;padding:10px 12px;border-radius:6px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);font-size:13px}
+.topic-row:hover{background:var(--hover)}
+.topic-row .info{flex:1}
+.topic-row .slug{font-size:11px;color:var(--muted)}
+.ib{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--muted);border-radius:4px;cursor:pointer;font-size:12px}
+.ib:hover{background:var(--hover);color:var(--text)}
+.ib.del:hover{background:#fee2e2;color:var(--red)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:.2s}
+.modal-bg.show{opacity:1;visibility:visible}
+.modal{background:var(--white);border-radius:12px;width:90%;max-width:520px;max-height:90vh;overflow:hidden}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-h h3{font-size:16px}
+.modal-x{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;background:var(--hover);border-radius:6px;cursor:pointer;font-size:14px}
+.modal-b{padding:20px;max-height:60vh;overflow-y:auto}
+.modal-f{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);background:var(--bg)}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:var(--r);font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;z-index:2000;transform:translateY(80px);opacity:0;transition:.3s;background:var(--text);color:#fff}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:2px dashed var(--border);background:transparent;border-radius:var(--r);color:var(--muted);font-size:12px;cursor:pointer;margin-top:8px}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:#eff6ff}
+.spinner{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:800px){body{display:block;height:auto;overflow:auto}.sidebar{width:100%;height:auto;max-height:44vh}.main{padding:18px}.row,.form-grid{display:block}.card{padding:22px}}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h2><i class="fas fa-cog" style="color:var(--accent);margin-right:6px"></i>GradStudio Admin</h2>
+        <div class="sidebar-actions">
+            <button class="btn-o" id="btnNewFolder">+ Folder</button>
+            <button class="btn-o" id="btnNewCourse">+ Course</button>
+        </div>
+        <label class="folder-jump"><span>Jump to folder</span><select id="folderJump"><option value="">Select...</option></select></label>
+        <button class="btn-o danger" id="btnDelFolder" disabled style="width:100%;margin-top:6px">Delete Folder</button>
+    </div>
+    <div class="tree" id="tree"></div>
+    <div style="padding:8px 12px;border-top:1px solid var(--border)">
+        <button class="add-btn" id="btnRecycle" style="border-color:var(--muted);color:var(--text2)"><i class="fas fa-trash-restore"></i> Recycle Bin</button>
+    </div>
+</div>
+<div class="main" id="mainArea">
+    <div id="emptyState" class="empty-s">
+        <h2>Select a folder or course</h2>
+        <p>Use the sidebar to manage your content.</p>
+    </div>
+    <div id="courseForm" class="card">
+        <h1 id="formTitle">Add Course</h1>
+        <div class="fg"><label>Course ID</label><input id="cId" placeholder="e.g. aws-cloud"><small>Unique identifier (lowercase, no spaces)</small></div>
+        <div class="fg"><label>Title *</label><input id="cTitle" placeholder="e.g. AWS Cloud Practitioner"></div>
+        <div class="fg"><label>Description</label><textarea id="cDescription" placeholder="Short course overview for the detail page"></textarea></div>
+        <div class="form-grid">
+            <div class="fg"><label>Level</label><input id="cLevel" value="Beginner" placeholder="Beginner"></div>
+            <div class="fg"><label>Labs</label><input id="cLabs" value="Auto" placeholder="Auto or 14 labs"><small>Use Auto to let the editor count uploaded topics.</small></div>
+        </div>
+        <div class="row">
+            <div class="fg"><label>Icon Class</label><input id="cIcon" value="fas fa-book" placeholder="fas fa-book"></div>
+            <div class="fg"><label>Display Order</label><input type="number" id="cOrder" value="0"></div>
+        </div>
+        <div class="fg"><label>Parent</label><select id="cParent"></select><small>Choose a folder for a top-level card, or a course to create a nested card.</small></div>
+        <div class="fg"><label>Node Type</label>
+            <select id="cType"><option value="course">Course (Leaf)</option><option value="subcategory">Subcategory (Container)</option></select>
+        </div>
+        <div class="fg"><label>Tags</label><input id="cTags" placeholder="Cloud, DevOps"><small>Comma-separated tags for the learning catalog. The selected folder is added automatically.</small></div>
+        <div class="row">
+            <div class="fg"><label>Thumbnail Type</label><select id="cThumbType"><option value="html">HTML snippet</option><option value="image">Image URL</option><option value="document">Full HTML document</option></select></div>
+            <div class="fg"><label>Image URL</label><input id="cThumbImage" placeholder="/path/to/image.png or https://..."></div>
+        </div>
+        <div class="fg"><label>Thumbnail HTML</label><textarea id="cThumbHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>"></textarea><small>Used for HTML snippet or document thumbnails.</small></div>
+        <div class="pill-row" id="snippetLibrary"></div>
+        <div id="coursePreview" class="preview-card"></div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn-p" id="btnSaveCourse" style="flex:1">Create Course</button>
+            <button class="btn-o danger" id="btnDelCourse" style="display:none;padding:12px 20px">Delete</button>
+        </div>
+    </div>
+    <div id="contentsCard" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h1 style="margin:0">Course Contents</h1>
+            <button class="btn-a" id="btnAddSection"><i class="fas fa-plus"></i> Add Section</button>
+        </div>
+        <div id="sectionsList"></div>
+    </div>
+    <div id="recycleArea" class="card" style="border-top-color:var(--red)"></div>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script id="admin-js" src="gradstudio-learn-admin.js?v=20260426-collapse"></script>
+</body>
+</html>

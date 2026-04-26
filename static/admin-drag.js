@@ -1,20 +1,29 @@
-
 // Phase 3 & 3.3: Strict Drag & Drop Implementation
 
+// Interview Question: What are the trade-offs of using global state variables like `dragSrcEl` instead of scoped states or a state management library?
 let dragSrcEl = null;
 let originalOrder = [];
 
+// Interview Question: How do you handle binding event listeners to elements that are injected into the DOM after this `initDragAndDrop` function has already run?
 function initDragAndDrop() {
     // Carousels
+    // Interview Question: What is the difference between `querySelectorAll` (which returns a static NodeList) and methods that return a live HTMLCollection?
     document.querySelectorAll('.draggable-carousel').forEach(addDragListeners);
+    
     // Carousel Cards
+    // Interview Question: Why might passing a function reference directly to `forEach` (like `addDragListeners`) be better or worse than wrapping it in an anonymous arrow function?
     document.querySelectorAll('.draggable-carousel-card').forEach(addDragListeners);
+    
     // Categories
+    // Interview Question: Can you explain Event Delegation, and how it could optimize this pattern of attaching listeners to many identical sibling elements?
     document.querySelectorAll('.draggable-category').forEach(addDragListeners);
+    
     // Courses
     document.querySelectorAll('.draggable-course').forEach(addDragListeners);
+    
     // Sections
     document.querySelectorAll('.draggable-section').forEach(addDragListeners);
+    
     // Topics
     document.querySelectorAll('.draggable-topic').forEach(addDragListeners);
 }

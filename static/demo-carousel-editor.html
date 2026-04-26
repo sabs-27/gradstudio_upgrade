@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo — Enhanced Carousel Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--bg:#f8fafc;--white:#fff;--hover:#f1f5f9;--text:#0f172a;--text2:#475569;--muted:#94a3b8;--border:#e2e8f0;--accent:#3b82f6;--success:#22c55e;--error:#ef4444;--radius:8px}
+        body{font-family:'Inter',sans-serif;background:#0f172a;color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px}
+        .demo-wrapper{display:flex;gap:40px;max-width:1400px;width:100%;align-items:flex-start}
+        .panel{background:var(--white);border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,0.3);overflow:hidden;width:520px;flex-shrink:0}
+
+        /* --- CAROUSEL LEVEL PANEL --- */
+        .carousel-panel{width:380px}
+        .panel-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .panel-header h3{font-size:18px;font-weight:700}
+        .panel-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:var(--hover);border-radius:6px;cursor:pointer;font-size:16px;color:var(--text2)}
+        .panel-body{padding:24px;max-height:80vh;overflow-y:auto}
+        .section-box{background:#f1f5f9;padding:16px;border-radius:8px;margin-bottom:20px;border:1px solid #e2e8f0}
+        .section-label{font-weight:700;display:block;margin-bottom:12px;color:#1e293b;font-size:14px}
+        .form-group{margin-bottom:16px}
+        .form-group label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
+        .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent)}
+        .form-group small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+
+        /* Radio cards */
+        .type-grid{display:flex;gap:10px;flex-wrap:wrap}
+        .type-card{flex:1;min-width:90px;cursor:pointer}
+        .type-card input{display:none}
+        .type-card-inner{text-align:center;padding:12px 8px;border:2px solid #cbd5e1;border-radius:8px;background:white;transition:all 0.2s}
+        .type-card-inner i{font-size:20px;margin-bottom:6px;color:#64748b;display:block}
+        .type-card-inner span{font-size:11px;font-weight:600;color:#64748b}
+        .type-card input:checked+.type-card-inner{border-color:var(--accent);background:#eff6ff;box-shadow:0 0 0 3px rgba(59,130,246,0.12)}
+        .type-card input:checked+.type-card-inner i,.type-card input:checked+.type-card-inner span{color:var(--accent)}
+
+        /* Layout style cards */
+        .layout-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .layout-card{cursor:pointer}
+        .layout-card input{display:none}
+        .layout-card-inner{padding:14px 12px;border:2px solid #cbd5e1;border-radius:10px;background:white;transition:all 0.2s;text-align:center}
+        .layout-card-inner .layout-icon{font-size:28px;margin-bottom:6px;display:block}
+        .layout-card-inner .layout-name{font-size:12px;font-weight:700;color:#334155;display:block}
+        .layout-card-inner .layout-desc{font-size:10px;color:#94a3b8;margin-top:2px}
+        .layout-card input:checked+.layout-card-inner{border-color:var(--accent);background:#eff6ff;box-shadow:0 0 0 3px rgba(59,130,246,0.12)}
+        .layout-card:hover .layout-card-inner{border-color:#93c5fd}
+
+        /* Grid size selector */
+        .grid-size-selector{display:flex;gap:8px;align-items:center;margin-top:12px;padding:12px;background:#e0f2fe;border-radius:8px;border:1px solid #7dd3fc}
+        .grid-size-selector label{font-size:12px;font-weight:600;color:#0369a1;white-space:nowrap}
+        .grid-size-selector select{padding:6px 10px;border-radius:6px;border:1px solid #7dd3fc;font-size:13px;font-weight:600;background:white}
+
+        /* Toggle switch */
+        .toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+        .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+        .toggle input{display:none}
+        .toggle-track{position:absolute;inset:0;background:#cbd5e1;border-radius:12px;transition:background 0.2s;cursor:pointer}
+        .toggle input:checked+.toggle-track{background:var(--accent)}
+        .toggle-track::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:white;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+        .toggle input:checked+.toggle-track::after{transform:translateX(20px)}
+        .toggle-label{font-size:13px;font-weight:500;color:var(--text)}
+        .toggle-hint{font-size:11px;color:var(--muted)}
+
+        /* Text align buttons */
+        .align-btns{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+        .align-btn{flex:1;padding:8px;border:none;background:white;cursor:pointer;font-size:14px;color:var(--text2);transition:all 0.15s;border-right:1px solid var(--border)}
+        .align-btn:last-child{border-right:none}
+        .align-btn:hover{background:var(--hover)}
+        .align-btn.active{background:#eff6ff;color:var(--accent);font-weight:700}
+
+        /* Preview area */
+        .preview-area{flex:1;min-width:400px}
+        .preview-label{color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+        .preview-frame{background:#000;border-radius:16px;min-height:500px;padding:30px;overflow:hidden;position:relative}
+
+        /* Preview cards */
+        .p-grid{display:grid;gap:12px}
+        .p-card{background:#1a1a1a;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.3s,box-shadow 0.3s;position:relative}
+        .p-card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,0.5)}
+        .p-card img{width:100%;height:100%;object-fit:cover;display:block}
+        .p-card-overlay{position:absolute;bottom:0;left:0;right:0;padding:20px;background:linear-gradient(transparent,rgba(0,0,0,0.8))}
+        .p-card-title{color:white;font-size:14px;font-weight:700}
+        .p-card-desc{color:rgba(255,255,255,0.7);font-size:11px;margin-top:4px}
+        .p-card-center{text-align:center;padding:30px 20px}
+        .p-card-center .p-card-title{font-size:20px;margin-bottom:6px}
+        .p-card-center .p-card-desc{margin-bottom:14px}
+        .p-cta{display:inline-flex;gap:8px}
+        .p-cta a{padding:6px 16px;border-radius:20px;font-size:11px;font-weight:600;text-decoration:none;transition:all 0.2s}
+        .p-cta .primary{background:#2563eb;color:white}
+        .p-cta .secondary{background:transparent;color:white;border:1px solid rgba(255,255,255,0.3)}
+
+        /* Single centered */
+        .p-single{display:flex;align-items:center;justify-content:center;min-height:400px}
+        .p-single .p-card{width:70%;max-width:500px;aspect-ratio:16/10}
+
+        /* Carousel infinite preview */
+        .p-carousel-track{display:flex;gap:16px;overflow:hidden;position:relative}
+        .p-carousel-track .p-card{flex:0 0 200px;height:260px}
+        .p-carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:16px}
+        .p-carousel-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25)}
+        .p-carousel-dots .dot.active{background:white}
+        .p-infinite-badge{position:absolute;top:10px;right:10px;background:rgba(34,197,94,0.2);color:#22c55e;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:flex;align-items:center;gap:4px}
+
+        .badge-new{display:inline-block;background:#22c55e;color:white;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+
+        /* Footer */
+        .panel-footer{display:flex;gap:12px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border);background:var(--bg)}
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text);font-family:inherit}
+        .btn:hover{background:var(--hover)}
+        .btn-primary{background:var(--accent);color:white;border-color:var(--accent)}
+        .btn-primary:hover{background:#2563eb}
+
+        .form-check{display:flex;align-items:center;gap:10px;margin-top:8px}
+        .form-check input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
+        .form-check label{font-size:13px;font-weight:500}
+
+        /* Responsive */
+        @media(max-width:1100px){.demo-wrapper{flex-direction:column;align-items:center}}
+    </style>
+</head>
+<body>
+
+<div class="demo-wrapper">
+
+    <!-- LEFT: Carousel-Level Settings (NEW) -->
+    <div class="panel carousel-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-sliders-h" style="color:var(--accent);margin-right:8px"></i>Carousel Settings</h3>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <label>Carousel Name</label>
+                <input type="text" value="Explore. More Skills" placeholder="e.g. Featured Content">
+            </div>
+
+            <!-- NEW: Layout Style Picker -->
+            <div class="section-box" style="border-color:#7dd3fc;background:#f0f9ff">
+                <div class="section-label">LAYOUT STYLE <span class="badge-new">NEW</span></div>
+                <div class="layout-grid">
+                    <label class="layout-card">
+                        <input type="radio" name="layout_style" value="carousel">
+                        <div class="layout-card-inner">
+                            <span class="layout-icon">↔️</span>
+                            <span class="layout-name">Carousel</span>
+                            <span class="layout-desc">Horizontal scroll</span>
+                        </div>
+                    </label>
+                    <label class="layout-card">
+                        <input type="radio" name="layout_style" value="grid" checked>
+                        <div class="layout-card-inner">
+                            <span class="layout-icon">⊞</span>
+                            <span class="layout-name">Grid</span>
+                            <span class="layout-desc">N×N card grid</span>
+                        </div>
+                    </label>
+                    <label class="layout-card">
+                        <input type="radio" name="layout_style" value="single_center">
+                        <div class="layout-card-inner">
+                            <span class="layout-icon">◎</span>
+                            <span class="layout-name">Single Center</span>
+                            <span class="layout-desc">One centered card</span>
+                        </div>
+                    </label>
+                    <label class="layout-card">
+                        <input type="radio" name="layout_style" value="hero_stack">
+                        <div class="layout-card-inner">
+                            <span class="layout-icon">☰</span>
+                            <span class="layout-name">Hero Stack</span>
+                            <span class="layout-desc">Full-width vertical</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Grid size (shown when Grid is selected) -->
+                <div class="grid-size-selector" id="grid-size-area">
+                    <label>Columns:</label>
+                    <input type="number" id="grid-cols" value="2" min="1" max="20" onchange="updatePreview()" style="width:70px;padding:6px 10px;border-radius:6px;border:1px solid #7dd3fc;font-size:14px;font-weight:700;text-align:center">
+                    <span style="font-size:11px;color:#0369a1">× auto rows (any N)</span>
+                </div>
+            </div>
+
+            <!-- NEW: Infinite Scroll Toggle -->
+            <div class="section-box" style="border-color:#86efac;background:#f0fdf4">
+                <div class="section-label">SCROLL BEHAVIOR <span class="badge-new">NEW</span></div>
+                <div class="toggle-row">
+                    <label class="toggle">
+                        <input type="checkbox" id="infinite-toggle" checked onchange="updatePreview()">
+                        <div class="toggle-track"></div>
+                    </label>
+                    <div>
+                        <div class="toggle-label">Infinite Scrolling</div>
+                        <div class="toggle-hint">Cards loop endlessly — no dead end</div>
+                    </div>
+                </div>
+                <div class="toggle-row">
+                    <label class="toggle">
+                        <input type="checkbox" id="snap-toggle" checked>
+                        <div class="toggle-track"></div>
+                    </label>
+                    <div>
+                        <div class="toggle-label">Snap Scrolling</div>
+                        <div class="toggle-hint">Cards snap to center on scroll</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Rounded Corners -->
+            <div class="section-box" style="border-color:#c4b5fd;background:#f5f3ff">
+                <div class="section-label">ROUNDED CORNERS <span class="badge-new">NEW</span></div>
+                <div class="toggle-row">
+                    <label class="toggle">
+                        <input type="checkbox" id="rounded-toggle" checked onchange="updatePreview()">
+                        <div class="toggle-track"></div>
+                    </label>
+                    <div>
+                        <div class="toggle-label">Enable Rounded Corners</div>
+                        <div class="toggle-hint">Turn off for sharp-edged cards</div>
+                    </div>
+                </div>
+                <div id="radius-slider-area" style="margin-top:10px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <input type="range" id="radius-slider" min="0" max="40" value="14" oninput="document.getElementById('radius-val').textContent=this.value+'px';updatePreview()" style="flex:1;accent-color:var(--accent)">
+                        <span id="radius-val" style="font-size:13px;font-weight:700;color:#6d28d9;min-width:40px">14px</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Text Alignment -->
+            <div class="section-box">
+                <div class="section-label">TEXT ALIGNMENT <span class="badge-new">NEW</span></div>
+                <div class="align-btns">
+                    <button class="align-btn" onclick="setAlign('left',this)" title="Left"><i class="fas fa-align-left"></i></button>
+                    <button class="align-btn active" onclick="setAlign('center',this)" title="Center"><i class="fas fa-align-center"></i></button>
+                    <button class="align-btn" onclick="setAlign('right',this)" title="Right"><i class="fas fa-align-right"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <button class="btn">Cancel</button>
+            <button class="btn btn-primary"><i class="fas fa-save"></i> Save Carousel</button>
+        </div>
+    </div>
+
+    <!-- MIDDLE: Card Editor (Enhanced existing) -->
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Edit Carousel Card</h3>
+            <button class="panel-close">×</button>
+        </div>
+        <div class="panel-body">
+            <!-- 1. Content Type (EXISTING — unchanged) -->
+            <div class="section-box">
+                <div class="section-label">1. CHOOSE CONTENT TYPE</div>
+                <div class="type-grid">
+                    <label class="type-card">
+                        <input type="radio" name="content_type" value="image" checked>
+                        <div class="type-card-inner"><i class="fas fa-image"></i><span>Image URL</span></div>
+                    </label>
+                    <label class="type-card">
+                        <input type="radio" name="content_type" value="html">
+                        <div class="type-card-inner"><i class="fas fa-code"></i><span>HTML Snippet</span></div>
+                    </label>
+                    <label class="type-card">
+                        <input type="radio" name="content_type" value="iframe">
+                        <div class="type-card-inner"><i class="fas fa-window-maximize"></i><span>Iframe URL</span></div>
+                    </label>
+                    <label class="type-card">
+                        <input type="radio" name="content_type" value="standard">
+                        <div class="type-card-inner"><i class="fas fa-star"></i><span>Icon</span></div>
+                    </label>
+                </div>
+                <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                    <label>Image URL</label>
+                    <input type="text" value="https://raw.githubusercontent.com/sabs-27/images/main/card1.jpg" placeholder="https://...">
+                </div>
+            </div>
+
+            <!-- 2. Text Content (ENHANCED) -->
+            <div class="section-box" style="background:white">
+                <div class="section-label">2. TEXT CONTENT & TYPOGRAPHY <span class="badge-new">NEW</span></div>
+                <!-- Heading -->
+                <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:12px">
+                    <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:block">HEADING</label>
+                    <div class="form-group" style="margin-bottom:8px">
+                        <input type="text" id="heading-text" value="AWS SPECIALIST" placeholder="e.g. AWS SPECIALIST" oninput="updatePreview()">
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <div class="form-group" style="flex:2;margin-bottom:0">
+                            <label>Font</label>
+                            <select id="heading-font" onchange="updatePreview()">
+                                <option value="'Inter',sans-serif" selected>Inter</option>
+                                <option value="'Georgia',serif">Georgia</option>
+                                <option value="'Courier New',monospace">Courier New</option>
+                                <option value="system-ui">System UI</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="width:75px;margin-bottom:0">
+                            <label>Size</label>
+                            <input type="number" id="heading-size" value="14" min="8" max="72" onchange="updatePreview()" style="text-align:center">
+                        </div>
+                        <div class="form-group" style="width:70px;margin-bottom:0">
+                            <label>Color</label>
+                            <input type="color" id="heading-color" value="#ffffff" onchange="updatePreview()" style="height:38px;padding:2px">
+                        </div>
+                    </div>
+                </div>
+                <!-- Subheading -->
+                <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:0">
+                    <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:block">SUBHEADING</label>
+                    <div class="form-group" style="margin-bottom:8px">
+                        <textarea id="sub-text" rows="2" placeholder="e.g. Master cloud concepts." oninput="updatePreview()">Master cloud architecture and deployment.</textarea>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <div class="form-group" style="flex:2;margin-bottom:0">
+                            <label>Font</label>
+                            <select id="sub-font" onchange="updatePreview()">
+                                <option value="'Inter',sans-serif" selected>Inter</option>
+                                <option value="'Georgia',serif">Georgia</option>
+                                <option value="'Courier New',monospace">Courier New</option>
+                                <option value="system-ui">System UI</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="width:75px;margin-bottom:0">
+                            <label>Size</label>
+                            <input type="number" id="sub-size" value="11" min="8" max="48" onchange="updatePreview()" style="text-align:center">
+                        </div>
+                        <div class="form-group" style="width:70px;margin-bottom:0">
+                            <label>Color</label>
+                            <input type="color" id="sub-color" value="#b0b0b0" onchange="updatePreview()" style="height:38px;padding:2px">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Position -->
+                <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0">
+                    <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:block">TEXT POSITION ON CARD</label>
+                    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                        <button class="align-btn pos-btn active" onclick="setPos('bottom',this)" title="Bottom"><i class="fas fa-arrow-down"></i> Bottom</button>
+                        <button class="align-btn pos-btn" onclick="setPos('center',this)" title="Center"><i class="fas fa-compress-alt"></i> Center</button>
+                        <button class="align-btn pos-btn" onclick="setPos('top',this)" title="Top"><i class="fas fa-arrow-up"></i> Top</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Navigation (EXISTING — unchanged) -->
+            <div class="section-box" style="background:white">
+                <div class="section-label">3. NAVIGATION (CLICK ACTION)</div>
+                <div style="display:flex;gap:12px">
+                    <div class="form-group" style="flex:1">
+                        <label>Target Type</label>
+                        <select><option>Course</option><option>Category</option><option selected>Course Page</option><option>None</option></select>
+                    </div>
+                    <div class="form-group" style="flex:2">
+                        <label>Target ID</label>
+                        <select><option selected>AWS Cloud Labs</option><option>DevOps Mastery</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Layout & Sizing (ENHANCED) -->
+            <div class="section-box" style="background:white">
+                <div class="section-label">4. LAYOUT & SIZING</div>
+                <div style="display:flex;gap:12px;margin-bottom:12px">
+                    <div class="form-group" style="flex:1;margin-bottom:0">
+                        <label>Width</label>
+                        <input type="text" value="400px" placeholder="400px">
+                    </div>
+                    <div class="form-group" style="flex:1;margin-bottom:0">
+                        <label>Height</label>
+                        <input type="text" value="500px" placeholder="500px">
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="full-bleed" checked>
+                    <label for="full-bleed" style="font-weight:600">Full Bleed (Text overlays media)</label>
+                </div>
+
+                <!-- Per-card background -->
+                <div style="margin-top:14px;padding-top:14px;border-top:1px dashed #e2e8f0">
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label>Card Background <span class="badge-new">NEW</span></label>
+                        <input type="color" id="card-bg" value="#1a1a1a" onchange="updatePreview()" style="height:38px;padding:4px;width:100%">
+                    </div>
+                </div>
+
+                <!-- CTA Chip -->
+                <div style="padding-top:14px;border-top:1px dashed #e2e8f0">
+                    <div class="section-label" style="margin-bottom:8px">CTA CHIP <span class="badge-new">NEW</span></div>
+                    <div class="toggle-row" style="padding:0 0 10px 0">
+                        <label class="toggle">
+                            <input type="checkbox" id="chip-toggle" checked onchange="updatePreview()">
+                            <div class="toggle-track"></div>
+                        </label>
+                        <div>
+                            <div class="toggle-label">Show CTA Chip</div>
+                            <div class="toggle-hint">Single action button on card</div>
+                        </div>
+                    </div>
+                    <div id="chip-options">
+                        <div style="display:flex;gap:8px">
+                            <div class="form-group" style="flex:2;margin-bottom:0">
+                                <label>Chip Text</label>
+                                <input type="text" id="chip-text" value="Learn more" placeholder="e.g. Learn more" oninput="updatePreview()">
+                            </div>
+                            <div class="form-group" style="width:70px;margin-bottom:0">
+                                <label>Color</label>
+                                <input type="color" id="chip-color" value="#3b82f6" onchange="updatePreview()" style="height:38px;padding:2px">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Status -->
+            <div style="padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;display:flex;gap:20px;align-items:center">
+                <div class="form-group" style="width:100px;margin-bottom:0">
+                    <label>Order</label>
+                    <input type="number" value="1">
+                </div>
+                <div class="form-check" style="margin-top:6px">
+                    <input type="checkbox" id="active" checked>
+                    <label for="active">Card is Active</label>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <button class="btn">Cancel</button>
+            <button class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+
+    <!-- RIGHT: Live Preview -->
+    <div class="preview-area">
+        <div class="preview-label">Live Preview</div>
+        <div class="preview-frame" id="preview"></div>
+    </div>
+</div>
+
+<script>
+const images = [
+    'https://raw.githubusercontent.com/sabs-27/images/main/card1.jpg',
+    'https://raw.githubusercontent.com/sabs-27/images/main/card2.jpg',
+    'https://raw.githubusercontent.com/sabs-27/images/main/AWS1.jpg',
+    'https://raw.githubusercontent.com/sabs-27/images/main/AWS%202.jpg'
+];
+const titles = ['AWS Specialist','Cloud Native','Pro Design','DevOps Mastery'];
+const descs = ['Master cloud architecture.','Learn Kubernetes & Docker.','Modern app layouts.','CI/CD pipelines.'];
+let currentAlign = 'center';
+let currentPos = 'bottom';
+
+function setAlign(align, btn) {
+    currentAlign = align;
+    document.querySelectorAll('.align-btn:not(.pos-btn)').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updatePreview();
+}
+function setPos(pos, btn) {
+    currentPos = pos;
+    document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updatePreview();
+}
+
+document.querySelectorAll('input[name="layout_style"]').forEach(r => {
+    r.addEventListener('change', () => {
+        document.getElementById('grid-size-area').style.display = r.value === 'grid' ? 'flex' : 'none';
+        updatePreview();
+    });
+});
+
+function getLayout() { return document.querySelector('input[name="layout_style"]:checked')?.value || 'carousel'; }
+function val(id) { return document.getElementById(id)?.value || ''; }
+function chk(id) { return document.getElementById(id)?.checked; }
+
+function getRadius() {
+    if (!chk('rounded-toggle')) return '0px';
+    return (document.getElementById('radius-slider')?.value || 14) + 'px';
+}
+
+function getOverlayPos() {
+    if (currentPos === 'top') return 'top:0;bottom:auto;background:linear-gradient(rgba(0,0,0,0.8),transparent);padding-top:20px';
+    if (currentPos === 'center') return 'top:50%;transform:translateY(-50%);bottom:auto;background:rgba(0,0,0,0.5);padding:16px';
+    return 'bottom:0;background:linear-gradient(transparent,rgba(0,0,0,0.8))';
+}
+
+function chipHTML() {
+    if (!chk('chip-toggle')) return '';
+    const txt = val('chip-text') || 'Learn more';
+    const col = val('chip-color') || '#3b82f6';
+    return `<div style="margin-top:8px"><a href="#" style="display:inline-block;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;background:${col};color:white;text-decoration:none">${txt}</a></div>`;
+}
+
+function cardHTML(i) {
+    const r = getRadius();
+    const bg = val('card-bg') || '#1a1a1a';
+    const hFont = val('heading-font') || "'Inter',sans-serif";
+    const hSize = val('heading-size') || 14;
+    const hColor = val('heading-color') || '#fff';
+    const sFont = val('sub-font') || "'Inter',sans-serif";
+    const sSize = val('sub-size') || 11;
+    const sColor = val('sub-color') || '#b0b0b0';
+    const oPos = getOverlayPos();
+    return `<div class="p-card" style="border-radius:${r};background:${bg}">
+        <img src="${images[i % images.length]}" alt="" style="border-radius:${r}">
+        <div class="p-card-overlay" style="text-align:${currentAlign};${oPos};border-radius:0 0 ${currentPos==='bottom'?r:'0'} ${currentPos==='bottom'?r:'0'}">
+            <div style="font-family:${hFont};font-size:${hSize}px;font-weight:700;color:${hColor}">${titles[i % titles.length]}</div>
+            <div style="font-family:${sFont};font-size:${sSize}px;color:${sColor};margin-top:3px">${descs[i % descs.length]}</div>
+            ${chipHTML()}
+        </div>
+    </div>`;
+}
+
+function updatePreview() {
+    const preview = document.getElementById('preview');
+    const layout = getLayout();
+    const infinite = chk('infinite-toggle');
+    const cols = parseInt(val('grid-cols')) || 2;
+    const r = getRadius();
+
+    // Toggle chip options visibility
+    const co = document.getElementById('chip-options');
+    if (co) co.style.display = chk('chip-toggle') ? 'block' : 'none';
+    // Toggle radius slider
+    const rs = document.getElementById('radius-slider-area');
+    if (rs) rs.style.display = chk('rounded-toggle') ? 'block' : 'none';
+
+    let html = '';
+    if (layout === 'grid') {
+        const rows = cols; // NxN
+        html = `<div class="p-grid" style="grid-template-columns:repeat(${cols},1fr)">`;
+        for (let i = 0; i < cols * rows; i++) html += cardHTML(i);
+        html += '</div>';
+    } else if (layout === 'single_center') {
+        html = `<div class="p-single"><div class="p-card" style="width:70%;aspect-ratio:16/10;height:auto;border-radius:${r}">
+            <img src="${images[0]}" alt="" style="border-radius:${r}">
+            <div class="p-card-overlay" style="text-align:${currentAlign};${getOverlayPos()};border-radius:0 0 ${r} ${r}">
+                <div style="font-family:${val('heading-font')};font-size:${val('heading-size')||22}px;font-weight:700;color:${val('heading-color')}">${val('heading-text')||'AWS Specialist'}</div>
+                <div style="font-family:${val('sub-font')};font-size:${val('sub-size')||13}px;color:${val('sub-color')};margin-top:4px">${val('sub-text')||'Master cloud architecture.'}</div>
+                ${chipHTML()}
+            </div>
+        </div></div>`;
+    } else if (layout === 'hero_stack') {
+        for (let i = 0; i < 3; i++) {
+            const bg = i%2===0 ? '#111' : '#1a1a1a';
+            html += `<div style="background:${bg};border-radius:${r};padding:30px;margin-bottom:12px;text-align:${currentAlign}">
+                <div style="color:${val('heading-color')};font-size:${val('heading-size')||20}px;font-weight:800;margin-bottom:4px;font-family:${val('heading-font')}">${titles[i]}</div>
+                <div style="color:${val('sub-color')};font-size:${val('sub-size')||13}px;margin-bottom:12px;font-family:${val('sub-font')}">${descs[i]}</div>
+                ${chipHTML()}
+                <img src="${images[i]}" style="width:60%;border-radius:${r};display:block;margin:12px ${currentAlign==='center'?'auto':'0'} 0" alt="">
+            </div>`;
+        }
+    } else {
+        const cardCount = infinite ? 8 : 4;
+        html = `<div style="position:relative">`;
+        if (infinite) html += `<div class="p-infinite-badge"><i class="fas fa-infinity"></i> Infinite</div>`;
+        html += `<div class="p-carousel-track">`;
+        for (let i = 0; i < cardCount; i++) html += `<div style="flex:0 0 200px;height:260px">${cardHTML(i%4)}</div>`;
+        html += `</div><div class="p-carousel-dots">`;
+        for (let i = 0; i < Math.min(cardCount,5); i++) html += `<span class="dot ${i===0?'active':''}"></span>`;
+        if (infinite) html += `<span class="dot"></span><span class="dot"></span>`;
+        html += `</div></div>`;
+    }
+    preview.innerHTML = html;
+}
+
+// Init
+updatePreview();
+document.getElementById('grid-size-area').style.display = getLayout() === 'grid' ? 'flex' : 'none';
+</script>
+</body>
+</html>

@@ -3,6 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function () {
+            var target = window.location.protocol === 'file:'
+                ? new URL('../static/gradstudio-learn-admin.html', window.location.href).href
+                : '/gradstudio-learn-admin.html';
+            window.location.replace(target + window.location.search + window.location.hash);
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Editor - Learning Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

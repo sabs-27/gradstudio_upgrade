@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARM Neoverse Boot Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* SVG Animation Styles */
+        .flow-bg {
+            fill: none;
+            stroke-width: 3;
+            opacity: 0.15;
+        }
+        .flow-line {
+            fill: none;
+            stroke-width: 2.5;
+            stroke-dasharray: 12 12;
+            animation: flow 1s linear infinite;
+        }
+        @keyframes flow {
+            to { stroke-dashoffset: -24; }
+        }
+
+        /* Arrow Colors matching new semantics */
+        .arrow-user { stroke: #f97316; } /* Orange - Execution Flow */
+        .arrow-api { stroke: #3b82f6; }  /* Blue - Control / SMC Calls */
+        .arrow-data { stroke: #22c55e; } /* Green - Firmware/Data Load */
+        .arrow-ext { stroke: #a855f7; }  /* Purple - Chain of Trust */
+
+        /* Node Box Styles */
+        .node {
+            width: 160px;
+            height: 60px;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-width: 2px;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            font-size: 0.825rem;
+            font-weight: 600;
+            z-index: 10;
+            transition: transform 0.2s, box-shadow 0.2s;
+            line-height: 1.25;
+            padding: 0.5rem;
+        }
+        .node:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            z-index: 20;
+        }
+
+        /* Component Layer Colors customized for ARM Domains */
+        .node-ext { background-color: #f1f5f9; border-color: #64748b; color: #334155; } /* Hardware */
+        .node-user { background-color: #fff7ed; border-color: #fb923c; color: #9a3412; } /* ROM/Init */
+        .node-front { background-color: #fefce8; border-color: #facc15; color: #854d0e; } /* Bootloaders */
+        .node-auth { background-color: #faf5ff; border-color: #c084fc; color: #581c87; } /* Security */
+        .node-booking { background-color: #f0fdf4; border-color: #4ade80; color: #14532d; } /* Normal World OS */
+        .node-storage { background-color: #ecfeff; border-color: #22d3ee; color: #164e63; } /* Secure World */
+        .node-cache { background-color: #f8fafc; border-color: #94a3b8; color: #334155; } /* Config/Memory */
+        .node-api { background-color: #eff6ff; border-color: #60a5fa; color: #1e3a8a; } /* Hypervisor/Manager */
+        .node-admin { background-color: #fdf2f8; border-color: #f472b6; color: #831843; } /* User Space */
+
+        .col-header {
+            position: absolute;
+            width: 200px;
+            text-align: center;
+            transform: translateX(-50%);
+            top: 20px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        
+        .col-divider {
+            stroke: #cbd5e1;
+            stroke-dasharray: 6 6;
+            stroke-width: 2;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">ARM Neoverse System Architecture</h1>
+            <p class="text-slate-500 mt-1">TF-A Firmware Boot Flow & TrustZone Sequence</p>
+        </div>
+        <div class="bg-blue-50 text-blue-800 text-sm font-medium px-4 py-2 rounded-lg border border-blue-200">
+            EL3 (Secure Monitor) ➔ EL2 (Hypervisor) ➔ EL1 (OS) ➔ EL0 (Apps)
+        </div>
+    </div>
+
+    <!-- Scrollable container for the horizontal layout -->
+    <div class="w-full overflow-x-auto bg-white rounded-2xl shadow-xl border border-slate-200 hide-scrollbar">
+        <!-- Canvas area fixed to diagram dimensions -->
+        <div class="relative min-w-[2450px] h-[900px]">
+            
+            <!-- SVG Background (Grid lines & Flow arrows) -->
+            <svg width="2450" height="900" class="absolute top-0 left-0 z-0">
+                <defs>
+                    <marker id="arrow-data" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
+                    </marker>
+                    <marker id="arrow-api" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+                    </marker>
+                    <marker id="arrow-user" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f97316" />
+                    </marker>
+                    <marker id="arrow-ext" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#a855f7" />
+                    </marker>
+                </defs>
+
+                <!-- Dotted Vertical Dividers -->
+                <line x1="240" y1="50" x2="240" y2="850" class="col-divider"/>
+                <line x1="480" y1="50" x2="480" y2="850" class="col-divider"/>
+                <line x1="720" y1="50" x2="720" y2="850" class="col-divider"/>
+                <line x1="960" y1="50" x2="960" y2="850" class="col-divider"/>
+                <line x1="1200" y1="50" x2="1200" y2="850" class="col-divider"/>
+                <line x1="1440" y1="50" x2="1440" y2="850" class="col-divider"/>
+                <line x1="1680" y1="50" x2="1680" y2="850" class="col-divider"/>
+                <line x1="1920" y1="50" x2="1920" y2="850" class="col-divider"/>
+                <line x1="2160" y1="50" x2="2160" y2="850" class="col-divider"/>
+
+                <!-- ================= FLOW PATHS ================= -->
+
+                <!-- 1. Execution Flow (Orange) -->
+                <!-- Power to SCP -->
+                <g>
+                    <path d="M 120 230 L 120 370" class="flow-bg arrow-user" />
+                    <path d="M 120 230 L 120 370" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- SCP to AP Wake -->
+                <g>
+                    <path d="M 200 400 L 280 400" class="flow-bg arrow-user" />
+                    <path d="M 200 400 L 280 400" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- AP Wake to BL1 -->
+                <g>
+                    <path d="M 360 370 L 360 230" class="flow-bg arrow-user" />
+                    <path d="M 360 370 L 360 230" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- BL1 to BL2 -->
+                <g>
+                    <path d="M 440 200 L 520 200" class="flow-bg arrow-user" />
+                    <path d="M 440 200 L 520 200" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- BL2 to BL31 -->
+                <g>
+                    <path d="M 680 200 L 760 200" class="flow-bg arrow-user" />
+                    <path d="M 680 200 L 760 200" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- BL31 to BL32 Init -->
+                <g>
+                    <path d="M 880 230 C 940 300, 1000 500, 1080 570" class="flow-bg arrow-user" />
+                    <path d="M 880 230 C 940 300, 1000 500, 1080 570" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- BL32 Hand-off to BL33 -->
+                <g>
+                    <path d="M 1160 600 C 1240 600, 1260 260, 1320 230" class="flow-bg arrow-user" />
+                    <path d="M 1160 600 C 1240 600, 1260 260, 1320 230" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- BL33 to OS Boot Manager -->
+                <g>
+                    <path d="M 1400 200 L 1480 200" class="flow-bg arrow-user" />
+                    <path d="M 1400 200 L 1480 200" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- OS Boot Manager to Linux Kernel -->
+                <g>
+                    <path d="M 1640 200 L 1720 200" class="flow-bg arrow-user" />
+                    <path d="M 1640 200 L 1720 200" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+                <!-- Kernel to Init System -->
+                <g>
+                    <path d="M 1880 200 L 1960 200" class="flow-bg arrow-user" />
+                    <path d="M 1880 200 L 1960 200" class="flow-line arrow-user" marker-end="url(#arrow-user)" />
+                </g>
+
+                <!-- 2. Chain of Trust / Verification (Purple) -->
+                <!-- Root of Trust to BL2 -->
+                <g>
+                    <path d="M 600 570 L 600 230" class="flow-bg arrow-ext" />
+                    <path d="M 600 570 L 600 230" class="flow-line arrow-ext" marker-end="url(#arrow-ext)" />
+                </g>
+                <!-- BL2 to Crypto Auth -->
+                <g>
+                    <path d="M 680 200 C 760 200, 840 400, 840 570" class="flow-bg arrow-ext" />
+                    <path d="M 680 200 C 760 200, 840 400, 840 570" class="flow-line arrow-ext" marker-end="url(#arrow-ext)" />
+                </g>
+                <!-- Crypto Auth validates BL31/BL32/BL33 -->
+                <g>
+                    <path d="M 840 570 L 840 230" class="flow-bg arrow-ext" />
+                    <path d="M 840 570 L 840 230" class="flow-line arrow-ext" marker-end="url(#arrow-ext)" />
+                </g>
+                <!-- UEFI to Secure Boot -->
+                <g>
+                    <path d="M 1320 230 C 1400 230, 1560 400, 1560 570" class="flow-bg arrow-ext" />
+                    <path d="M 1320 230 C 1400 230, 1560 400, 1560 570" class="flow-line arrow-ext" marker-end="url(#arrow-ext)" />
+                </g>
+                <!-- Secure Boot to GRUB -->
+                <g>
+                    <path d="M 1560 570 L 1560 230" class="flow-bg arrow-ext" />
+                    <path d="M 1560 570 L 1560 230" class="flow-line arrow-ext" marker-end="url(#arrow-ext)" />
+                </g>
+
+                <!-- 3. Firmware / Data Loading (Green) -->
+                <!-- Flash to SCP -->
+                <g>
+                    <path d="M 2200 400 C 1500 400, 800 420, 200 420" class="flow-bg arrow-data" />
+                    <path d="M 2200 400 C 1500 400, 800 420, 200 420" class="flow-line arrow-data" marker-end="url(#arrow-data)" />
+                </g>
+                <!-- Flash to BL2 Load -->
+                <g>
+                    <path d="M 2280 370 C 2200 100, 800 80, 640 180" class="flow-bg arrow-data" />
+                    <path d="M 2280 370 C 2200 100, 800 80, 640 180" class="flow-line arrow-data" marker-end="url(#arrow-data)" />
+                </g>
+                <!-- DRAM Init to Main RAM -->
+                <g>
+                    <path d="M 680 400 C 1200 400, 1800 230, 2200 230" class="flow-bg arrow-data" />
+                    <path d="M 680 400 C 1200 400, 1800 230, 2200 230" class="flow-line arrow-data" marker-end="url(#arrow-data)" />
+                </g>
+                <!-- ACPI load to Kernel -->
+                <g>
+                    <path d="M 1320 370 C 1400 370, 1600 230, 1720 230" class="flow-bg arrow-data" />
+                    <path d="M 1320 370 C 1400 370, 1600 230, 1720 230" class="flow-line arrow-data" marker-end="url(#arrow-data)" />
+                </g>
+                <!-- Initramfs to Kernel -->
+                <g>
+                    <path d="M 1560 370 C 1600 370, 1680 240, 1720 240" class="flow-bg arrow-data" />
+                    <path d="M 1560 370 C 1600 370, 1680 240, 1720 240" class="flow-line arrow-data" marker-end="url(#arrow-data)" />
+                </g>
+
+                <!-- 4. Control / SMC / Hypercalls (Blue) -->
+                <!-- OS calling PSCI -->
+                <g>
+                    <path d="M 1720 200 C 1500 100, 1100 100, 920 400" class="flow-bg arrow-api" />
+                    <path d="M 1720 200 C 1500 100, 1100 100, 920 400" class="flow-line arrow-api" marker-end="url(#arrow-api)" />
+                </g>
+                <!-- Kernel to Hypervisor (KVM) -->
+                <g>
+                    <path d="M 1800 230 L 1800 370" class="flow-bg arrow-api" />
+                    <path d="M 1800 230 L 1800 370" class="flow-line arrow-api" marker-end="url(#arrow-api)" />
+                </g>
+                <!-- Hypervisor to PSCI -->
+                <g>
+                    <path d="M 1720 400 C 1500 400, 1100 400, 920 420" class="flow-bg arrow-api" />
+                    <path d="M 1720 400 C 1500 400, 1100 400, 920 420" class="flow-line arrow-api" marker-end="url(#arrow-api)" />
+                </g>
+                <!-- User Apps to Kernel (Syscalls) -->
+                <g>
+                    <path d="M 2040 370 C 1960 370, 1900 260, 1880 230" class="flow-bg arrow-api" />
+                    <path d="M 2040 370 C 1960 370, 1900 260, 1880 230" class="flow-line arrow-api" marker-end="url(#arrow-api)" />
+                </g>
+                <!-- BL32 to Trusted Apps -->
+                <g>
+                    <path d="M 1080 630 L 1080 720" class="flow-bg arrow-api" />
+                    <path d="M 1080 630 L 1080 720" class="flow-line arrow-api" marker-end="url(#arrow-api)" />
+                </g>
+
+            </svg>
+
+            <!-- ================= COLUMN HEADERS ================= -->
+            <div class="col-header" style="left: 120px;">System Base</div>
+            <div class="col-header" style="left: 360px;">Boot ROM (EL3)</div>
+            <div class="col-header" style="left: 600px;">Trusted Boot</div>
+            <div class="col-header" style="left: 840px;">TF-A Runtime</div>
+            <div class="col-header" style="left: 1080px;">Secure World</div>
+            <div class="col-header" style="left: 1320px;">Non-Secure Boot</div>
+            <div class="col-header" style="left: 1560px;">OS Loader</div>
+            <div class="col-header" style="left: 1800px;">OS / Hypervisor</div>
+            <div class="col-header" style="left: 2040px;">User Space</div>
+            <div class="col-header" style="left: 2280px;">Hardware Subsystems</div>
+
+            <!-- ================= HTML NODES ================= -->
+
+            <!-- Column 1: Power & SCP -->
+            <div class="node node-ext" style="left: 120px; top: 200px;">System Power-On<br/><span class="text-xs font-normal">Hardware Reset</span></div>
+            <div class="node node-user" style="left: 120px; top: 400px;">SCP Boot<br/><span class="text-xs font-normal">Cortex-M Processor</span></div>
+
+            <!-- Column 2: Boot ROM (BL1) -->
+            <div class="node node-user" style="left: 360px; top: 400px;">Neoverse AP Wake<br/><span class="text-xs font-normal">Release from Reset</span></div>
+            <div class="node node-front" style="left: 360px; top: 200px;">BL1 (Trusted ROM)<br/><span class="text-xs font-normal">Primary Bootloader</span></div>
+
+            <!-- Column 3: Trusted Boot (BL2) -->
+            <div class="node node-front" style="left: 600px; top: 200px;">BL2 (Trusted Boot)<br/><span class="text-xs font-normal">Secure SRAM</span></div>
+            <div class="node node-cache" style="left: 600px; top: 400px;">Memory Controller Init<br/><span class="text-xs font-normal">DDR Config</span></div>
+            <div class="node node-auth" style="left: 600px; top: 600px;">Hardware RoT<br/><span class="text-xs font-normal">Root of Trust Keys</span></div>
+
+            <!-- Column 4: TF-A Runtime (BL31) -->
+            <div class="node node-front" style="left: 840px; top: 200px;">BL31 (TF-A)<br/><span class="text-xs font-normal">EL3 Runtime Services</span></div>
+            <div class="node node-cache" style="left: 840px; top: 400px;">PSCI & SMCCC<br/><span class="text-xs font-normal">Power & Secure Monitor</span></div>
+            <div class="node node-auth" style="left: 840px; top: 600px;">Crypto Auth<br/><span class="text-xs font-normal">Signature Verification</span></div>
+
+            <!-- Column 5: Secure World (BL32) -->
+            <div class="node node-storage" style="left: 1080px; top: 600px;">BL32 (OP-TEE)<br/><span class="text-xs font-normal">Secure-EL1 Payload</span></div>
+            <div class="node node-storage" style="left: 1080px; top: 750px;">Trusted Apps (TA)<br/><span class="text-xs font-normal">Secure-EL0 Storage/Keys</span></div>
+
+            <!-- Column 6: Non-Secure Boot (BL33) -->
+            <div class="node node-front" style="left: 1320px; top: 200px;">BL33 (UEFI/U-Boot)<br/><span class="text-xs font-normal">Normal World EL2/EL1</span></div>
+            <div class="node node-cache" style="left: 1320px; top: 400px;">ACPI / Device Tree<br/><span class="text-xs font-normal">Hardware Description</span></div>
+
+            <!-- Column 7: OS Boot Manager -->
+            <div class="node node-api" style="left: 1560px; top: 200px;">OS Boot Manager<br/><span class="text-xs font-normal">GRUB / systemd-boot</span></div>
+            <div class="node node-cache" style="left: 1560px; top: 400px;">Initramfs<br/><span class="text-xs font-normal">Initial RAM Disk</span></div>
+            <div class="node node-auth" style="left: 1560px; top: 600px;">UEFI Secure Boot<br/><span class="text-xs font-normal">OS Verification</span></div>
+
+            <!-- Column 8: Operating System -->
+            <div class="node node-booking" style="left: 1800px; top: 200px;">Linux Kernel<br/><span class="text-xs font-normal">Executes in EL1</span></div>
+            <div class="node node-api" style="left: 1800px; top: 400px;">KVM Hypervisor<br/><span class="text-xs font-normal">Executes in EL2</span></div>
+
+            <!-- Column 9: User Space -->
+            <div class="node node-admin" style="left: 2040px; top: 200px;">systemd / init<br/><span class="text-xs font-normal">Process ID 1</span></div>
+            <div class="node node-admin" style="left: 2040px; top: 400px;">User Applications<br/><span class="text-xs font-normal">Executes in EL0</span></div>
+            <div class="node node-booking" style="left: 2040px; top: 600px;">Guest OS / VM<br/><span class="text-xs font-normal">Virtualised EL1</span></div>
+
+            <!-- Column 10: Hardware -->
+            <div class="node node-ext" style="left: 2280px; top: 200px;">System RAM<br/><span class="text-xs font-normal">Main Memory (DDR)</span></div>
+            <div class="node node-ext" style="left: 2280px; top: 400px;">Flash / NVMe<br/><span class="text-xs font-normal">Non-Volatile Storage</span></div>
+            <div class="node node-ext" style="left: 2280px; top: 600px;">Peripherals<br/><span class="text-xs font-normal">PCIe / Networking</span></div>
+
+        </div>
+    </div>
+
+    <!-- Interactive Legend Component -->
+    <div class="fixed bottom-6 left-6 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-lg p-5 z-50">
+        <h3 class="font-bold text-sm text-slate-800 mb-3 uppercase tracking-wider">Flow Legend</h3>
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-3">
+                <svg width="30" height="10" viewBox="0 0 30 10">
+                    <line x1="0" y1="5" x2="25" y2="5" stroke="#f97316" stroke-width="3" stroke-dasharray="4 4"/>
+                    <path d="M 20 0 L 30 5 L 20 10 z" fill="#f97316" />
+                </svg>
+                <span class="text-sm font-medium text-slate-600">Boot Execution Flow</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <svg width="30" height="10" viewBox="0 0 30 10">
+                    <line x1="0" y1="5" x2="25" y2="5" stroke="#22c55e" stroke-width="3" stroke-dasharray="4 4"/>
+                    <path d="M 20 0 L 30 5 L 20 10 z" fill="#22c55e" />
+                </svg>
+                <span class="text-sm font-medium text-slate-600">Firmware / Data Load</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <svg width="30" height="10" viewBox="0 0 30 10">
+                    <line x1="0" y1="5" x2="25" y2="5" stroke="#a855f7" stroke-width="3" stroke-dasharray="4 4"/>
+                    <path d="M 20 0 L 30 5 L 20 10 z" fill="#a855f7" />
+                </svg>
+                <span class="text-sm font-medium text-slate-600">Chain of Trust Validation</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <svg width="30" height="10" viewBox="0 0 30 10">
+                    <line x1="0" y1="5" x2="25" y2="5" stroke="#3b82f6" stroke-width="3" stroke-dasharray="4 4"/>
+                    <path d="M 20 0 L 30 5 L 20 10 z" fill="#3b82f6" />
+                </svg>
+                <span class="text-sm font-medium text-slate-600">SMC/PSCI/Control Calls</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

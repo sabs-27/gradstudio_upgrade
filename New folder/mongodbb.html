@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Unique 3D Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-width: 850px;
+            --card-height: 480px;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 3D Scene Setup */
+        .scene {
+            perspective: 3000px;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Card Wrapper - Flat Screen */
+        .card-wrapper {
+            position: relative;
+            width: var(--card-width);
+            height: var(--card-height);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Interactive Hover */
+        .scene:hover .card-wrapper {
+            transform: scale(1.02) translateY(-10px);
+        }
+
+        /* The Card Itself - Deep Emerald Gradient */
+        .card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 28px;
+            overflow: hidden;
+            background: radial-gradient(circle at 75% 60%, #06381e 0%, #031c0e 45%, #010a05 100%);
+            /* Smooth flat shadow */
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.4),
+                0 15px 25px rgba(0, 0, 0, 0.3),
+                inset 1px 1px 3px rgba(255, 255, 255, 0.2),
+                inset -2px -2px 6px rgba(0, 0, 0, 0.8);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header (Custom Logo & Text) */
+        .header {
+            position: absolute;
+            top: 50px;
+            left: 60px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* The New Custom "Document Stack" Logo */
+        .custom-logo {
+            width: 55px;
+            height: 55px;
+            filter: drop-shadow(0 4px 10px rgba(34, 197, 94, 0.4));
+        }
+
+        .header h1 {
+            color: #ffffff;
+            font-size: 52px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1.5px;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+
+        /* Subtitle to emphasize NoSQL nature */
+        .subtitle {
+            position: absolute;
+            top: 115px;
+            left: 140px;
+            color: #4ade80;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            z-index: 20;
+        }
+
+        /* Master SVG for all Background Graphics */
+        .graphics-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="scene">
+    <div class="card-wrapper">
+        <div class="card">
+            
+            <!-- Custom Geometric Logo and Title -->
+            <div class="header">
+                <!-- Custom Isometric Document Stack Logo (Replacing the Leaf) -->
+                <svg class="custom-logo" viewBox="0 0 100 100">
+                    <defs>
+                        <linearGradient id="logo-top" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#86efac"/>
+                            <stop offset="100%" stop-color="#22c55e"/>
+                        </linearGradient>
+                        <linearGradient id="logo-mid" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#4ade80"/>
+                            <stop offset="100%" stop-color="#16a34a"/>
+                        </linearGradient>
+                        <linearGradient id="logo-bot" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#22c55e"/>
+                            <stop offset="100%" stop-color="#14532d"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Bottom Plane -->
+                    <path d="M50,90 L10,70 L50,50 L90,70 Z" fill="url(#logo-bot)" opacity="0.6"/>
+                    <!-- Middle Plane -->
+                    <path d="M50,70 L10,50 L50,30 L90,50 Z" fill="url(#logo-mid)" opacity="0.8"/>
+                    <!-- Top Plane (Brightest) -->
+                    <path d="M50,50 L10,30 L50,10 L90,30 Z" fill="url(#logo-top)"/>
+                    
+                    <!-- Inner glowing core line connecting them -->
+                    <path d="M50,20 L50,80" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.9" filter="drop-shadow(0 0 4px #fff)"/>
+                </svg>
+                <h1>MongoDB</h1>
+            </div>
+            <div class="subtitle">{ DOCUMENT_DATA }</div>
+
+            <!-- Complex Vector Graphics -->
+            <svg class="graphics-layer" viewBox="0 0 850 480" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <!-- Glowing Filters -->
+                    <filter id="heavy-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="15" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                    <filter id="core-glow">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+
+                    <!-- Glassy Cylinder Gradient for the Data Vault -->
+                    <linearGradient id="glass-wall" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#4ade80" stop-opacity="0.5"/>
+                        <stop offset="15%" stop-color="#22c55e" stop-opacity="0.1"/>
+                        <stop offset="50%" stop-color="#14532d" stop-opacity="0.05"/>
+                        <stop offset="85%" stop-color="#16a34a" stop-opacity="0.1"/>
+                        <stop offset="100%" stop-color="#86efac" stop-opacity="0.4"/>
+                    </linearGradient>
+
+                    <!-- Gradient for floating document rings inside the vault -->
+                    <linearGradient id="data-ring" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#86efac"/>
+                        <stop offset="100%" stop-color="#16a34a"/>
+                    </linearGradient>
+                </defs>
+
+                <!-- ================= BACKGROUND: THE NO-SQL DATA STREAM ================= -->
+                <!-- Deep Ambient Backlight -->
+                <circle cx="650" cy="250" r="220" fill="#064e3b" opacity="0.3" filter="url(#heavy-glow)"/>
+                <circle cx="200" cy="350" r="150" fill="#14532d" opacity="0.2" filter="url(#heavy-glow)"/>
+                
+                <!-- Fiber Optic Data Streams -->
+                <!-- Base thick flows -->
+                <path d="M-100,200 C150,250 300,450 600,250 T1000,100" fill="none" stroke="#064e3b" stroke-width="12" filter="url(#heavy-glow)" opacity="0.6"/>
+                <path d="M-50,300 C200,400 400,200 700,300 T1000,200" fill="none" stroke="#14532d" stroke-width="8" filter="url(#neon-glow)" opacity="0.5"/>
+                
+                <!-- Sharp energetic center lines -->
+                <path d="M-100,200 C150,250 300,450 600,250 T1000,100" fill="none" stroke="#4ade80" stroke-width="2" filter="url(#neon-glow)" opacity="0.8"/>
+                <path d="M-50,300 C200,400 400,200 700,300 T1000,200" fill="none" stroke="#86efac" stroke-width="1" filter="url(#core-glow)" opacity="0.9"/>
+                
+                <!-- Secondary data fragments (dashes) -->
+                <path d="M50,150 C250,200 350,350 650,180" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="15 25" filter="url(#neon-glow)" opacity="0.6"/>
+                <path d="M100,400 C300,350 450,450 750,350" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5 15" opacity="0.7"/>
+
+                <!-- ================= FLOATING JSON / BSON ELEMENTS ================= -->
+                <!-- Adding literal code brackets to emphasize the document store nature -->
+                <g font-family="'Fira Code', monospace" font-size="28" font-weight="700" fill="#4ade80" filter="url(#neon-glow)" opacity="0.4">
+                    <text x="120" y="280" transform="rotate(-15, 120, 280)">{ }</text>
+                    <text x="350" y="220" font-size="20" transform="rotate(25, 350, 220)">[ ]</text>
+                    <text x="450" y="380" font-size="34" transform="rotate(-10, 450, 380)">{ }</text>
+                    <text x="250" y="450" font-size="16" transform="rotate(10, 250, 450)">"id"</text>
+                    <text x="80" y="180" font-size="18" fill="#86efac" opacity="0.6">BSON</text>
+                </g>
+
+                <!-- Floating Data Particles -->
+                <g fill="#86efac" opacity="0.8" filter="url(#core-glow)">
+                    <circle cx="280" cy="340" r="3"/>
+                    <circle cx="410" cy="280" r="2"/>
+                    <circle cx="520" cy="310" r="4" fill="#ffffff"/>
+                    <circle cx="180" cy="240" r="1.5"/>
+                    <circle cx="600" cy="180" r="2.5"/>
+                </g>
+
+                <!-- ================= FOREGROUND: THE GLASS DATA VAULT ================= -->
+                <!-- Replacing the standard stack with a futuristic translucent shard container -->
+                <g transform="translate(620, 250)">
+                    
+                    <!-- Deep Shadow base -->
+                    <ellipse cx="0" cy="110" rx="100" ry="35" fill="#000000" opacity="0.8" filter="url(#heavy-glow)"/>
+
+                    <!-- Outer Holographic Floor Rings -->
+                    <ellipse cx="0" cy="110" rx="140" ry="50" fill="none" stroke="#16a34a" stroke-width="2" opacity="0.3" filter="url(#neon-glow)"/>
+                    <ellipse cx="0" cy="110" rx="120" ry="42" fill="none" stroke="#22c55e" stroke-width="1" stroke-dasharray="10 10" opacity="0.5"/>
+
+                    <!-- THE GLASS CYLINDER (Outer Shell) -->
+                    <!-- Back wall of the glass -->
+                    <path d="M-80,-70 A80,25 0 0,0 80,-70 v160 A80,25 0 0,1 -80,90 Z" fill="#021c0b" opacity="0.4"/>
+                    
+                    <!-- ================= INTERNAL DATA RINGS (Documents) ================= -->
+                    <g filter="url(#core-glow)">
+                        <!-- Layer 1 (Bottom) -->
+                        <ellipse cx="0" cy="60" rx="60" ry="18" fill="url(#data-ring)" opacity="0.9"/>
+                        <ellipse cx="0" cy="60" rx="55" ry="15" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+                        <!-- Data fragments floating off the layer -->
+                        <path d="M60,60 L80,50 M-60,60 L-75,55" stroke="#86efac" stroke-width="2" stroke-linecap="round"/>
+
+                        <!-- Layer 2 (Middle) -->
+                        <ellipse cx="0" cy="10" rx="60" ry="18" fill="url(#data-ring)" opacity="0.9"/>
+                        <ellipse cx="0" cy="10" rx="55" ry="15" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+                        <path d="M40,23 L55,35 M-40,23 L-50,35" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+
+                        <!-- Layer 3 (Top - Brightest) -->
+                        <ellipse cx="0" cy="-40" rx="60" ry="18" fill="url(#data-ring)" opacity="1"/>
+                        <ellipse cx="0" cy="-40" rx="55" ry="15" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+                        
+                        <!-- Glowing Center Core passing through all layers -->
+                        <ellipse cx="0" cy="-40" rx="15" ry="5" fill="#ffffff"/>
+                        <path d="M0,-40 L0,70" stroke="#ffffff" stroke-width="6" opacity="0.6" filter="url(#neon-glow)"/>
+                        <path d="M0,-40 L0,70" stroke="#ffffff" stroke-width="2"/>
+                    </g>
+
+                    <!-- Front wall of the glass (Drawn over the internal rings) -->
+                    <path d="M-80,-70 A80,25 0 0,0 80,-70 v160 A80,25 0 0,1 -80,90 Z" fill="url(#glass-wall)"/>
+                    
+                    <!-- Glass Rim Highlights -->
+                    <!-- Top rim -->
+                    <ellipse cx="0" cy="-70" rx="80" ry="25" fill="none" stroke="#86efac" stroke-width="2" filter="url(#core-glow)" opacity="0.8"/>
+                    <ellipse cx="0" cy="-70" rx="80" ry="25" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.5"/>
+                    <!-- Bottom rim -->
+                    <ellipse cx="0" cy="90" rx="80" ry="25" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.6"/>
+                    
+                    <!-- Vertical glass edge reflections -->
+                    <path d="M-80,-70 L-80,90" stroke="#ffffff" stroke-width="2" opacity="0.5" filter="url(#light-blur)"/>
+                    <path d="M-75,-68 L-75,88" stroke="#86efac" stroke-width="4" opacity="0.3" filter="url(#neon-glow)"/>
+                    
+                    <path d="M80,-70 L80,90" stroke="#86efac" stroke-width="1.5" opacity="0.4"/>
+
+                    <!-- Abstract Data floating UP out of the vault -->
+                    <path d="M-20,-70 L-20,-150" stroke="#4ade80" stroke-width="2" stroke-dasharray="8 12" filter="url(#neon-glow)" opacity="0.8"/>
+                    <path d="M20,-70 L20,-130" stroke="#86efac" stroke-width="3" stroke-dasharray="4 8" filter="url(#core-glow)" opacity="0.9"/>
+                    <!-- Floating bracket flying out of the top -->
+                    <text x="-15" y="-140" font-family="'Fira Code', monospace" font-size="20" font-weight="700" fill="#ffffff" filter="url(#core-glow)" opacity="0.9">}</text>
+
+                </g>
+
+            </svg>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

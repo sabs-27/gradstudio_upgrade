@@ -3,6 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function () {
+            var target = window.location.protocol === 'file:'
+                ? new URL('gradstudio-learn-admin.html', window.location.href).href
+                : '/gradstudio-learn-admin.html';
+            window.location.replace(target + window.location.search + window.location.hash);
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Editor - Learning Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1755,6 +1763,26 @@
                         <div class="form-group"><label>Name (Internal reference) *</label><input type="text" name="name" required placeholder="e.g. Featured Courses"></div>
                         <div class="form-group"><label>Header (Frontend display title)</label><input type="text" name="header" placeholder="e.g. Free Interactive Demos"></div>
                         <div class="form-group"><label>Display Order</label><input type="number" name="display_order" value="${allCarousels.length + 1}"></div>
+
+                        <div style="background:#f0f9ff;padding:16px;border-radius:8px;margin-top:16px;border:1px solid #7dd3fc">
+                            <label style="font-weight:700;display:block;margin-bottom:12px;color:#0c4a6e;font-size:14px">LAYOUT STYLE</label>
+                            <div class="form-group"><label>Layout</label>
+                                <select name="layout_style" onchange="document.getElementById('add-grid-cols').style.display=this.value==='grid'?'block':'none'">
+                                    <option value="horizontal_scroll">Carousel (Horizontal Scroll)</option>
+                                    <option value="grid">Grid (N×N Cards)</option>
+                                    <option value="single_center">Single Centered Card</option>
+                                    <option value="hero_stack">Hero Stack (Full-Width Vertical)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="add-grid-cols" style="display:none"><label>Grid Columns</label><input type="number" name="grid_columns" value="2" min="1" max="20"></div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="infinite_scroll" id="add-infinite"><label for="add-infinite">Infinite Scrolling (loop)</label></div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="snap_scroll" id="add-snap"><label for="add-snap">Snap Scrolling</label></div>
+                            <div class="form-group"><label>Text Alignment</label>
+                                <select name="text_align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
+                            </div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="rounded_enabled" id="add-rounded" checked><label for="add-rounded">Rounded Corners</label></div>
+                            <div class="form-group"><label>Border Radius (px)</label><input type="number" name="border_radius" value="14" min="0" max="50"></div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -1770,7 +1798,14 @@
             const data = {
                 name: e.target.name.value,
                 header: e.target.header.value,
-                display_order: parseInt(e.target.display_order.value) || 0
+                display_order: parseInt(e.target.display_order.value) || 0,
+                layout_style: e.target.layout_style.value,
+                grid_columns: parseInt(e.target.grid_columns?.value) || 2,
+                infinite_scroll: e.target.infinite_scroll.checked ? 1 : 0,
+                snap_scroll: e.target.snap_scroll.checked ? 1 : 0,
+                text_align: e.target.text_align.value,
+                border_radius: parseInt(e.target.border_radius.value) || 14,
+                rounded_enabled: e.target.rounded_enabled.checked ? 1 : 0
             };
             try {
                 const res = await fetch(`${API_BASE}/api/admin/carousels`, {
@@ -1786,6 +1821,7 @@
         function openEditCarouselModal(id) {
             const carousel = allCarousels.find(c => c.id == id);
             if (!carousel) return;
+            const ls = carousel.layout_style || 'horizontal_scroll';
             const html = `
                 <div class="modal-header"><h3>Edit Carousel</h3><button class="modal-close" onclick="closeModal()">×</button></div>
                 <div class="modal-body">
@@ -1794,6 +1830,46 @@
                         <div class="form-group"><label>Header</label><input type="text" name="header" value="${esc(carousel.header || '')}"></div>
                         <div class="form-group"><label>Display Order</label><input type="number" name="display_order" value="${carousel.display_order || 0}"></div>
                         <div class="form-check"><input type="checkbox" name="is_active" id="edit-carousel-active" ${carousel.is_active ? 'checked' : ''}><label for="edit-carousel-active">Active</label></div>
+
+                        <div style="background:#f0f9ff;padding:16px;border-radius:8px;margin-top:16px;border:1px solid #7dd3fc">
+                            <label style="font-weight:700;display:block;margin-bottom:12px;color:#0c4a6e;font-size:14px">LAYOUT STYLE</label>
+                            <div class="form-group"><label>Layout</label>
+                                <select name="layout_style" onchange="document.getElementById('edit-grid-cols').style.display=this.value==='grid'?'block':'none'">
+                                    <option value="horizontal_scroll" ${ls==='horizontal_scroll'?'selected':''}>Carousel (Horizontal Scroll)</option>
+                                    <option value="grid" ${ls==='grid'?'selected':''}>Grid (N×N Cards)</option>
+                                    <option value="single_center" ${ls==='single_center'?'selected':''}>Single Centered Card</option>
+                                    <option value="hero_stack" ${ls==='hero_stack'?'selected':''}>Hero Stack (Full-Width Vertical)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="edit-grid-cols" style="display:${ls==='grid'?'block':'none'}"><label>Grid Columns</label><input type="number" name="grid_columns" value="${carousel.grid_columns||2}" min="1" max="20"></div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="infinite_scroll" id="edit-infinite" ${carousel.infinite_scroll?'checked':''}><label for="edit-infinite">Infinite Scrolling (loop)</label></div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="snap_scroll" id="edit-snap" ${carousel.snap_scroll?'checked':''}><label for="edit-snap">Snap Scrolling</label></div>
+                            <div class="form-group"><label>Text Alignment</label>
+                                <select name="text_align">
+                                    <option value="left" ${(carousel.text_align||'left')==='left'?'selected':''}>Left</option>
+                                    <option value="center" ${carousel.text_align==='center'?'selected':''}>Center</option>
+                                    <option value="right" ${carousel.text_align==='right'?'selected':''}>Right</option>
+                                </select>
+                            </div>
+                            <div class="form-check" style="margin-bottom:8px"><input type="checkbox" name="rounded_enabled" id="edit-rounded" ${carousel.rounded_enabled!==0?'checked':''}><label for="edit-rounded">Rounded Corners</label></div>
+                            <div class="form-group"><label>Border Radius (px)</label><input type="number" name="border_radius" value="${carousel.border_radius!==undefined?carousel.border_radius:14}" min="0" max="50"></div>
+                        </div>
+
+                        <div style="background:#fef3c7;padding:16px;border-radius:8px;margin-top:16px;border:1px solid #fbbf24">
+                            <label style="font-weight:700;display:block;margin-bottom:12px;color:#78350f;font-size:14px">HEADER STYLING</label>
+                            <div class="form-group"><label>Header Font</label>
+                                <select name="header_font">
+                                    <option value="Inter" ${(carousel.header_font||'Inter')==='Inter'?'selected':''}>Inter (Default)</option>
+                                    <option value="Georgia" ${carousel.header_font==='Georgia'?'selected':''}>Georgia (Serif)</option>
+                                    <option value="Courier New" ${carousel.header_font==='Courier New'?'selected':''}>Courier New (Mono)</option>
+                                    <option value="system-ui" ${carousel.header_font==='system-ui'?'selected':''}>System UI</option>
+                                    <option value="Outfit" ${carousel.header_font==='Outfit'?'selected':''}>Outfit</option>
+                                    <option value="Roboto" ${carousel.header_font==='Roboto'?'selected':''}>Roboto</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Header Font Size (px)</label><input type="number" name="header_font_size" value="${carousel.header_font_size||32}" min="12" max="72"></div>
+                            <div class="form-group"><label>Header Color</label><input type="color" name="header_color" value="${carousel.header_color||'#ffffff'}" style="height:40px;width:100%"></div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -1811,7 +1887,17 @@
                 name: e.target.name.value,
                 header: e.target.header.value,
                 display_order: parseInt(e.target.display_order.value) || 0,
-                is_active: e.target.is_active.checked ? 1 : 0
+                is_active: e.target.is_active.checked ? 1 : 0,
+                layout_style: e.target.layout_style.value,
+                grid_columns: parseInt(e.target.grid_columns?.value) || 2,
+                infinite_scroll: e.target.infinite_scroll.checked ? 1 : 0,
+                snap_scroll: e.target.snap_scroll.checked ? 1 : 0,
+                text_align: e.target.text_align.value,
+                border_radius: parseInt(e.target.border_radius.value) || 14,
+                rounded_enabled: e.target.rounded_enabled.checked ? 1 : 0,
+                header_font: e.target.header_font.value,
+                header_font_size: parseInt(e.target.header_font_size.value) || 32,
+                header_color: e.target.header_color.value
             };
             try {
                 const res = await fetch(`${API_BASE}/api/admin/carousels`, {
@@ -1837,6 +1923,7 @@
         }
 
         function openEditHeaderModal(carouselId) {
+            const c = allCarousels.find(x => x.id == carouselId);
             const html = `
                 <div class="modal-header"><h3>Edit Carousel Header</h3><button class="modal-close" onclick="closeModal()">×</button></div>
                 <div class="modal-body">
@@ -1845,6 +1932,25 @@
                             <label>Header Text</label>
                             <input type="text" name="header" value="${esc(currentCarouselHeader)}" required>
                         </div>
+                        <div class="form-group"><label>Text Alignment</label>
+                            <select name="text_align">
+                                <option value="left" ${(c?.text_align||'left')==='left'?'selected':''}>Left</option>
+                                <option value="center" ${c?.text_align==='center'?'selected':''}>Center</option>
+                                <option value="right" ${c?.text_align==='right'?'selected':''}>Right</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Header Font</label>
+                            <select name="header_font">
+                                <option value="Inter" ${(c?.header_font||'Inter')==='Inter'?'selected':''}>Inter</option>
+                                <option value="Georgia" ${c?.header_font==='Georgia'?'selected':''}>Georgia</option>
+                                <option value="Courier New" ${c?.header_font==='Courier New'?'selected':''}>Courier New</option>
+                                <option value="system-ui" ${c?.header_font==='system-ui'?'selected':''}>System UI</option>
+                                <option value="Outfit" ${c?.header_font==='Outfit'?'selected':''}>Outfit</option>
+                                <option value="Roboto" ${c?.header_font==='Roboto'?'selected':''}>Roboto</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Font Size (px)</label><input type="number" name="header_font_size" value="${c?.header_font_size||32}" min="12" max="72"></div>
+                        <div class="form-group"><label>Header Color</label><input type="color" name="header_color" value="${c?.header_color||'#ffffff'}" style="height:40px;width:100%"></div>
                     </form>
                 </div>
                 <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button type="submit" form="edit-header-form" class="btn btn-primary">Save</button></div>
@@ -1854,17 +1960,24 @@
 
         async function handleHeaderSubmit(e, carouselId) {
             e.preventDefault();
-            const header = e.target.header.value;
+            const data = {
+                id: carouselId,
+                header: e.target.header.value,
+                text_align: e.target.text_align?.value,
+                header_font: e.target.header_font?.value,
+                header_font_size: parseInt(e.target.header_font_size?.value) || 32,
+                header_color: e.target.header_color?.value
+            };
             try {
-                const res = await fetch(`${API_BASE}/api/admin/carousel`, {
+                const res = await fetch(`${API_BASE}/api/admin/carousels`, {
                     method: 'PUT',
                     headers: authJsonHeaders(),
-                    body: JSON.stringify({ type: 'header', carousel_id: carouselId, header })
+                    body: JSON.stringify(data)
                 });
                 if (res.ok) {
                     showToast('Header updated');
                     closeModal();
-                    await loadData(); // Refresh sidebar list
+                    await loadData();
                     openCarouselManager(carouselId);
                     broadcastAdminUpdate();
                 }
@@ -2121,12 +2234,42 @@
                             </div>
                         </div>
 
-                        <!-- 2. Text Content -->
+                        <!-- 2. Text Content & Typography -->
                         <div style="background: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
-                              <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">2. TEXT CONTENT</label>
+                              <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">2. TEXT CONTENT & TYPOGRAPHY</label>
                               <div class="form-group"><label>Header Title (Kicker) *</label><input type="text" name="title" value="${esc(card?.title || '')}" required placeholder="e.g. AWS SPECIALIST"></div>
-                              <div class="form-group" style="margin-bottom:0;"><label>Description (Main Headline)</label><textarea name="description" rows="2" placeholder="e.g. Master cloud concepts.">${esc(card?.description || '')}</textarea></div>
-
+                              <div style="display:flex;gap:8px;margin-bottom:12px">
+                                  <div class="form-group" style="flex:2;margin-bottom:0"><label>Heading Font</label>
+                                      <select name="heading_font">
+                                          <option value="" ${!card?.heading_font?'selected':''}>Default (Inter)</option>
+                                          <option value="Georgia,serif" ${card?.heading_font==='Georgia,serif'?'selected':''}>Georgia</option>
+                                          <option value="Courier New,monospace" ${card?.heading_font==='Courier New,monospace'?'selected':''}>Courier New</option>
+                                          <option value="system-ui" ${card?.heading_font==='system-ui'?'selected':''}>System UI</option>
+                                      </select>
+                                  </div>
+                                  <div class="form-group" style="width:80px;margin-bottom:0"><label>Size (px)</label><input type="number" name="heading_size" value="${card?.heading_size||''}" min="8" max="72" placeholder="14"></div>
+                                  <div class="form-group" style="width:70px;margin-bottom:0"><label>Color</label><input type="color" name="heading_color" value="${card?.heading_color||'#ffffff'}" style="height:40px;padding:2px"></div>
+                              </div>
+                              <div class="form-group"><label>Description (Subheading)</label><textarea name="description" rows="2" placeholder="e.g. Master cloud concepts.">${esc(card?.description || '')}</textarea></div>
+                              <div style="display:flex;gap:8px;margin-bottom:12px">
+                                  <div class="form-group" style="flex:2;margin-bottom:0"><label>Sub Font</label>
+                                      <select name="sub_font">
+                                          <option value="" ${!card?.sub_font?'selected':''}>Default (Inter)</option>
+                                          <option value="Georgia,serif" ${card?.sub_font==='Georgia,serif'?'selected':''}>Georgia</option>
+                                          <option value="Courier New,monospace" ${card?.sub_font==='Courier New,monospace'?'selected':''}>Courier New</option>
+                                          <option value="system-ui" ${card?.sub_font==='system-ui'?'selected':''}>System UI</option>
+                                      </select>
+                                  </div>
+                                  <div class="form-group" style="width:80px;margin-bottom:0"><label>Size (px)</label><input type="number" name="sub_size" value="${card?.sub_size||''}" min="8" max="48" placeholder="11"></div>
+                                  <div class="form-group" style="width:70px;margin-bottom:0"><label>Color</label><input type="color" name="sub_color" value="${card?.sub_color||'#94a3b8'}" style="height:40px;padding:2px"></div>
+                              </div>
+                              <div class="form-group" style="margin-bottom:0"><label>Text Position on Card</label>
+                                  <select name="text_position">
+                                      <option value="bottom" ${(card?.text_position||'bottom')==='bottom'?'selected':''}>Bottom</option>
+                                      <option value="center" ${card?.text_position==='center'?'selected':''}>Center</option>
+                                      <option value="top" ${card?.text_position==='top'?'selected':''}>Top</option>
+                                  </select>
+                              </div>
                         </div>
 
                         <!-- 3. Navigation -->
@@ -2171,9 +2314,25 @@
                                 <div class="form-group" style="flex:1; margin-bottom:0;"><label>Width (e.g. 400px)</label><input type="text" name="width" value="${esc(card?.width || '400px')}" placeholder="400px"></div>
                                 <div class="form-group" style="flex:1; margin-bottom:0;"><label>Height (e.g. 500px)</label><input type="text" name="height_px" value="${esc(card?.height_px || '500px')}" placeholder="500px"></div>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check" style="margin-bottom:12px">
                                 <input type="checkbox" name="full_bleed" id="modal-full-bleed" ${fullBleed ? 'checked' : ''}>
                                 <label for="modal-full-bleed" style="font-weight: 600;">Full Bleed (Apple Style: Text overlays media)</label>
+                            </div>
+                            <div style="border-top:1px dashed #e2e8f0;padding-top:12px">
+                                <div class="form-group" style="margin-bottom:12px"><label>Card Background Color</label><input type="color" name="bg_color" value="${card?.bg_color||'#1a1a1a'}" style="height:38px;padding:4px;width:100%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 5. CTA Chip -->
+                        <div style="background: #ffffff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
+                            <label style="font-weight: 700; display: block; margin-bottom: 12px; color: #1e293b; font-size: 14px;">5. CTA CHIP</label>
+                            <div class="form-check" style="margin-bottom:12px">
+                                <input type="checkbox" name="chip_enabled" id="modal-chip" ${card?.chip_enabled !== 0 ? 'checked' : ''}>
+                                <label for="modal-chip">Show CTA Chip on Card</label>
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <div class="form-group" style="flex:2;margin-bottom:0"><label>Chip Text</label><input type="text" name="chip_text" value="${esc(card?.chip_text||'Learn more')}" placeholder="e.g. Learn more"></div>
+                                <div class="form-group" style="width:70px;margin-bottom:0"><label>Color</label><input type="color" name="chip_color" value="${card?.chip_color||'#3b82f6'}" style="height:38px;padding:2px"></div>
                             </div>
                         </div>
 
@@ -2388,7 +2547,18 @@
                     section_id: f.section_id ? f.section_id.value : null,
                     display_order: parseInt(f.display_order.value) || 0,
                     is_active: f.is_active.checked ? 1 : 0,
-                    course_links: collectCourseLinks()
+                    course_links: collectCourseLinks(),
+                    bg_color: f.bg_color ? f.bg_color.value : null,
+                    chip_text: f.chip_text ? f.chip_text.value : null,
+                    chip_color: f.chip_color ? f.chip_color.value : null,
+                    chip_enabled: f.chip_enabled ? (f.chip_enabled.checked ? 1 : 0) : 1,
+                    heading_font: f.heading_font ? f.heading_font.value : null,
+                    heading_size: f.heading_size ? (parseInt(f.heading_size.value) || null) : null,
+                    heading_color: f.heading_color ? f.heading_color.value : null,
+                    sub_font: f.sub_font ? f.sub_font.value : null,
+                    sub_size: f.sub_size ? (parseInt(f.sub_size.value) || null) : null,
+                    sub_color: f.sub_color ? f.sub_color.value : null,
+                    text_position: f.text_position ? f.text_position.value : 'bottom'
                 };
 
                 const method = id ? 'PUT' : 'POST';
