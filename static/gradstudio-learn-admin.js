@@ -53,6 +53,19 @@
         }
     ];
 
+    const FONT_OPTIONS = [
+        ["Inter", "Inter"],
+        ['-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif', "Apple / SF Pro"],
+        ['"SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif', "SF Pro Display"],
+        ['"Helvetica Neue", Helvetica, Arial, sans-serif', "Helvetica Neue"],
+        ['"Segoe UI", Arial, sans-serif', "Segoe UI"],
+        ["Arial, Helvetica, sans-serif", "Arial"],
+        ["Roboto, Arial, sans-serif", "Roboto"],
+        ["Poppins, Arial, sans-serif", "Poppins"],
+        ["Georgia, serif", "Georgia"],
+        ['"JetBrains Mono", "SFMono-Regular", Consolas, monospace', "JetBrains Mono"]
+    ];
+
     function starterThumbnailHtml(badge, title, logo, bg1, bg2, glow1, glow2, badgeBg, badgeText) {
         return '<div class="thumbnail-card" style="--bg-dark-1:' + bg1 + ';--bg-dark-2:' + bg2 + ';--glow-top-left:' + glow1 + ';--glow-bottom-right:' + glow2 + ';--badge-bg:' + badgeBg + ';--badge-text:' + badgeText + ';--title-top:58%;--title-width:62%;"><span class="thumbnail-badge">' + badge + '</span><h3 class="thumbnail-title">' + title + '</h3><div class="thumbnail-logo" aria-hidden="true"><span class="thumbnail-logo-text">' + logo + '</span></div></div>';
     }
@@ -388,13 +401,15 @@
 
     function fixedCarouselSlot(id, name, fallbackHeader, existing, fallbackEyebrow = "") {
         const defaultVisible = id === "1" ? 2 : 5;
+        const hasHeader = existing && Object.prototype.hasOwnProperty.call(existing, "header");
+        const hasEyebrow = existing && Object.prototype.hasOwnProperty.call(existing, "eyebrow");
         return {
             ...(existing || {}),
             id,
             name,
             block_type: choiceValue(existing && existing.block_type, ["carousel", "text"], String(id).startsWith("text-") ? "text" : "carousel"),
-            header: String(existing && existing.header ? existing.header : fallbackHeader),
-            eyebrow: String(existing && existing.eyebrow ? existing.eyebrow : fallbackEyebrow),
+            header: String(hasHeader ? (existing.header || "") : fallbackHeader),
+            eyebrow: String(hasEyebrow ? (existing.eyebrow || "") : fallbackEyebrow),
             display_order: Number(existing && existing.display_order ? existing.display_order : (id === "1" ? 1 : id === "2" ? 2 : 0)),
             is_active: !existing || (existing.is_active !== 0 && existing.is_active !== false),
             layout_align: choiceValue(existing && (existing.layout_align || existing.align), ["left", "center", "right", "stretch"], "stretch"),
@@ -403,6 +418,9 @@
             visible_count: numberValue(existing && (existing.visible_count || existing.grid_columns), defaultVisible),
             grid_columns: numberValue(existing && (existing.grid_columns || existing.visible_count), defaultVisible),
             card_gap: numberValue(existing && existing.card_gap, id === "1" ? 12 : 10),
+            block_spacing_top: spacingNumberValue(existing && existing.block_spacing_top, 40),
+            block_spacing_bottom: spacingNumberValue(existing && existing.block_spacing_bottom, 44),
+            text_gap: spacingNumberValue(existing && existing.text_gap, 28),
             infinite_scroll: !existing || existing.infinite_scroll === undefined ? true : (existing.infinite_scroll !== 0 && existing.infinite_scroll !== false),
             text_align: choiceValue(existing && existing.text_align, ["left", "center", "right"], "left"),
             header_font: String(existing && existing.header_font ? existing.header_font : "Inter"),
@@ -432,6 +450,12 @@
         return Number.isFinite(num) && num > 0 ? num : fallback;
     }
 
+    function spacingNumberValue(value, fallback) {
+        const num = Number(value);
+        if (!Number.isFinite(num) || num < 0) return fallback;
+        return Math.min(200, num);
+    }
+
     function colorInputValue(value, fallback) {
         const normalized = String(value || "").trim();
         return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized : fallback;
@@ -451,7 +475,7 @@
                 ...card,
                 id: String(card.id),
                 carousel_id: String(card.carousel_id || state.activeCarouselId || "1"),
-                title: String(card.title || "Untitled card"),
+                title: String(card.title || ""),
                 description: String(card.description || ""),
                 icon_class: String(card.icon_class || "fas fa-star"),
                 color_hex: String(card.color_hex || "#3b82f6"),
@@ -1592,7 +1616,7 @@
 
     function renderCarouselPlacementSummary(active) {
         const textState = active.section_text ? "Text block added" : "No text block";
-        const cardMode = active.layout_style === "custom_width" ? "Custom card widths" : "Fit visible cards";
+        const cardMode = "Per-card only";
         return '' +
             '<div class="placement-summary">' +
             '<div><span>Homepage position</span><b>' + esc(carouselPlacementText(active)) + '</b></div>' +
@@ -1631,6 +1655,24 @@
         }).join("");
     }
 
+    function renderFontOptions(current) {
+        const active = String(current || "Inter").trim() || "Inter";
+        const activeKey = fontKey(active);
+        const base = FONT_OPTIONS.map(([value, label]) => {
+            return '<option value="' + escAttr(value) + '"' + (fontKey(value) === activeKey ? " selected" : "") + ">" + esc(label) + "</option>";
+        }).join("");
+        const hasActive = FONT_OPTIONS.some(([value]) => fontKey(value) === activeKey);
+        return base + (hasActive ? "" : '<option value="' + escAttr(active) + '" selected>Custom: ' + esc(active) + "</option>");
+    }
+
+    function renderFontSelect(id, current) {
+        return '<select id="' + escAttr(id) + '">' + renderFontOptions(current) + '</select>';
+    }
+
+    function fontKey(value) {
+        return String(value || "").replace(/["']/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+    }
+
     function openCarouselHeaderModal() {
         const active = activeCarousel();
         if (!active) return;
@@ -1639,7 +1681,7 @@
             body: '' +
                 '<form id="carouselHeaderForm">' +
                 '<div class="fg"><label>Eyebrow</label><input id="modalCarouselEyebrow" value="' + escAttr(active.eyebrow || "") + '" placeholder="HTML Demo Thumbnails"><small>Small label above the carousel title.</small></div>' +
-                '<div class="fg"><label>Carousel Title</label><input id="modalCarouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured lab previews"><small>This appears directly above the cards.</small></div>' +
+                '<div class="fg"><label>Carousel Title</label><input id="modalCarouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured lab previews"><small>Leave empty if you do not want heading text above the cards.</small></div>' +
                 '<label class="inline-check"><input id="modalCarouselActive" type="checkbox" ' + (active.is_active ? "checked" : "") + '> Show this carousel on the homepage</label>' +
                 '</form>',
             footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselHeaderForm">Save Header</button>'
@@ -1669,23 +1711,27 @@
                 '<div class="form-grid thirds">' +
                 '<div class="fg"><label>Carousel position</label><select id="modalCarouselAlign">' + renderOptions([["stretch", "Stretch page width"], ["left", "Left edge"], ["center", "Center"], ["right", "Right edge"]], activeAlign) + '</select><small>Center is best for a single card.</small></div>' +
                 '<div class="fg"><label>Section max width</label><input id="modalCarouselMaxWidth" value="' + escAttr(active.max_width || "1480px") + '" placeholder="1480px"></div>' +
-                '<div class="fg"><label>Card width behavior</label><select id="modalCarouselLayoutStyle">' + renderOptions([["fit", "Fit visible cards"], ["custom_width", "Use each card width"]], activeStyle) + '</select></div>' +
+                '<input id="modalCarouselLayoutStyle" type="hidden" value="fit">' +
+                '<div class="fg"><label>Card width</label><div class="readonly-field">Edit width on each card</div><small>Default cards auto-fit. A custom Width inside one card only changes that card.</small></div>' +
                 '<div class="fg"><label>Visible cards</label><input id="modalCarouselVisibleCount" type="number" min="1" max="8" value="' + escAttr(active.visible_count || active.grid_columns || (active.id === "1" ? 2 : 5)) + '"></div>' +
-                '<div class="fg"><label>Gap between cards</label><input id="modalCarouselCardGap" type="number" min="0" max="80" value="' + escAttr(active.card_gap || (active.id === "1" ? 12 : 10)) + '"></div>' +
+                '<div class="fg"><label>Spacing between cards</label><input id="modalCarouselCardGap" type="number" min="0" max="80" value="' + escAttr(active.card_gap || (active.id === "1" ? 12 : 10)) + '"><small>Only changes card-to-card spacing inside this carousel.</small></div>' +
                 '<div class="fg"><label>Heading align</label><select id="modalCarouselTextAlign">' + renderOptions([["left", "Left"], ["center", "Center"], ["right", "Right"]], activeTextAlign) + '</select></div>' +
+                '<div class="fg"><label>Space above block</label><input id="modalCarouselBlockTop" type="number" min="0" max="200" value="' + escAttr(spacingNumberValue(active.block_spacing_top, 40)) + '"></div>' +
+                '<div class="fg"><label>Space below block</label><input id="modalCarouselBlockBottom" type="number" min="0" max="200" value="' + escAttr(spacingNumberValue(active.block_spacing_bottom, 44)) + '"></div>' +
+                '<div class="fg"><label>Text-to-cards spacing</label><input id="modalCarouselTextGap" type="number" min="0" max="120" value="' + escAttr(spacingNumberValue(active.text_gap, 28)) + '"></div>' +
                 '</div>' +
                 '<div class="fg" style="margin-top:16px"><label>Optional text before this carousel</label><textarea id="modalCarouselSectionText" placeholder="Example: Take a closer look.">' + esc(active.section_text || "") + '</textarea><small>Leave empty if you do not want an extra text block.</small></div>' +
                 '<div class="form-grid thirds">' +
                 '<div class="fg"><label>Text align</label><select id="modalCarouselSectionAlign">' + renderOptions([["left", "Left"], ["center", "Center"], ["right", "Right"]], activeSectionAlign) + '</select></div>' +
                 '<div class="fg"><label>Text size</label><input id="modalCarouselSectionSize" type="number" min="14" max="96" value="' + escAttr(active.section_text_size || 44) + '"></div>' +
                 '<div class="fg"><label>Text color</label><input id="modalCarouselSectionColor" type="color" value="' + escAttr(colorInputValue(active.section_text_color, "#1d2233")) + '"></div>' +
-                '<div class="fg"><label>Text font</label><input id="modalCarouselSectionFont" value="' + escAttr(active.section_text_font || "Inter") + '"></div>' +
+                '<div class="fg"><label>Text font</label>' + renderFontSelect("modalCarouselSectionFont", active.section_text_font || "Inter") + '</div>' +
                 '<div class="fg"><label>Text max width</label><input id="modalCarouselSectionMaxWidth" value="' + escAttr(active.section_text_max_width || "860px") + '"></div>' +
                 '<div class="fg"><label>Order</label><input id="modalCarouselOrder" type="number" value="' + escAttr(active.display_order || 1) + '"></div>' +
                 '</div>' +
                 '<details class="advanced-layout"><summary>Advanced heading style</summary>' +
                 '<div class="form-grid thirds" style="margin-top:12px">' +
-                '<div class="fg"><label>Heading font</label><input id="modalCarouselHeaderFont" value="' + escAttr(active.header_font || "Inter") + '"></div>' +
+                '<div class="fg"><label>Heading font</label>' + renderFontSelect("modalCarouselHeaderFont", active.header_font || "Inter") + '</div>' +
                 '<div class="fg"><label>Heading size</label><input id="modalCarouselHeaderSize" type="number" min="14" max="96" value="' + escAttr(active.header_font_size || 28) + '"></div>' +
                 '<div class="fg"><label>Heading color</label><input id="modalCarouselHeaderColor" type="color" value="' + escAttr(colorInputValue(active.header_color, "#1d2233")) + '"></div>' +
                 '</div></details>' +
@@ -1701,6 +1747,9 @@
             active.visible_count = Number(document.getElementById("modalCarouselVisibleCount").value || active.visible_count || 2);
             active.grid_columns = active.visible_count;
             active.card_gap = Number(document.getElementById("modalCarouselCardGap").value || active.card_gap || 12);
+            active.block_spacing_top = spacingNumberValue(document.getElementById("modalCarouselBlockTop").value, 40);
+            active.block_spacing_bottom = spacingNumberValue(document.getElementById("modalCarouselBlockBottom").value, 44);
+            active.text_gap = spacingNumberValue(document.getElementById("modalCarouselTextGap").value, 28);
             active.text_align = document.getElementById("modalCarouselTextAlign").value;
             active.section_text = document.getElementById("modalCarouselSectionText").value.trim();
             active.section_text_align = document.getElementById("modalCarouselSectionAlign").value;
@@ -1754,11 +1803,14 @@
             name: "Text Block",
             block_type: "text",
             header: "Text Block",
-            section_text: "Take a closer look.",
+            section_text: "",
             section_text_size: 44,
             section_text_color: "#1d2233",
             section_text_align: "left",
             section_text_max_width: "860px",
+            block_spacing_top: 40,
+            block_spacing_bottom: 44,
+            text_gap: 28,
             display_order: order,
             is_active: true,
             cards: []
@@ -1960,7 +2012,7 @@
         return '' +
             '<div class="carousel-row">' +
             '<div class="carousel-thumb">' + renderCarouselThumb(card) + '</div>' +
-            '<div><h3>' + esc(card.title) + (card.is_active ? "" : ' <small>(inactive)</small>') + '</h3>' +
+            '<div><h3>' + esc(card.title || "Untitled card") + (card.is_active ? "" : ' <small>(inactive)</small>') + '</h3>' +
             '<p>' + esc(card.description || targetSummary(card)) + '</p>' +
             '<small>' + esc(targetSummary(card)) + '</small></div>' +
             '<div class="action-row">' +
@@ -2008,8 +2060,8 @@
                 '<div class="fg"><label>Carousel</label><select id="ccCarousel">' + state.carousels.map((carousel) => '<option value="' + escAttr(carousel.id) + '"' + (carousel.id === activeCarouselId ? " selected" : "") + ">" + esc(carouselSlotLabel(carousel)) + "</option>").join("") + '</select></div>' +
                 '<div class="fg"><label>Display Order</label><input id="ccOrder" type="number" value="' + escAttr(card ? card.display_order : nextCarouselCardOrder(activeCarouselId)) + '"></div>' +
                 '</div>' +
-                '<div class="fg"><label>Title *</label><input id="ccTitle" required value="' + escAttr(card ? card.title : "") + '" placeholder="Fullstack"></div>' +
-                '<div class="fg"><label>Description</label><textarea id="ccDescription" placeholder="Short text shown on the carousel card">' + esc(card ? card.description : "") + '</textarea></div>' +
+                '<div class="fg"><label>Card title</label><input id="ccTitle" value="' + escAttr(card ? card.title : "") + '" placeholder="Fullstack"><small>Leave empty when you hide card text or only want the thumbnail visible.</small></div>' +
+                '<div class="fg"><label>Description</label><textarea id="ccDescription" placeholder="Short text shown on the carousel card. Leave empty if not needed.">' + esc(card ? card.description : "") + '</textarea></div>' +
                 '<div class="row">' +
                 '<div class="fg"><label>Thumbnail Type</label><select id="ccContentType"><option value="html">HTML thumbnail</option><option value="image">Image URL</option><option value="iframe">Iframe URL</option><option value="standard">Icon card</option></select></div>' +
                 '<div class="fg"><label>Click Behavior</label><select id="ccTargetType"><option value="course_list">Show selected course cards</option><option value="course">Open course contents directly</option><option value="none">No click action</option></select></div>' +
@@ -2025,7 +2077,7 @@
                 '<div class="row">' +
                 '<div class="fg"><label>Icon Class</label><input id="ccIcon" value="' + escAttr(card ? card.icon_class : "fas fa-layer-group") + '"></div>' +
                 '<div class="fg"><label>Accent Color</label><input id="ccColor" type="color" value="' + escAttr(card ? card.color_hex : "#3b82f6") + '"></div>' +
-                '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : (activeCarouselId === "2" ? "220px" : "400px")) + '"></div>' +
+                '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : (activeCarouselId === "2" ? "220px" : "400px")) + '"><small>Only this card changes width.</small></div>' +
                 '<div class="fg"><label>Height</label><input id="ccHeight" value="' + escAttr(card ? card.height_px : (activeCarouselId === "2" ? "160px" : "420px")) + '"></div>' +
                 '</div>' +
                 '<div class="row">' +
@@ -2034,12 +2086,12 @@
                 '<div class="fg"><label>Card Background</label><input id="ccBgColor" type="color" value="' + escAttr(colorInputValue(card && card.bg_color, "#111827")) + '"></div>' +
                 '</div>' +
                 '<div class="row">' +
-                '<div class="fg"><label>Title Font</label><input id="ccHeadingFont" value="' + escAttr(card && card.heading_font ? card.heading_font : "Inter") + '"></div>' +
+                '<div class="fg"><label>Title Font</label>' + renderFontSelect("ccHeadingFont", card && card.heading_font ? card.heading_font : "Inter") + '</div>' +
                 '<div class="fg"><label>Title Size</label><input id="ccHeadingSize" type="number" min="10" max="64" value="' + escAttr(card && card.heading_size ? card.heading_size : 24) + '"></div>' +
                 '<div class="fg"><label>Title Color</label><input id="ccHeadingColor" type="color" value="' + escAttr(colorInputValue(card && card.heading_color, "#ffffff")) + '"></div>' +
                 '</div>' +
                 '<div class="row">' +
-                '<div class="fg"><label>Subtitle Font</label><input id="ccSubFont" value="' + escAttr(card && card.sub_font ? card.sub_font : "Inter") + '"></div>' +
+                '<div class="fg"><label>Subtitle Font</label>' + renderFontSelect("ccSubFont", card && card.sub_font ? card.sub_font : "Inter") + '</div>' +
                 '<div class="fg"><label>Subtitle Size</label><input id="ccSubSize" type="number" min="10" max="40" value="' + escAttr(card && card.sub_size ? card.sub_size : 13) + '"></div>' +
                 '<div class="fg"><label>Subtitle Color</label><input id="ccSubColor" type="color" value="' + escAttr(colorInputValue(card && card.sub_color, "#dbe3f1")) + '"></div>' +
                 '</div>' +
@@ -2217,10 +2269,6 @@
     async function saveCarouselCardFromModal(event, existingCard) {
         event.preventDefault();
         const title = document.getElementById("ccTitle").value.trim();
-        if (!title) {
-            showToast("Carousel card title is required", "err");
-            return;
-        }
         const targetType = document.getElementById("ccTargetType").value;
         const directCourse = document.getElementById("ccDirectCourse").value;
         const selectedIds = selectedCarouselCourseIds();
@@ -2265,11 +2313,6 @@
 
         try {
             upsertCarouselCard(payload, existingCard);
-            const targetCarousel = state.carousels.find((carousel) => String(carousel.id) === String(payload.carousel_id));
-            if (targetCarousel && hasCustomCardWidth(payload, targetCarousel)) {
-                targetCarousel.layout_style = "custom_width";
-                showToast("Card width saved. This carousel now uses custom card widths.", "ok");
-            }
             await saveCarouselConfig();
             closeModal();
             state.activeCarouselId = String(payload.carousel_id);
@@ -2279,16 +2322,6 @@
         } catch (error) {
             showToast(error.message, "err");
         }
-    }
-
-    function hasCustomCardWidth(card, carousel) {
-        const defaultWidth = String(carousel.id) === "2" ? "220px" : "400px";
-        return normalizeLengthText(card.width) !== normalizeLengthText(defaultWidth);
-    }
-
-    function normalizeLengthText(value) {
-        const text = String(value || "").trim().toLowerCase();
-        return /^\d+(\.\d+)?$/.test(text) ? text + "px" : text;
     }
 
     async function saveCarouselSettings() {
@@ -2305,6 +2338,9 @@
             active.visible_count = Number(document.getElementById("carouselVisibleCount").value || active.visible_count || 2);
             active.grid_columns = active.visible_count;
             active.card_gap = Number(document.getElementById("carouselCardGap").value || active.card_gap || 12);
+            active.block_spacing_top = spacingNumberValue(document.getElementById("carouselBlockTop")?.value, active.block_spacing_top || 40);
+            active.block_spacing_bottom = spacingNumberValue(document.getElementById("carouselBlockBottom")?.value, active.block_spacing_bottom || 44);
+            active.text_gap = spacingNumberValue(document.getElementById("carouselTextGap")?.value, active.text_gap || 28);
             active.infinite_scroll = document.getElementById("carouselInfinite").checked;
             active.text_align = document.getElementById("carouselTextAlign").value;
             active.header_font = document.getElementById("carouselHeaderFont").value.trim() || "Inter";
@@ -2370,6 +2406,9 @@
                 visible_count: carousel.visible_count,
                 grid_columns: carousel.grid_columns || carousel.visible_count,
                 card_gap: carousel.card_gap,
+                block_spacing_top: carousel.block_spacing_top,
+                block_spacing_bottom: carousel.block_spacing_bottom,
+                text_gap: carousel.text_gap,
                 infinite_scroll: carousel.infinite_scroll,
                 text_align: carousel.text_align,
                 header_font: carousel.header_font,
@@ -2478,6 +2517,7 @@
             sub_size: card.sub_size,
             sub_color: card.sub_color,
             text_position: card.text_position,
+            text_align: card.text_align,
             carousel_id: Number(carouselId || card.carousel_id || state.activeCarouselId || 1),
             course_links: card.target_type === "course_list" ? card.course_links : []
         };

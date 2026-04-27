@@ -4152,12 +4152,14 @@ function normalizeLearnCarouselConfig(data) {
 
 function normalizeLearnCarouselSlot(id, name, header, carousel = {}, eyebrow = '') {
   const defaultVisible = id === '2' ? 5 : 2;
+  const hasHeader = Object.prototype.hasOwnProperty.call(carousel || {}, 'header');
+  const hasEyebrow = Object.prototype.hasOwnProperty.call(carousel || {}, 'eyebrow');
   return {
     id,
     name,
     block_type: normalizeCarouselChoice(carousel.block_type, ['carousel', 'text'], String(id).startsWith('text-') ? 'text' : 'carousel'),
-    header: String(carousel.header || header),
-    eyebrow: String(carousel.eyebrow || eyebrow),
+    header: String(hasHeader ? (carousel.header || '') : header),
+    eyebrow: String(hasEyebrow ? (carousel.eyebrow || '') : eyebrow),
     display_order: Number(carousel.display_order || (id === '1' ? 1 : id === '2' ? 2 : 0)),
     is_active: carousel.is_active === undefined ? true : !!carousel.is_active,
     layout_align: normalizeCarouselChoice(carousel.layout_align || carousel.align, ['left', 'center', 'right', 'stretch'], 'stretch'),
@@ -4166,6 +4168,9 @@ function normalizeLearnCarouselSlot(id, name, header, carousel = {}, eyebrow = '
     visible_count: normalizeCarouselNumber(carousel.visible_count || carousel.grid_columns, defaultVisible, 1, 8),
     grid_columns: normalizeCarouselNumber(carousel.grid_columns || carousel.visible_count, defaultVisible, 1, 8),
     card_gap: normalizeCarouselNumber(carousel.card_gap, id === '2' ? 10 : 12, 0, 80),
+    block_spacing_top: normalizeCarouselNumber(carousel.block_spacing_top, 40, 0, 200),
+    block_spacing_bottom: normalizeCarouselNumber(carousel.block_spacing_bottom, 44, 0, 200),
+    text_gap: normalizeCarouselNumber(carousel.text_gap, 28, 0, 120),
     infinite_scroll: carousel.infinite_scroll === undefined ? true : !!carousel.infinite_scroll,
     text_align: normalizeCarouselChoice(carousel.text_align, ['left', 'center', 'right'], 'left'),
     header_font: String(carousel.header_font || 'Inter'),
@@ -4186,7 +4191,6 @@ function normalizeLearnCarouselSlot(id, name, header, carousel = {}, eyebrow = '
 function normalizeLearnCarouselCard(card, carouselId, index) {
   if (!card || typeof card !== 'object') return null;
   const title = String(card.title || '').trim();
-  if (!title) return null;
   const targetType = ['course_list', 'course', 'none'].includes(card.target_type) ? card.target_type : 'course_list';
   return {
     id: String(card.id || `${carouselId}-${Date.now()}-${index}`),

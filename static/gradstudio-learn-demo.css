@@ -1467,8 +1467,8 @@ a {
 .demo-carousel-block {
     width: calc(100% - 48px);
     max-width: var(--carousel-max-width, 1480px);
-    margin: 40px auto 0;
-    padding: 18px 0 44px;
+    margin: var(--carousel-block-top, 40px) auto 0;
+    padding: 18px 0 var(--carousel-block-bottom, 44px);
     content-visibility: auto;
     contain-intrinsic-size: 740px;
 }
@@ -1490,7 +1490,7 @@ a {
 
 .carousel-text-block {
     width: min(var(--carousel-copy-max-width, 860px), 100%);
-    margin: 0 0 28px;
+    margin: 0 0 var(--carousel-text-gap, 28px);
     color: var(--carousel-copy-color, var(--ink));
     font-family: var(--carousel-copy-font, Inter, system-ui, sans-serif);
     font-size: var(--carousel-copy-size, 44px);
@@ -1520,6 +1520,11 @@ a {
     gap: 18px;
     margin-bottom: 14px;
     text-align: var(--carousel-heading-align, left);
+}
+
+.carousel-heading.is-controls-only {
+    justify-content: flex-end;
+    min-height: 38px;
 }
 
 .carousel-heading > div {

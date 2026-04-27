@@ -160,7 +160,7 @@
             : 'https://api.gradstudio.org';
     const LEARN_CAROUSEL_STORAGE_KEY = "gradstudio_learn_carousels_dev";
     const USE_LOCAL_CAROUSEL_CACHE = new URLSearchParams(window.location.search).has("localCarousel");
-    const API_CACHE_VERSION = "20260427-layout-stack-v1";
+    const API_CACHE_VERSION = "20260427-font-spacing-v2";
     const API_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     const CATALOG_API_CACHE_KEY = `${API_CACHE_VERSION}:catalog`;
     const CAROUSEL_API_CACHE_KEY = `${API_CACHE_VERSION}:carousels`;
@@ -665,6 +665,9 @@
             layoutStyle: "fit",
             visibleCount: slot === "compact" ? COMPACT_VISIBLE : FEATURED_VISIBLE,
             cardGap: slot === "compact" ? COMPACT_GAP : FEATURED_GAP,
+            blockSpacingTop: 40,
+            blockSpacingBottom: 44,
+            textGap: 28,
             infiniteScroll: true,
             textAlign: "left",
             headerFont: "Inter",
@@ -688,6 +691,9 @@
             layoutStyle: normalizeChoice(carousel.layout_style, ["fit", "custom_width"], fallback.layoutStyle),
             visibleCount: clampNumber(carousel.visible_count || carousel.grid_columns, fallback.visibleCount, 1, 8),
             cardGap: clampNumber(carousel.card_gap, fallback.cardGap, 0, 80),
+            blockSpacingTop: clampNumber(carousel.block_spacing_top, fallback.blockSpacingTop, 0, 200),
+            blockSpacingBottom: clampNumber(carousel.block_spacing_bottom, fallback.blockSpacingBottom, 0, 200),
+            textGap: clampNumber(carousel.text_gap, fallback.textGap, 0, 120),
             infiniteScroll: carousel.infinite_scroll === undefined ? fallback.infiniteScroll : (carousel.infinite_scroll !== 0 && carousel.infinite_scroll !== false),
             textAlign: normalizeChoice(carousel.text_align, ["left", "center", "right"], fallback.textAlign),
             headerFont: cssFontValue(carousel.header_font || fallback.headerFont),
@@ -714,7 +720,7 @@
                 return {
                     key,
                     id: String(card.id || key),
-                    title: String(card.title || "Carousel card"),
+                    title: String(card.title || ""),
                     eyebrow: String(card.description || carousel.header || ""),
                     description: String(card.description || ""),
                     contentType: String(card.content_type || "standard"),
@@ -1294,7 +1300,7 @@
     }
 
     function renderStandaloneTextBlock(block, config) {
-        const text = config.sectionText || block.header || "";
+        const text = config.sectionText || "";
         if (!text) return "";
         return `
             <section class="demo-carousel-block demo-text-layout-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" style="${carouselBlockStyle(config)}">
@@ -1308,6 +1314,7 @@
         const railId = `carouselRail-${cssIdent(block.id)}`;
         const viewportId = `carouselViewport-${cssIdent(block.id)}`;
         const railClass = block.slot === "compact" ? "compact-demo-rail" : "featured-demo-rail";
+        const hasHeadingText = !!(block.eyebrow || block.header);
         const cardMarkup = cards.map((card, index) => {
             return block.slot === "compact"
                 ? renderCompactDemoCard(card, config)
@@ -1316,10 +1323,10 @@
         return `
             <section class="demo-carousel-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" style="${carouselBlockStyle(config)}">
                 ${config.sectionText ? `<div class="carousel-text-block">${escapeHtml(config.sectionText)}</div>` : ""}
-                <div class="carousel-heading">
+                <div class="carousel-heading ${hasHeadingText ? "" : "is-controls-only"}">
                     <div>
                         ${block.eyebrow ? `<span class="eyebrow">${escapeHtml(block.eyebrow)}</span>` : ""}
-                        <h3>${escapeHtml(block.header || "Carousel")}</h3>
+                        ${block.header ? `<h3>${escapeHtml(block.header)}</h3>` : ""}
                     </div>
                     <div class="carousel-controls" aria-label="Carousel controls">
                         ${carouselButtonSvg(-1, viewportId)}
@@ -1352,7 +1359,10 @@
             `--carousel-copy-size:${config.sectionTextSize}px`,
             `--carousel-copy-color:${config.sectionTextColor}`,
             `--carousel-copy-align:${config.sectionTextAlign}`,
-            `--carousel-copy-max-width:${config.sectionTextMaxWidth}`
+            `--carousel-copy-max-width:${config.sectionTextMaxWidth}`,
+            `--carousel-block-top:${config.blockSpacingTop}px`,
+            `--carousel-block-bottom:${config.blockSpacingBottom}px`,
+            `--carousel-text-gap:${config.textGap}px`
         ].join(";");
     }
 
@@ -1402,6 +1412,9 @@
         block.style.setProperty("--carousel-copy-color", config.sectionTextColor);
         block.style.setProperty("--carousel-copy-align", config.sectionTextAlign);
         block.style.setProperty("--carousel-copy-max-width", config.sectionTextMaxWidth);
+        block.style.setProperty("--carousel-block-top", `${config.blockSpacingTop}px`);
+        block.style.setProperty("--carousel-block-bottom", `${config.blockSpacingBottom}px`);
+        block.style.setProperty("--carousel-text-gap", `${config.textGap}px`);
 
         applyCarouselTextBlock(document.getElementById("carouselTextBlock"), config);
         applyCarouselTextBlock(document.getElementById("compactCarouselTextBlock"), compactCarouselConfig || defaultCarouselRuntimeConfig("compact"));
@@ -1432,6 +1445,7 @@
         node.style.setProperty("--carousel-copy-color", config.sectionTextColor);
         node.style.setProperty("--carousel-copy-align", config.sectionTextAlign);
         node.style.setProperty("--carousel-copy-max-width", config.sectionTextMaxWidth);
+        node.style.setProperty("--carousel-text-gap", `${config.textGap}px`);
     }
 
     function alignToJustify(value) {
@@ -1550,8 +1564,8 @@
                 ${renderCarouselCardMedia(card, "featured")}
                 <div class="demo-card-meta">
                     <div>
-                        <h4>${escapeHtml(card.title)}</h4>
-                        <span>${escapeHtml(card.eyebrow)}</span>
+                        ${card.title ? `<h4>${escapeHtml(card.title)}</h4>` : ""}
+                        ${card.eyebrow ? `<span>${escapeHtml(card.eyebrow)}</span>` : ""}
                     </div>
                     <button type="button">${escapeHtml(carouselButtonLabel(card))}</button>
                 </div>
@@ -1565,16 +1579,15 @@
             <article class="compact-demo-card" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" data-text-position="${escapeHtml(card.textPosition)}" style="${carouselCardStyle(card, "compact", config)};--compact-bg: ${escapeHtml(card.bg || carouselGradient(card.colorHex, 0))}">
                 <div class="compact-card-media">${renderCarouselCardMedia(card, "compact")}</div>
                 <div class="compact-card-copy">
-                    <b>${escapeHtml(card.title)}</b>
-                    <span>${escapeHtml(card.eyebrow || carouselButtonLabel(card))}</span>
+                    ${card.title ? `<b>${escapeHtml(card.title)}</b>` : ""}
+                    ${card.eyebrow ? `<span>${escapeHtml(card.eyebrow)}</span>` : ""}
                 </div>
             </article>
         `;
     }
 
     function carouselCardStyle(card, slot, config = null) {
-        const activeConfig = config || (slot === "compact" ? compactCarouselConfig : featuredCarouselConfig);
-        const width = activeConfig?.layoutStyle === "custom_width" || cardHasCustomWidth(card, slot) ? card.width : "var(--fit-card-width)";
+        const width = cardHasCustomWidth(card, slot) ? card.width : "var(--fit-card-width)";
         return [
             `--card-width:${width}`,
             `--card-height:${card.heightPx}`,
@@ -1591,12 +1604,12 @@
 
     function cardHasCustomWidth(card, slot) {
         const fallback = slot === "compact" ? "220px" : "400px";
-        return String(card.width || "").trim().toLowerCase() !== fallback;
+        return normalizeCssLength(card.width, fallback) !== fallback;
     }
 
     function renderCarouselCardMedia(card, size) {
         if (card.contentType === "image" && card.imageUrl) {
-            return `<img class="carousel-card-image" src="${escapeHtml(resolveAssetUrl(card.imageUrl))}" alt="${escapeHtml(card.title)} thumbnail" loading="lazy" decoding="async">`;
+            return `<img class="carousel-card-image" src="${escapeHtml(resolveAssetUrl(card.imageUrl))}" alt="${escapeHtml(card.title || "Carousel card")} thumbnail" loading="lazy" decoding="async">`;
         }
         if (card.contentType === "iframe" && card.iframeUrl) {
             return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(resolveAssetUrl(card.iframeUrl))}" loading="lazy" sandbox="allow-scripts"></iframe>`;
