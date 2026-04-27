@@ -1,8 +1,10 @@
 (function () {
     const pageSize = 9;
+    const PINNED_STORAGE_KEY = "gradstudio_learn_pinned_v1";
     let activeTopic = "All";
     let activePage = 1;
     let query = "";
+    let pinnedItems = loadPinnedItems();
 
     const htmlDemoCards = [
         {
@@ -160,28 +162,33 @@
             : 'https://api.gradstudio.org';
     const LEARN_CAROUSEL_STORAGE_KEY = "gradstudio_learn_carousels_dev";
     const USE_LOCAL_CAROUSEL_CACHE = new URLSearchParams(window.location.search).has("localCarousel");
-    const API_CACHE_VERSION = "20260427-font-spacing-v2";
+    const ADMIN_REFRESH_STORAGE_KEY = "lp_admin_refresh";
+    const API_CACHE_VERSION = "20260427-carousel-live-v2";
     const API_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     const CATALOG_API_CACHE_KEY = `${API_CACHE_VERSION}:catalog`;
     const CAROUSEL_API_CACHE_KEY = `${API_CACHE_VERSION}:carousels`;
     const COURSE_API_CACHE_PREFIX = `${API_CACHE_VERSION}:course:`;
 
     const _apiCourseCache = new Map();
+    let adminRefreshPromise = null;
 
-    async function fetchCourseFromAPI(courseId) {
-        if (_apiCourseCache.has(courseId)) return _apiCourseCache.get(courseId);
+    async function fetchCourseFromAPI(courseId, options = {}) {
+        const preferCache = options.preferCache === true;
+        if (preferCache && _apiCourseCache.has(courseId)) return _apiCourseCache.get(courseId);
 
         const cached = readApiCache(`${COURSE_API_CACHE_PREFIX}${courseId}`);
-        if (cached) {
+        if (preferCache && cached) {
             _apiCourseCache.set(courseId, cached);
             return cached;
         }
 
         try {
-            const resp = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(courseId)}`);
-            if (!resp.ok) return null;
+            const resp = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(courseId)}?t=${Date.now()}`, {
+                cache: "no-store"
+            });
+            if (!resp.ok) throw new Error(`Course API failed: ${resp.status}`);
             const data = await resp.json();
-            if (!data || !data.sections) return null;
+            if (!data || !data.sections) throw new Error("Course API returned no sections.");
 
             /* Transform API sections+simulations into lessons the player understands */
             const lessons = [];
@@ -223,15 +230,20 @@
             return result;
         } catch (err) {
             console.warn('API fetch failed for', courseId, err);
+            if (_apiCourseCache.has(courseId)) return _apiCourseCache.get(courseId);
+            if (cached) {
+                _apiCourseCache.set(courseId, cached);
+                return cached;
+            }
             return null;
         }
     }
 
-    async function hydrateCourseContent(course) {
-        if (!course || course._contentHydrated) return;
+    async function hydrateCourseContent(course, forceRefresh = false) {
+        if (!course || (course._contentHydrated && !forceRefresh)) return;
         course._contentHydrated = true;
 
-        const primary = await fetchCourseFromAPI(course.id);
+        const primary = await fetchCourseFromAPI(course.id, { preferCache: !forceRefresh });
         if (primary?.apiDescription && !course.description) {
             course.description = primary.apiDescription;
         }
@@ -242,7 +254,7 @@
 
         const children = findContentChildren(course.id);
         for (const child of children) {
-            const childData = await fetchCourseFromAPI(child.id);
+            const childData = await fetchCourseFromAPI(child.id, { preferCache: !forceRefresh });
             if (childData && childData.lessons.length) {
                 applyApiCourseContent(course, childData, child);
                 return;
@@ -274,8 +286,8 @@
 
     async function loadCatalogFromAPI() {
         const [categoryResp, courseResp] = await Promise.all([
-            fetch(`${API_BASE}/api/categories`),
-            fetch(`${API_BASE}/api/courses?admin=1`)
+            fetch(`${API_BASE}/api/categories?t=${Date.now()}`, { cache: "no-store" }),
+            fetch(`${API_BASE}/api/courses?admin=1&t=${Date.now()}`, { cache: "no-store" })
         ]);
 
         if (!categoryResp.ok || !courseResp.ok) {
@@ -459,9 +471,17 @@
     }
 
     function hashString(value) {
-        return String(value || "").split("").reduce((hash, char) => {
-            return ((hash << 5) - hash + char.charCodeAt(0)) | 0;
-        }, 0);
+        const text = String(value || "");
+        let hash = 0;
+        for (let i = 0; i < text.length; i += 1) {
+            hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+        }
+        return hash;
+    }
+
+    function signatureHash(value) {
+        const text = String(value || "");
+        return `${text.length}:${hashString(text)}`;
     }
 
     async function loadCarouselsFromAPI() {
@@ -564,6 +584,236 @@
         }
     }
 
+    function clearApiCache() {
+        _apiCourseCache.clear();
+        courses.forEach((course) => {
+            delete course._contentHydrated;
+            delete course._apiLessons;
+            delete course._apiSections;
+            delete course._contentSourceCourseId;
+            delete course._contentSourceTitle;
+        });
+
+        try {
+            for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+                const key = localStorage.key(index);
+                if (key && key.startsWith(`${API_CACHE_VERSION}:`)) {
+                    localStorage.removeItem(key);
+                }
+            }
+        } catch (_) {
+            /* Local storage may be unavailable; live fetch still works. */
+        }
+    }
+
+    async function refreshAfterAdminUpdate() {
+        if (adminRefreshPromise) return adminRefreshPromise;
+        clearApiCache();
+        adminRefreshPromise = (async () => {
+            try {
+                await loadCatalogFromAPI();
+            } catch (err) {
+                console.warn("Live catalog refresh after admin update failed.", err);
+            }
+            try {
+                await loadCarouselsFromAPI();
+            } catch (err) {
+                console.warn("Live carousel refresh after admin update failed.", err);
+            }
+            render();
+            await handleRoute();
+        })().finally(() => {
+            adminRefreshPromise = null;
+        });
+        return adminRefreshPromise;
+    }
+
+    function loadPinnedItems() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || "[]");
+            return Array.isArray(parsed) ? parsed.filter((item) => item && item.key && item.type) : [];
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function savePinnedItems() {
+        try {
+            localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinnedItems));
+        } catch (_) {
+            /* Pinning is local enhancement; ignore storage failures. */
+        }
+        updatePinnedCounts();
+    }
+
+    function updatePinnedCounts() {
+        document.querySelectorAll("[data-pinned-count]").forEach((node) => {
+            node.textContent = pinnedItems.length.toString();
+        });
+        document.querySelectorAll("[data-pin-course]").forEach((button) => {
+            const key = pinnedKey("course", button.dataset.pinCourse);
+            button.classList.toggle("is-pinned", isPinned(key));
+            button.setAttribute("aria-pressed", String(isPinned(key)));
+        });
+        document.querySelectorAll("[data-pin-topic]").forEach((button) => {
+            const key = pinnedKey("topic", button.dataset.pinCourseId, button.dataset.pinTopic);
+            button.classList.toggle("is-pinned", isPinned(key));
+            button.setAttribute("aria-pressed", String(isPinned(key)));
+        });
+    }
+
+    function pinnedKey(type, id, index = "") {
+        return `${type}:${id}:${index}`;
+    }
+
+    function isPinned(key) {
+        return pinnedItems.some((item) => item.key === key);
+    }
+
+    function togglePinned(item) {
+        if (!item || !item.key) return;
+        const existingIndex = pinnedItems.findIndex((pinned) => pinned.key === item.key);
+        if (existingIndex >= 0) pinnedItems.splice(existingIndex, 1);
+        else pinnedItems.unshift({ ...item, savedAt: Date.now() });
+        savePinnedItems();
+    }
+
+    function coursePinItem(course) {
+        return {
+            key: pinnedKey("course", course.id),
+            type: "course",
+            courseId: course.id,
+            title: course.title,
+            meta: course.topicFolder || course.tags?.[0] || "Course"
+        };
+    }
+
+    function topicPinItem(course, lesson, lessonIndex) {
+        return {
+            key: pinnedKey("topic", course.id, lessonIndex),
+            type: "topic",
+            courseId: course.id,
+            lessonIndex: Number(lessonIndex) || 0,
+            title: cleanLessonTitle(lesson?.title || `Module ${Number(lessonIndex) + 1}`),
+            meta: course.title
+        };
+    }
+
+    function showPinnedPage(updateUrl = true) {
+        const infoPage = document.getElementById("infoPage");
+        const authPage = document.getElementById("authPage");
+        const detail = document.getElementById("courseDetail");
+        const player = document.getElementById("coursePlayer");
+        const footer = document.querySelector(".site-footer");
+        const topbar = document.querySelector(".topbar");
+        if (!infoPage) return;
+
+        infoPage.innerHTML = buildPinnedPage();
+        bindPinnedPage(infoPage);
+        infoPage.hidden = false;
+        if (authPage) authPage.hidden = true;
+        if (detail) detail.hidden = true;
+        if (player) player.hidden = true;
+        setHomeContentHidden(true);
+        if (footer) footer.hidden = false;
+        if (topbar) topbar.hidden = false;
+        document.body.classList.toggle("is-course-player", false);
+        updateNavState("");
+        updatePinnedCounts();
+        if (updateUrl) history.pushState({ view: "pinned" }, "", "#pinned");
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function buildPinnedPage() {
+        const cards = pinnedItems.length ? pinnedItems.map((item) => {
+            const course = courseLookup.get(item.courseId);
+            const tags = course?.tags?.length ? course.tags : [item.type === "topic" ? "Topic" : "Course"];
+            return `
+                <article class="course-card pinned-card" role="button" tabindex="0" data-pinned-card="${escapeHtml(item.key)}" aria-label="Open ${escapeHtml(item.title)}">
+                    <div class="card-media" data-thumbnail="${escapeHtml(course?.thumbnail?.type || "image")}" data-pinned-media-course-id="${escapeHtml(item.courseId)}">
+                        <span class="course-label">${item.type === "topic" ? "TOPIC" : "COURSE"}</span>
+                    </div>
+                    <div class="card-body">
+                        <div>
+                            <h2 class="course-title">${escapeHtml(item.title)}</h2>
+                            <div class="course-meta">
+                                <span>${escapeHtml(item.meta || "Pinned")}</span>
+                            </div>
+                        </div>
+                        <div class="course-card-footer">
+                            <div class="tag-list">
+                                ${tags.slice(0, 2).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+                            </div>
+                            <button class="course-pin-icon is-pinned" type="button" data-pinned-remove="${escapeHtml(item.key)}" aria-label="Unpin ${escapeHtml(item.title)}">${pinIconSvg()}</button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }).join("") : `
+            <div class="empty-state">No pinned courses or topics yet.</div>
+        `;
+
+        return `
+            <section class="info-page-hero" aria-labelledby="pinnedPageTitle">
+                <div class="section-copy">
+                    <span class="eyebrow">My pinned</span>
+                    <h1 id="pinnedPageTitle">Pinned courses and topics</h1>
+                    <p>Courses and topics you pin stay here for quick access.</p>
+                </div>
+            </section>
+            <div class="pinned-grid">${cards}</div>
+        `;
+    }
+
+    function bindPinnedPage(root) {
+        applyPinnedThumbnails(root);
+
+        root.querySelectorAll("[data-pinned-card]").forEach((card) => {
+            card.addEventListener("click", () => openPinnedItem(card.dataset.pinnedCard));
+            card.addEventListener("keydown", (event) => {
+                if (event.target.closest("button")) return;
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openPinnedItem(card.dataset.pinnedCard);
+                }
+            });
+        });
+
+        root.querySelectorAll("[data-pinned-remove]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                pinnedItems = pinnedItems.filter((item) => item.key !== button.dataset.pinnedRemove);
+                savePinnedItems();
+                showPinnedPage(false);
+            });
+        });
+    }
+
+    function applyPinnedThumbnails(root) {
+        root.querySelectorAll("[data-pinned-media-course-id]").forEach((media) => {
+            const course = courseLookup.get(media.dataset.pinnedMediaCourseId);
+            if (course) applyCourseThumbnail(media, course);
+        });
+    }
+
+    function bindPinnedOpenButtons(root = document) {
+        root.querySelectorAll("[data-open-pinned]").forEach((button) => {
+            if (button.dataset.pinnedBound === "true") return;
+            button.dataset.pinnedBound = "true";
+            button.addEventListener("click", () => showPinnedPage());
+        });
+    }
+
+    function openPinnedItem(key) {
+        const item = pinnedItems.find((pinned) => pinned.key === key);
+        if (!item) return;
+        if (item.type === "topic") {
+            openLesson(item.courseId, item.lessonIndex);
+            return;
+        }
+        openCourse(item.courseId);
+    }
+
     function currentRenderSignature() {
         return JSON.stringify({
             topics,
@@ -604,7 +854,8 @@
             card.textAlign,
             card.contentType,
             card.imageUrl,
-            card.iframeUrl
+            card.iframeUrl,
+            signatureHash(card.contentHtml || "")
         ].join(":");
     }
 
@@ -1056,6 +1307,7 @@
     function render() {
         renderTopics();
         renderDemoCarousels();
+        updatePinnedCounts();
 
         const filtered = getFilteredCourses();
         const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -1100,7 +1352,10 @@
         clearCatalogFilters(topic);
         setDetailVisible(false);
         updateNavState("courses");
-        if (updateUrl) history.pushState({ view: "courses", topic }, "", "#courses");
+        if (updateUrl) {
+            const normalizedTopic = topic && topic !== "All" ? `/${encodeURIComponent(topic)}` : "";
+            history.pushState({ view: "courses", topic }, "", `#courses${normalizedTopic}`);
+        }
         jumpToSection("courses");
     }
 
@@ -1116,15 +1371,26 @@
         });
     }
 
+    function setHomeContentHidden(isHidden) {
+        const hero = document.getElementById("home");
+        const catalog = document.getElementById("courses");
+        const carouselStack = document.getElementById("demoCarouselBlocks");
+
+        if (hero) hero.hidden = isHidden;
+        if (catalog) catalog.hidden = isHidden;
+        if (carouselStack) carouselStack.hidden = isHidden;
+        document.querySelectorAll(".demo-carousel-block").forEach((block) => {
+            block.hidden = isHidden;
+        });
+    }
+
     function showInfoPage(pageKey, updateUrl = true) {
         const normalizedKey = normalizeInfoPageKey(pageKey);
         const page = buildInfoPage(normalizedKey);
         const infoPage = document.getElementById("infoPage");
+        const authPage = document.getElementById("authPage");
         const detail = document.getElementById("courseDetail");
         const player = document.getElementById("coursePlayer");
-        const hero = document.getElementById("home");
-        const catalog = document.getElementById("courses");
-        const carousel = document.querySelector(".demo-carousel-block");
         const footer = document.querySelector(".site-footer");
         const topbar = document.querySelector(".topbar");
 
@@ -1132,11 +1398,10 @@
 
         infoPage.innerHTML = page;
         infoPage.hidden = false;
+        if (authPage) authPage.hidden = true;
         if (detail) detail.hidden = true;
         if (player) player.hidden = true;
-        if (hero) hero.hidden = true;
-        if (catalog) catalog.hidden = true;
-        if (carousel) carousel.hidden = true;
+        setHomeContentHidden(true);
         if (footer) footer.hidden = false;
         if (topbar) topbar.hidden = false;
         document.body.classList.toggle("is-course-player", false);
@@ -1144,6 +1409,142 @@
 
         if (updateUrl) history.pushState({ view: normalizedKey }, "", `#${normalizedKey}`);
         window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function showAuthPage(mode = "signup", updateUrl = true, routeKey = "") {
+        const normalizedMode = mode === "signin" ? "signin" : "signup";
+        const authPage = document.getElementById("authPage");
+        const infoPage = document.getElementById("infoPage");
+        const detail = document.getElementById("courseDetail");
+        const player = document.getElementById("coursePlayer");
+        const footer = document.querySelector(".site-footer");
+        const topbar = document.querySelector(".topbar");
+
+        if (!authPage) return;
+
+        authPage.innerHTML = buildAuthPage(normalizedMode);
+        bindAuthPage(authPage, normalizedMode);
+        authPage.hidden = false;
+        if (infoPage) infoPage.hidden = true;
+        if (detail) detail.hidden = true;
+        if (player) player.hidden = true;
+        setHomeContentHidden(true);
+        if (footer) footer.hidden = false;
+        if (topbar) topbar.hidden = false;
+        document.body.classList.toggle("is-course-player", false);
+        updateNavState("");
+
+        if (updateUrl) history.pushState({ view: normalizedMode }, "", `#${routeKey || normalizedMode}`);
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function buildAuthPage(mode) {
+        const isSignup = mode === "signup";
+        return `
+            <section class="auth-layout" aria-labelledby="authPageTitle">
+                <div class="auth-copy">
+                    <span class="eyebrow">Get Started</span>
+                    <h1 id="authPageTitle">Keep your learning path organized.</h1>
+                    <p>Sign up to save bookmarks and keep pinned courses or topics one click away.</p>
+                    <ul class="auth-benefits">
+                        <li>Save bookmarks for courses and individual walkthrough topics.</li>
+                        <li>Pin courses or topics from the Pinned button next to search.</li>
+                        <li>Return to your chosen web development demos without rebuilding the same path.</li>
+                    </ul>
+                </div>
+                <aside class="auth-panel" aria-label="Account forms">
+                    <div class="auth-tabs" role="tablist" aria-label="Account action">
+                        <button class="auth-tab ${isSignup ? "is-active" : ""}" type="button" data-auth-tab="signup">Sign up</button>
+                        <button class="auth-tab ${!isSignup ? "is-active" : ""}" type="button" data-auth-tab="signin">Sign in</button>
+                    </div>
+                    <form class="auth-form" data-auth-form="${mode}">
+                        <h2>${isSignup ? "Create your account" : "Sign in"}</h2>
+                        ${isSignup ? `
+                            <div class="auth-field">
+                                <label for="authName">Name</label>
+                                <input id="authName" name="display_name" autocomplete="name" placeholder="Your name">
+                            </div>
+                        ` : ""}
+                        <div class="auth-field">
+                            <label for="authEmail">Email</label>
+                            <input id="authEmail" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+                        </div>
+                        <div class="auth-field">
+                            <label for="authPassword">Password</label>
+                            <input id="authPassword" name="password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" required placeholder="Minimum 8 characters">
+                        </div>
+                        <button class="auth-submit" type="submit">${isSignup ? "Sign up" : "Sign in"}</button>
+                        <p class="auth-message" data-auth-message>${isSignup ? "Already have an account? Use the Sign in tab." : "New here? Use the Sign up tab."}</p>
+                    </form>
+                </aside>
+            </section>
+        `;
+    }
+
+    function bindAuthPage(authPage, mode) {
+        authPage.querySelectorAll("[data-auth-tab]").forEach((button) => {
+            button.addEventListener("click", () => {
+                showAuthPage(button.dataset.authTab, true);
+            });
+        });
+
+        const form = authPage.querySelector("[data-auth-form]");
+        if (form) {
+            form.addEventListener("submit", (event) => submitAuthForm(event, mode));
+        }
+    }
+
+    async function submitAuthForm(event, mode) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const submit = form.querySelector(".auth-submit");
+        const message = form.querySelector("[data-auth-message]");
+        const formData = new FormData(form);
+        const isSignup = mode === "signup";
+        const payload = {
+            email: String(formData.get("email") || "").trim(),
+            password: String(formData.get("password") || "")
+        };
+        if (isSignup) payload.display_name = String(formData.get("display_name") || "").trim();
+
+        if (submit) {
+            submit.disabled = true;
+            submit.textContent = isSignup ? "Creating account..." : "Signing in...";
+        }
+        if (message) {
+            message.classList.remove("is-error");
+            message.textContent = "";
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/api/auth/${isSignup ? "register" : "login"}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.accessToken) {
+                const error = data.error;
+                throw new Error(typeof error === "string" ? error : error?.message || "Authentication failed.");
+            }
+
+            localStorage.setItem("lp_auth_token", data.accessToken);
+            localStorage.setItem("token", data.accessToken);
+            localStorage.setItem("lp_is_logged_in", "true");
+            localStorage.setItem("gradstudio_user", JSON.stringify(data.user || { email: payload.email }));
+
+            if (message) message.textContent = isSignup ? "Account created. Your pinned items are saved on this browser." : "Signed in. Your pinned items are ready.";
+        } catch (err) {
+            if (message) {
+                message.classList.add("is-error");
+                message.textContent = err.message || "Could not complete this request.";
+            }
+        } finally {
+            if (submit) {
+                submit.disabled = false;
+                submit.textContent = isSignup ? "Sign up" : "Sign in";
+            }
+        }
     }
 
     function normalizeInfoPageKey(pageKey) {
@@ -1155,74 +1556,83 @@
         const pages = {
             about: {
                 eyebrow: "About GradStudio",
-                title: "A practical learning platform for technical concepts.",
-                body: "GradStudio is built to make complex engineering, AI, cloud, data, and software topics easier to understand through structured lessons, guided demos, and focused refreshers.",
-                cards: [
-                    ["Clear Foundations", "Lessons focus on core intuition first, then move into implementation details so beginners can follow without feeling lost."],
-                    ["Interactive Practice", "Courses use demos, guided modules, and visual explanations to help learners connect theory with real system behavior."],
-                    ["Refresh Anytime", "Short modules make it easy to revisit topics, strengthen prior knowledge, and prepare for projects, interviews, or coursework."]
+                title: "A practical learning platform for technical concepts",
+                body: "GradStudio helps learners build real understanding in engineering, AI, cloud, data, and software topics through structured lessons, guided demos, and focused refreshers.",
+                sections: [
+                    ["What GradStudio Does", "GradStudio breaks technical topics into clear learning paths. Each course is organized around foundations, visual examples, practical demos, and review points so readers can move from intuition to implementation without guessing."],
+                    ["How Courses Are Designed", "Lessons favor direct explanations, short modules, and concrete examples. The goal is to make it easy to understand the concept, see it applied, and return later when a refresher is needed."],
+                    ["Who It Is For", "GradStudio is built for students, early engineers, career switchers, and working developers who want stronger fundamentals without digging through scattered tutorials."]
                 ]
             },
             contact: {
                 eyebrow: "Contact",
-                title: "Questions, feedback, or support.",
-                body: "For course questions, technical issues, or platform feedback, reach out directly and include the course or module name when relevant.",
-                contact: true
+                title: "Questions, feedback, or support",
+                body: "Use this page for course questions, platform feedback, technical problems, or policy questions.",
+                contact: true,
+                sections: [
+                    ["Support Email", "Email support@gradstudio.org and include the course name, lesson name, browser, and a short description of what happened."],
+                    ["Course Feedback", "For course content corrections or improvement requests, include the exact course and lesson so the issue can be reviewed quickly."],
+                    ["Account Or Access Issues", "For access problems, include the email address used for GradStudio and the page where the issue occurs."]
+                ]
             },
             legal: {
                 eyebrow: "Legal",
-                title: "Platform policies and learner protections.",
-                body: "Review the GradStudio policies that explain privacy, terms of use, cookies, and how platform data is handled.",
-                cards: [
-                    ["Privacy", "How learner and platform data is handled, stored, and protected."],
-                    ["Terms", "The rules for using GradStudio lessons, demos, accounts, and platform content."],
-                    ["Cookies", "How cookies and local storage support preferences, sessions, and performance."]
+                title: "Platform policies and learner protections",
+                body: "This page summarizes the policy areas that govern GradStudio content, platform access, learner data, and browser storage.",
+                sections: [
+                    ["Privacy", "GradStudio handles learner and platform data to provide course access, support learning features, troubleshoot issues, and improve course quality."],
+                    ["Terms", "Learners are expected to use the platform responsibly, respect course content, and avoid activity that disrupts services or other users."],
+                    ["Cookies", "Cookies and local browser storage may be used for sessions, preferences, cached catalog data, and platform performance."],
+                    ["Contact", "Questions about legal, privacy, terms, or cookie policies can be sent to support@gradstudio.org."]
                 ]
             },
             privacy: {
                 eyebrow: "Privacy",
                 title: "Privacy Policy",
                 body: "GradStudio collects only the information needed to operate learning features, support accounts, improve course quality, and keep the platform secure.",
-                cards: [
-                    ["Information Used", "Course activity, basic account details, and technical logs may be used to provide platform functionality and support."],
-                    ["Data Protection", "Platform data is handled with access controls and infrastructure safeguards appropriate for a learning system."],
-                    ["Contact", "Privacy questions can be sent to support@gradstudio.org."]
+                sections: [
+                    ["Information We Use", "Course activity, account details, support messages, and technical logs may be used to provide platform functionality, troubleshoot problems, and improve the learner experience."],
+                    ["How Information Is Protected", "Platform data is handled with access controls and infrastructure safeguards appropriate for a learning system. Access is limited to what is needed to operate and support the service."],
+                    ["How Information Is Used", "Data may be used to maintain course progress, load content, diagnose errors, improve performance, prevent abuse, and respond to learner requests."],
+                    ["Privacy Questions", "Privacy questions or requests can be sent to support@gradstudio.org."]
                 ]
             },
             terms: {
                 eyebrow: "Terms",
                 title: "Terms of Service",
                 body: "By using GradStudio, learners agree to use the platform responsibly, respect course content, and avoid activity that disrupts services or other users.",
-                cards: [
-                    ["Learning Content", "Course materials and demos are provided for education and practice."],
-                    ["Acceptable Use", "Do not misuse platform access, attempt unauthorized access, or interfere with service operation."],
-                    ["Updates", "Terms may be updated as the platform evolves."]
+                sections: [
+                    ["Learning Content", "Course materials, demos, exercises, and explanations are provided for education and practice. Content may be updated as courses improve."],
+                    ["Acceptable Use", "Do not misuse platform access, attempt unauthorized access, scrape protected content, interfere with service operation, or disrupt other learners."],
+                    ["Accounts And Access", "Learners are responsible for using account access appropriately and for reporting access issues or suspected misuse."],
+                    ["Updates", "Terms may be updated as the platform evolves. Continued use of GradStudio means the current terms apply."]
                 ]
             },
             cookies: {
                 eyebrow: "Cookies",
                 title: "Cookie Policy",
                 body: "GradStudio uses cookies and local browser storage to keep the learning experience fast, functional, and consistent between visits.",
-                cards: [
-                    ["Preferences", "Browser storage may remember UI preferences, cached catalog data, and local learning state."],
-                    ["Performance", "Caching helps pages and thumbnails load faster without repeating the same network work."],
-                    ["Control", "You can clear browser storage or cookies from your browser settings."]
+                sections: [
+                    ["Functional Storage", "Browser storage may remember UI preferences, cached catalog data, course thumbnails, and local learning state so the site can load reliably."],
+                    ["Performance", "Caching helps pages, demos, and thumbnails load faster without repeating the same network work on every visit."],
+                    ["Session Support", "Cookies or local storage may support sign-in state, security checks, and normal platform operation."],
+                    ["Your Control", "You can clear cookies or browser storage from your browser settings. Some GradStudio features may reload data after storage is cleared."]
                 ]
             }
         };
         const page = pages[pageKey] || pages.about;
-        const cards = page.cards ? `
-            <div class="info-grid">
-                ${page.cards.map(([title, body]) => `
-                    <article>
-                        <h3>${escapeHtml(title)}</h3>
+        const sections = Array.isArray(page.sections) ? `
+            <article class="info-document" aria-label="${escapeHtml(page.title)} details">
+                ${page.sections.map(([title, body]) => `
+                    <section class="info-document-section">
+                        <h2>${escapeHtml(title)}</h2>
                         <p>${escapeHtml(body)}</p>
-                    </article>
+                    </section>
                 `).join("")}
-            </div>
+            </article>
         ` : "";
         const contact = page.contact ? `
-            <div class="contact-card">
+            <div class="info-contact-card">
                 <span>Email</span>
                 <a href="mailto:support@gradstudio.org">support@gradstudio.org</a>
             </div>
@@ -1237,7 +1647,7 @@
                 </div>
                 ${contact}
             </section>
-            ${cards}
+            ${sections}
         `;
     }
 
@@ -1321,7 +1731,7 @@
                 : renderFeatureDemoCard(card, index % 2 === 0 ? "is-primary" : "is-secondary", config);
         }).join("");
         return `
-            <section class="demo-carousel-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" style="${carouselBlockStyle(config)}">
+            <section class="demo-carousel-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" data-infinite="${config.infiniteScroll ? "true" : "false"}" style="${carouselBlockStyle(config)}">
                 ${config.sectionText ? `<div class="carousel-text-block">${escapeHtml(config.sectionText)}</div>` : ""}
                 <div class="carousel-heading ${hasHeadingText ? "" : "is-controls-only"}">
                     <div>
@@ -1376,10 +1786,11 @@
 
     function bindLayoutScrollButtons(root) {
         root.querySelectorAll("[data-layout-scroll]").forEach((button) => {
-            button.addEventListener("click", () => {
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
                 const viewport = document.getElementById(button.dataset.layoutScroll);
                 if (!viewport) return;
-                viewport.scrollBy({ left: Number(button.dataset.scrollDir || 1) * viewport.clientWidth * 0.82, behavior: "smooth" });
+                slideLayoutViewport(viewport, Number(button.dataset.scrollDir || 1));
             });
         });
     }
@@ -1387,9 +1798,62 @@
     function bindLayoutSwipe(root) {
         root.querySelectorAll(".carousel-viewport").forEach((viewport) => {
             addSwipeHandlers(viewport, (dir) => {
-                viewport.scrollBy({ left: dir * viewport.clientWidth * 0.82, behavior: "smooth" });
+                slideLayoutViewport(viewport, dir);
             });
+            bindLayoutWheel(viewport);
         });
+    }
+
+    function slideLayoutViewport(viewport, dir) {
+        const rail = viewport.querySelector(".featured-demo-rail, .compact-demo-rail");
+        const maxLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+        if (!rail || maxLeft <= 1) return;
+
+        const infinite = viewport.closest(".demo-carousel-block")?.dataset.infinite === "true";
+        const step = layoutScrollStep(viewport, rail);
+        const atStart = viewport.scrollLeft <= 2;
+        const atEnd = viewport.scrollLeft >= maxLeft - 2;
+        let nextLeft;
+
+        if (dir > 0 && atEnd) {
+            nextLeft = infinite ? 0 : maxLeft;
+        } else if (dir < 0 && atStart) {
+            nextLeft = infinite ? maxLeft : 0;
+        } else {
+            nextLeft = Math.min(maxLeft, Math.max(0, viewport.scrollLeft + (dir < 0 ? -step : step)));
+        }
+
+        viewport.scrollTo({ left: nextLeft, behavior: "smooth" });
+    }
+
+    function layoutScrollStep(viewport, rail) {
+        const firstCard = rail.firstElementChild;
+        const styles = window.getComputedStyle(rail);
+        const gap = parseFloat(styles.columnGap || styles.gap || "0") || 0;
+        if (!firstCard) return viewport.clientWidth * 0.82;
+        return Math.max(1, firstCard.getBoundingClientRect().width + gap);
+    }
+
+    function bindLayoutWheel(viewport) {
+        if (viewport.dataset.wheelBound === "true") return;
+        viewport.dataset.wheelBound = "true";
+
+        viewport.addEventListener("wheel", (event) => {
+            const rawDelta = Math.abs(event.deltaX) >= Math.abs(event.deltaY) || event.shiftKey
+                ? (event.deltaX || event.deltaY)
+                : 0;
+            if (!rawDelta) return;
+
+            const maxLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+            if (maxLeft <= 1) return;
+
+            const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientWidth : 1;
+            const nextLeft = Math.min(maxLeft, Math.max(0, viewport.scrollLeft + rawDelta * multiplier));
+            if (nextLeft === viewport.scrollLeft) return;
+
+            event.preventDefault();
+            viewport.scrollLeft = nextLeft;
+        }, { passive: false });
     }
 
     function cssIdent(value) {
@@ -1462,7 +1926,7 @@
         const config = featuredCarouselConfig || defaultCarouselRuntimeConfig("featured");
         const visible = config.visibleCount || FEATURED_VISIBLE;
         const gap = config.cardGap || FEATURED_GAP;
-        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}`).join("|") + JSON.stringify(config);
+        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}:${card.contentType}:${card.imageUrl}:${card.iframeUrl}:${signatureHash(card.contentHtml || "")}`).join("|") + JSON.stringify(config);
         if (rail.dataset.carouselKey === key) return;
         rail.dataset.carouselKey = key;
 
@@ -1496,7 +1960,7 @@
         const config = compactCarouselConfig || defaultCarouselRuntimeConfig("compact");
         const visible = config.visibleCount || COMPACT_VISIBLE;
         const gap = config.cardGap || COMPACT_GAP;
-        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}`).join("|") + JSON.stringify(config);
+        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}:${card.contentType}:${card.imageUrl}:${card.iframeUrl}:${signatureHash(card.contentHtml || "")}`).join("|") + JSON.stringify(config);
         if (rail.dataset.carouselKey === key) return;
         rail.dataset.carouselKey = key;
 
@@ -1561,7 +2025,7 @@
         carouselCardMap.set(card.key, card);
         return `
             <article class="demo-feature-card ${variantClass}" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" data-text-position="${escapeHtml(card.textPosition)}" style="${carouselCardStyle(card, "featured", config)}">
-                ${renderCarouselCardMedia(card, "featured")}
+                <div class="demo-card-media-shell">${renderCarouselCardMedia(card, "featured")}</div>
                 <div class="demo-card-meta">
                     <div>
                         ${card.title ? `<h4>${escapeHtml(card.title)}</h4>` : ""}
@@ -1612,11 +2076,11 @@
             return `<img class="carousel-card-image" src="${escapeHtml(resolveAssetUrl(card.imageUrl))}" alt="${escapeHtml(card.title || "Carousel card")} thumbnail" loading="lazy" decoding="async">`;
         }
         if (card.contentType === "iframe" && card.iframeUrl) {
-            return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(resolveAssetUrl(card.iframeUrl))}" loading="lazy" sandbox="allow-scripts"></iframe>`;
+            return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(resolveAssetUrl(card.iframeUrl))}" loading="eager" sandbox="allow-scripts"></iframe>`;
         }
         if (card.contentType === "html" && card.contentHtml) {
-            if (isFullHtmlDocument(card.contentHtml)) {
-                return `<iframe title="${escapeHtml(card.title)} thumbnail" srcdoc="${escapeHtml(card.contentHtml)}" loading="lazy" sandbox="allow-scripts"></iframe>`;
+            if (shouldRenderHtmlThumbnailFrame(card.contentHtml)) {
+                return renderHtmlThumbnailFrame(card.contentHtml, card.title);
             }
             return `<div class="carousel-html-media">${sanitizeHtmlSnippet(card.contentHtml)}</div>`;
         }
@@ -1692,13 +2156,7 @@
 
         topicList.querySelectorAll("button").forEach((button) => {
             button.addEventListener("click", () => {
-                activeTopic = button.dataset.topic;
-                selectedCourseIds = null;
-                selectedCourseTitle = "";
-                query = "";
-                document.getElementById("courseSearch").value = "";
-                activePage = 1;
-                render();
+                showCatalog(button.dataset.topic || "All");
             });
         });
     }
@@ -1747,17 +2205,29 @@
                             <span>${escapeHtml(course.labs)}</span>
                         </div>
                     </div>
-                    <div class="tag-list">
-                        ${course.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+                    <div class="course-card-footer">
+                        <div class="tag-list">
+                            ${course.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+                        </div>
+                        <button class="course-pin-icon" type="button" data-pin-course="${escapeHtml(course.id)}" aria-label="Pin ${escapeHtml(course.title)}">${pinIconSvg()}</button>
                     </div>
                 </div>
             </article>
         `).join("");
 
+        grid.querySelectorAll("[data-pin-course]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const course = courseLookup.get(button.dataset.pinCourse);
+                if (course) togglePinned(coursePinItem(course));
+            });
+        });
+
         grid.querySelectorAll("[data-course-card-id]").forEach((card) => {
             const courseId = card.dataset.courseCardId;
             card.addEventListener("click", () => openCourse(courseId));
             card.addEventListener("keydown", (event) => {
+                if (event.target.closest("button")) return;
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     openCourse(courseId);
@@ -1771,6 +2241,16 @@
 
             applyCourseThumbnail(media, course);
         });
+        updatePinnedCounts();
+    }
+
+    function pinIconSvg() {
+        return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5l4.5 4.5-3 3 .8 3.7-1.1 1.1-4.1-4.1-4.9 4.9-.8-.8 4.9-4.9-4.1-4.1 1.1-1.1 3.7.8 3-3z"></path><path d="M5 19l4-4"></path></svg>';
+    }
+
+    function pinnedButtonHtml(extraClass = "") {
+        const className = extraClass ? `pinned-button ${extraClass}` : "pinned-button";
+        return `<button class="${className}" type="button" data-open-pinned aria-label="Open pinned courses and topics">${pinIconSvg()}<span class="pinned-button-label">Pinned</span><span data-pinned-count>0</span></button>`;
     }
 
     function applyCourseThumbnail(media, course) {
@@ -1807,7 +2287,7 @@
         const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
-        await hydrateCourseContent(course);
+        await hydrateCourseContent(course, true);
 
         renderCourseDetail(course);
         setDetailVisible(true);
@@ -1816,11 +2296,38 @@
         window.scrollTo({ top: 0, behavior: "auto" });
     }
 
+    function pageUrlForHash(hash) {
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace(/[^/]*$/, "gradstudio-learn-demo.html");
+        url.search = "";
+        url.hash = hash;
+        return url.toString();
+    }
+
+    function openCourseInNewTab(courseId) {
+        if (!courseId) return;
+        window.open(pageUrlForHash(`#course/${encodeURIComponent(courseId)}`), "_blank", "noopener");
+    }
+
+    function openLessonInNewTab(course, lessonIndex) {
+        if (!course) return;
+        const lessons = getCourseLessons(course);
+        const safeIndex = Math.max(0, Math.min(Number(lessonIndex) || 0, lessons.length - 1));
+        const lesson = lessons[safeIndex];
+        if (!lesson) return;
+        const frameSource = getLessonFrameSource(course, lesson, safeIndex);
+        if (frameSource.type === "src") {
+            window.open(frameSource.value, "_blank", "noopener");
+            return;
+        }
+        window.open(pageUrlForHash(`#course/${encodeURIComponent(course.id)}/lesson/${safeIndex}`), "_blank", "noopener");
+    }
+
     async function openLesson(courseId, lessonIndex = 0, replace = false) {
         const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
-        await hydrateCourseContent(course);
+        await hydrateCourseContent(course, true);
 
         const lessons = getCourseLessons(course);
         const safeIndex = Math.max(0, Math.min(Number(lessonIndex) || 0, lessons.length - 1));
@@ -1873,7 +2380,7 @@
             const [, courseId, routeType, routeIndex] = route.split("/");
             const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
             if (course) {
-                await hydrateCourseContent(course);
+                await hydrateCourseContent(course, true);
 
                 if (routeType === "lesson") {
                     const lessonIndex = Number(routeIndex) || 0;
@@ -1892,13 +2399,25 @@
             }
         }
 
-        if (route === "courses") {
-            showCatalog("All", false);
+        if (route === "courses" || route.startsWith("courses/")) {
+            const encodedTopic = route.startsWith("courses/") ? route.slice("courses/".length) : "";
+            const topic = encodedTopic ? decodeURIComponent(encodedTopic) : "All";
+            showCatalog(topic, false);
             return;
         }
 
         if (route === "home" || route === "") {
             showHome(false);
+            return;
+        }
+
+        if (route === "get-started" || route === "signup" || route === "signin") {
+            showAuthPage(route === "signin" ? "signin" : "signup", false, route);
+            return;
+        }
+
+        if (route === "pinned") {
+            showPinnedPage(false);
             return;
         }
 
@@ -1914,19 +2433,16 @@
     function setDetailVisible(isDetailVisible) {
         const detail = document.getElementById("courseDetail");
         const player = document.getElementById("coursePlayer");
-        const hero = document.getElementById("home");
-        const catalog = document.getElementById("courses");
-        const carousel = document.querySelector(".demo-carousel-block");
         const infoPage = document.getElementById("infoPage");
+        const authPage = document.getElementById("authPage");
         const footer = document.querySelector(".site-footer");
         const topbar = document.querySelector(".topbar");
 
         if (detail) detail.hidden = !isDetailVisible;
         if (player) player.hidden = true;
-        if (hero) hero.hidden = isDetailVisible;
-        if (catalog) catalog.hidden = isDetailVisible;
-        if (carousel) carousel.hidden = isDetailVisible;
+        setHomeContentHidden(isDetailVisible);
         if (infoPage) infoPage.hidden = true;
+        if (authPage) authPage.hidden = true;
         if (footer) footer.hidden = isDetailVisible;
         if (topbar) topbar.hidden = false;
         document.body.classList.toggle("is-course-player", false);
@@ -1935,19 +2451,16 @@
     function setPlayerVisible(isPlayerVisible) {
         const detail = document.getElementById("courseDetail");
         const player = document.getElementById("coursePlayer");
-        const hero = document.getElementById("home");
-        const catalog = document.getElementById("courses");
-        const carousel = document.querySelector(".demo-carousel-block");
         const infoPage = document.getElementById("infoPage");
+        const authPage = document.getElementById("authPage");
         const footer = document.querySelector(".site-footer");
         const topbar = document.querySelector(".topbar");
 
         if (detail) detail.hidden = true;
         if (player) player.hidden = !isPlayerVisible;
-        if (hero) hero.hidden = isPlayerVisible;
-        if (catalog) catalog.hidden = isPlayerVisible;
-        if (carousel) carousel.hidden = isPlayerVisible;
+        setHomeContentHidden(isPlayerVisible);
         if (infoPage) infoPage.hidden = true;
+        if (authPage) authPage.hidden = true;
         if (footer) footer.hidden = isPlayerVisible;
         if (topbar) topbar.hidden = isPlayerVisible;
         document.body.classList.toggle("is-course-player", isPlayerVisible);
@@ -1983,6 +2496,7 @@
                     <div class="tag-list course-detail-tags">
                         ${course.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
                     </div>
+                    <button class="pin-chip" type="button" data-pin-course="${escapeHtml(course.id)}">Pin course</button>
                     ${hasLessons
                         ? `<button class="start-learning-button" type="button" data-start-learning>Start Learning</button>`
                         : `<button class="start-learning-button is-disabled" type="button" disabled>No modules published</button>`}
@@ -1994,11 +2508,14 @@
                             <span class="eyebrow">Contents</span>
                             <h2 id="courseContentsTitle">Labs and challenges</h2>
                         </div>
-                        <span>${lessons.length} module${lessons.length === 1 ? "" : "s"}</span>
+                        <div class="course-contents-actions">
+                            ${pinnedButtonHtml()}
+                            <span>${lessons.length} module${lessons.length === 1 ? "" : "s"}</span>
+                        </div>
                     </div>
                     <div class="lesson-list detail-section-list">
                         ${sections.length
-                            ? sections.map((section, sectionIndex) => renderDetailSection(section, sectionIndex)).join("")
+                            ? sections.map((section, sectionIndex) => renderDetailSection(section, sectionIndex, course.id)).join("")
                             : `<div class="empty-state course-empty-state">No published modules found for this course.</div>`}
                     </div>
                 </section>
@@ -2012,9 +2529,33 @@
             });
         }
 
+        detail.querySelectorAll("[data-pin-course]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                togglePinned(coursePinItem(course));
+            });
+        });
+
+        detail.querySelectorAll("[data-pin-topic]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const lessonIndex = Number(button.dataset.pinTopic) || 0;
+                const lesson = lessons[lessonIndex];
+                if (lesson) togglePinned(topicPinItem(course, lesson, lessonIndex));
+            });
+        });
+
+        detail.querySelectorAll("[data-open-lesson-tab]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                openLessonInNewTab(course, button.dataset.openLessonTab);
+            });
+        });
+
         detail.querySelectorAll("[data-lesson-index]").forEach((row) => {
             row.addEventListener("click", () => openLesson(course.id, row.dataset.lessonIndex));
             row.addEventListener("keydown", (event) => {
+                if (event.target.closest("button")) return;
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     openLesson(course.id, row.dataset.lessonIndex);
@@ -2045,9 +2586,12 @@
                 showCatalog("All");
             });
         }
+
+        bindPinnedOpenButtons(detail);
+        updatePinnedCounts();
     }
 
-    function renderDetailSection(section, sectionIndex) {
+    function renderDetailSection(section, sectionIndex, courseId) {
         const isExpanded = sectionIndex === 0;
         return `
             <section class="detail-section">
@@ -2063,20 +2607,23 @@
                     <span class="detail-section-chevron" aria-hidden="true">v</span>
                 </button>
                 <div class="detail-section-body" id="detail-section-${sectionIndex}" ${isExpanded ? "" : "hidden"}>
-                    ${section.items.map((item) => renderLessonRow(item.lesson, item.index)).join("")}
+                    ${section.items.map((item) => renderLessonRow(item.lesson, item.index, courseId)).join("")}
                 </div>
             </section>
         `;
     }
 
-    function renderLessonRow(lesson, index) {
+    function renderLessonRow(lesson, index, courseId) {
         const isLab = lesson.type === "lab";
         const title = cleanLessonTitle(lesson.title);
         return `
             <article class="lesson-row" role="button" tabindex="0" data-lesson-index="${index}" aria-label="Open ${escapeHtml(title)}">
                 <span class="lesson-icon ${isLab ? "lab" : "challenge"}" aria-hidden="true"></span>
                 <h3>${escapeHtml(title)}</h3>
-                <span class="lesson-status" aria-label="Not completed"></span>
+                <div class="lesson-row-actions">
+                    <button class="pin-chip" type="button" data-pin-course-id="${escapeHtml(courseId)}" data-pin-topic="${index}" aria-label="Pin ${escapeHtml(title)}">Pin</button>
+                    <button class="open-tab-button" type="button" data-open-lesson-tab="${index}" aria-label="Open ${escapeHtml(title)} in new tab">Open tab</button>
+                </div>
             </article>
         `;
     }
@@ -2129,10 +2676,13 @@
                         <strong>${escapeHtml(course.title)}</strong>
                     </a>
 
-                    <label class="player-search">
-                        <span class="sr-only">Search course contents</span>
-                        <input type="search" placeholder="Search lessons..." data-player-search>
-                    </label>
+                    <div class="player-search-row">
+                        <label class="player-search">
+                            <span class="sr-only">Search course contents</span>
+                            <input type="search" placeholder="Search lessons..." data-player-search>
+                        </label>
+                        ${pinnedButtonHtml("player-pinned-button")}
+                    </div>
 
                     <div class="player-sections">
                         ${sections.map((section, sectionIndex) => {
@@ -2166,12 +2716,13 @@
                         <a class="player-back-link" href="#course/${encodeURIComponent(course.id)}">Back to course</a>
                         <h1>${escapeHtml(selectedLesson.title)}</h1>
                         <div class="player-toolbar-actions">
-                            <button class="player-pill" type="button" data-bookmark>
-                                <span aria-hidden="true">[]</span>
-                                Bookmark
+                            <button class="player-pill" type="button" data-pin-course-id="${escapeHtml(course.id)}" data-pin-topic="${safeIndex}">
+                                Pin topic
+                            </button>
+                            <button class="player-pill" type="button" data-open-current-tab>
+                                Open in new tab
                             </button>
                             <button class="player-pill" type="button" data-fullscreen>
-                                <span aria-hidden="true">[ ]</span>
                                 Fullscreen
                             </button>
                         </div>
@@ -2233,9 +2784,15 @@
             });
         }
 
-        const bookmark = player.querySelector("[data-bookmark]");
-        if (bookmark) {
-            bookmark.addEventListener("click", () => bookmark.classList.toggle("is-active"));
+        player.querySelectorAll("[data-pin-topic]").forEach((button) => {
+            button.addEventListener("click", () => {
+                togglePinned(topicPinItem(course, selectedLesson, safeIndex));
+            });
+        });
+
+        const openCurrent = player.querySelector("[data-open-current-tab]");
+        if (openCurrent) {
+            openCurrent.addEventListener("click", () => openLessonInNewTab(course, safeIndex));
         }
 
         const fullscreen = player.querySelector("[data-fullscreen]");
@@ -2245,6 +2802,13 @@
                 if (frameShell && frameShell.requestFullscreen) frameShell.requestFullscreen();
             });
         }
+
+        bindPinnedOpenButtons(player);
+        updatePinnedCounts();
+        requestAnimationFrame(() => {
+            const activeLesson = player.querySelector(".player-lesson-link.is-active");
+            if (activeLesson) activeLesson.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
     }
 
     function getCourseSections(course, lessons) {
@@ -2710,6 +3274,39 @@ $ status: loaded in iframe</code>
         }
     }
 
+    function shouldRenderHtmlThumbnailFrame(html) {
+        const value = String(html || "");
+        return isFullHtmlDocument(value) || /<(script|style|link|canvas|svg|video|iframe|object|embed)\b/i.test(value);
+    }
+
+    function renderHtmlThumbnailFrame(html, title) {
+        const srcdoc = isFullHtmlDocument(html) ? html : buildHtmlThumbnailDocument(html);
+        return `<iframe class="carousel-html-frame" title="${escapeHtml(title || "Carousel")} thumbnail" srcdoc="${escapeHtml(srcdoc)}" loading="eager" sandbox="allow-scripts"></iframe>`;
+    }
+
+    function buildHtmlThumbnailDocument(html) {
+        return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#111827;}
+body{font-family:Inter,Arial,sans-serif;}
+*,*::before,*::after{box-sizing:border-box;}
+.thumbnail-card{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;isolation:isolate;font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:radial-gradient(circle at 30% 25%,var(--glow-top-left,rgba(255,255,255,.1)),transparent 45%),radial-gradient(circle at 78% 70%,var(--glow-bottom-right,rgba(255,255,255,.1)),transparent 35%),linear-gradient(135deg,var(--bg-dark-1,#181818) 0%,var(--bg-dark-2,#2d2d2d) 52%,var(--bg-dark-3,var(--bg-dark-1,#181818)) 100%);}
+.thumbnail-badge{position:absolute;top:var(--badge-top,8%);left:var(--badge-left,6%);z-index:3;padding:1.5cqi 3cqi;border-radius:1.5cqi;background:var(--badge-bg,#ffd43b);color:var(--badge-text,#000);font-size:var(--badge-size,2.5cqi);font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.thumbnail-title{position:absolute;left:var(--title-left,6%);top:var(--title-top,55%);z-index:3;max-width:var(--title-width,60%);margin:0;transform:translateY(-50%);color:var(--title-color,#fff);font-size:var(--title-size,7.5cqi);line-height:1.1;font-weight:800;letter-spacing:0;text-shadow:0 4px 12px rgba(0,0,0,.4);}
+.thumbnail-logo{position:absolute;right:var(--logo-right,6%);top:var(--logo-top,50%);z-index:2;width:var(--logo-size,22cqi);transform:translateY(-50%);filter:drop-shadow(0 10px 8px rgba(0,0,0,.34)) drop-shadow(0 4px 4px rgba(0,0,0,.24));}
+.thumbnail-logo-text{display:grid;place-items:center;width:100%;aspect-ratio:1;border-radius:999px;background:rgba(255,255,255,.92);color:#111827;font-size:clamp(24px,8cqi,58px);font-weight:900;line-height:1;letter-spacing:0;box-shadow:0 18px 34px rgba(0,0,0,.24);}
+.html-thumb{position:absolute;inset:0;width:100%;height:100%;padding:20px;background:#111827;color:#e5e7eb;display:flex;flex-direction:column;justify-content:center;gap:12px;overflow:hidden;}
+img,svg,canvas,video{max-width:100%;max-height:100%;}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+    }
+
     function escapeHtml(value) {
         return String(value)
             .replace(/&/g, "&amp;")
@@ -2774,6 +3371,17 @@ $ status: loaded in iframe</code>
         });
     });
 
+    document.querySelectorAll("[data-auth-open]").forEach((control) => {
+        control.addEventListener("click", (event) => {
+            event.preventDefault();
+            const mode = control.dataset.authOpen === "signin" ? "signin" : "signup";
+            const routeKey = control.getAttribute("href") === "#get-started" ? "get-started" : mode;
+            showAuthPage(mode, true, routeKey);
+        });
+    });
+
+    bindPinnedOpenButtons(document);
+
     document.querySelectorAll("[data-carousel-dir]").forEach((button) => {
         button.addEventListener("click", () => {
             const dir = Number(button.dataset.carouselDir);
@@ -2825,6 +3433,11 @@ $ status: loaded in iframe</code>
 
     window.addEventListener("hashchange", handleRoute);
     window.addEventListener("popstate", handleRoute);
+    window.addEventListener("storage", (event) => {
+        if (event.key === ADMIN_REFRESH_STORAGE_KEY) {
+            refreshAfterAdminUpdate();
+        }
+    });
 
     initializeCatalog();
 
