@@ -2,7 +2,9 @@
     "use strict";
 
     const DEV_API_BASE = "https://learning-platform-api-dev.sabareeshrao.workers.dev";
-    const API_BASE = window.location.protocol === "file:" ? DEV_API_BASE : "";
+    const API_BASE = getApiBase();
+    const LEARN_CAROUSEL_STORAGE_KEY = "gradstudio_learn_carousels_dev";
+    const USE_LOCAL_CAROUSEL_CACHE = new URLSearchParams(window.location.search).has("localCarousel");
     const state = {
         categories: [],
         courses: [],
@@ -22,26 +24,38 @@
 
     const snippets = [
         {
-            name: "AWS",
-            html: '<div class="thumbnail-card" style="--bg-dark-1:#1d1408;--bg-dark-2:#3a2409;--glow-top-left:#ffb347;--glow-bottom-right:#ff7a18;--badge-bg:#ff9900;--badge-text:#111827;"><div class="thumb-grid"></div><div class="thumb-badge">AWS</div><h3>Cloud Foundations</h3><p>Identity, compute, storage, and networking labs.</p></div>'
+            name: "Express",
+            html: starterThumbnailHtml("EXP", "Express.js<br>API Lab", "JS", "#101827", "#1f6f5b", "#34d399", "#60a5fa", "#111827", "#ffffff")
         },
         {
-            name: "Cloud",
-            html: '<div class="thumbnail-card thumb-cloud"><div class="cloud-orbit"></div><div class="cloud-node">CL</div><h3>Cloud Platform</h3><p>Deploy and operate practical cloud systems.</p></div>'
+            name: "MERN",
+            html: starterThumbnailHtml("MERN", "MERN Stack<br>3D UI", "M", "#122019", "#0f766e", "#22c55e", "#93c5fd", "#dcfce7", "#064e3b")
+        },
+        {
+            name: "MongoDB",
+            html: starterThumbnailHtml("DB", "MongoDB<br>Data Lab", "DB", "#102018", "#14532d", "#84cc16", "#34d399", "#dcfce7", "#14532d")
+        },
+        {
+            name: "React",
+            html: starterThumbnailHtml("UI", "React<br>Component Lab", "R", "#101827", "#1d4ed8", "#38bdf8", "#a78bfa", "#e0f2fe", "#0f172a")
         },
         {
             name: "Terminal",
-            html: '<div class="html-thumb thumb-terminal"><div class="terminal-bar"><span></span><span></span><span></span></div><pre>$ lab start\n$ deploy --ready</pre></div>'
+            html: '<div class="html-thumb thumb-terminal"><div class="terminal-box" aria-hidden="true"><div class="terminal-dots"><span></span><span></span><span></span></div><div class="terminal-lines"><span></span><span></span><span></span></div></div></div>'
         },
         {
             name: "Stack",
-            html: '<div class="html-thumb thumb-stack"><span></span><span></span><span></span><strong>Full Stack</strong></div>'
+            html: '<div class="html-thumb thumb-stack"><div class="stack-tiles" aria-hidden="true"><span></span><span></span><span></span></div></div>'
         },
         {
             name: "Circuit",
-            html: '<div class="html-thumb thumb-circuit"><span></span><span></span><span></span><strong>Security Lab</strong></div>'
+            html: '<div class="html-thumb thumb-circuit"><div class="circuit-board" aria-hidden="true"></div></div>'
         }
     ];
+
+    function starterThumbnailHtml(badge, title, logo, bg1, bg2, glow1, glow2, badgeBg, badgeText) {
+        return '<div class="thumbnail-card" style="--bg-dark-1:' + bg1 + ';--bg-dark-2:' + bg2 + ';--glow-top-left:' + glow1 + ';--glow-bottom-right:' + glow2 + ';--badge-bg:' + badgeBg + ';--badge-text:' + badgeText + ';--title-top:58%;--title-width:62%;"><span class="thumbnail-badge">' + badge + '</span><h3 class="thumbnail-title">' + title + '</h3><div class="thumbnail-logo" aria-hidden="true"><span class="thumbnail-logo-text">' + logo + '</span></div></div>';
+    }
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -89,6 +103,13 @@
         });
     }
 
+    function getApiBase() {
+        if (window.location.protocol === "file:") return DEV_API_BASE;
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") return DEV_API_BASE;
+        if (window.location.hostname.includes("workers.dev")) return window.location.origin;
+        return "https://api.gradstudio.org";
+    }
+
     function getAuthToken() {
         return localStorage.getItem("lp_auth_token") || "";
     }
@@ -132,12 +153,12 @@
             const [coursePayload, categoryPayload, carouselPayload] = await Promise.all([
                 apiJson("/api/courses?admin=1&t=" + Date.now()),
                 apiJson("/api/categories?t=" + Date.now()),
-                apiJson("/api/admin/carousels?t=" + Date.now(), { headers: authHeaders() }).catch(() => [])
+                loadLearnCarouselConfig()
             ]);
 
             state.courses = normalizeCourses(coursePayload.courses || []);
             state.categories = normalizeCategories(categoryPayload.categories || []);
-            state.carousels = normalizeCarousels(Array.isArray(carouselPayload) ? carouselPayload : []);
+            state.carousels = normalizeCarousels(carouselPayload.carousels || []);
             if (!state.carousels.some((carousel) => String(carousel.id) === String(state.activeCarouselId))) {
                 state.activeCarouselId = state.carousels[0] ? String(state.carousels[0].id) : "1";
             }
@@ -203,25 +224,224 @@
 
     function normalizeCarousels(carousels) {
         const existing = new Map((carousels || []).filter(Boolean).map((carousel) => [String(carousel.id), carousel]));
-        return [
-            fixedCarouselSlot("1", "Big Carousel", "Featured course paths", existing.get("1")),
+        const fixed = [
+            fixedCarouselSlot("1", "Big Carousel", "Featured lab previews", existing.get("1"), "HTML Demo Thumbnails"),
             fixedCarouselSlot("2", "Bottom Small Carousel", "Quick course paths", existing.get("2"))
         ];
+        const extras = (carousels || [])
+            .filter((carousel) => carousel && !["1", "2"].includes(String(carousel.id)))
+            .map((carousel) => fixedCarouselSlot(String(carousel.id), String(carousel.name || blockTypeLabel(carousel)), String(carousel.header || blockTypeLabel(carousel)), carousel, carousel.eyebrow || ""));
+        return [...fixed, ...extras]
+            .sort((a, b) => (a.display_order - b.display_order) || String(a.id).localeCompare(String(b.id)));
     }
 
-    function fixedCarouselSlot(id, name, fallbackHeader, existing) {
+    async function loadLearnCarouselConfig() {
+        const local = USE_LOCAL_CAROUSEL_CACHE ? readLocalLearnCarouselConfig() : null;
+        if (local) return local;
+
+        let cloudPayload = null;
+        try {
+            cloudPayload = await apiJson("/api/admin/learn-carousels?t=" + Date.now(), { headers: authHeaders() });
+            if (isOldCourseCarouselPayload(cloudPayload)) return defaultLearnCarouselConfig();
+            if (cloudPayload && (cloudPayload.source === "kv" || hasCarouselCards(cloudPayload))) return cloudPayload;
+        } catch (error) {
+            console.warn("New learn carousel API unavailable; trying legacy carousel API.", error);
+        }
+
+        try {
+            const legacyPayload = await loadLegacyLearnCarouselConfig();
+            if (hasCarouselCards(legacyPayload)) return legacyPayload;
+        } catch (error) {
+            console.warn("Legacy carousel API unavailable.", error);
+        }
+
+        return cloudPayload && cloudPayload.source === "kv" ? cloudPayload : defaultLearnCarouselConfig();
+    }
+
+    function defaultLearnCarouselConfig() {
+        return {
+            version: 1,
+            source: "starter",
+            carousels: [
+                {
+                    id: "1",
+                    name: "Big Carousel",
+                    header: "Featured lab previews",
+                    eyebrow: "HTML Demo Thumbnails",
+                    display_order: 1,
+                    is_active: true,
+                    cards: [
+                        defaultCarouselCard("starter-express", "1", 1, "Express.js 3D Card", "Backend API and routing labs", snippets[0].html, "#22c55e", ["backend1", "frontend1", "pyb"]),
+                        defaultCarouselCard("starter-mern", "1", 2, "MERN Stack 3D UI", "MongoDB, Express, React, and Node labs", snippets[1].html, "#0f766e", ["mogodb1", "frontend1", "backend1"]),
+                        defaultCarouselCard("starter-mongodb", "1", 3, "MongoDB 3D Card", "Document database and data modeling labs", snippets[2].html, "#16876a", ["mogodb1", "dte"]),
+                        defaultCarouselCard("starter-react", "1", 4, "React 3D Card", "Component, state, and UI workflow labs", snippets[3].html, "#5f6df6", ["frontend1"])
+                    ]
+                },
+                {
+                    id: "2",
+                    name: "Bottom Small Carousel",
+                    header: "More lab previews",
+                    eyebrow: "",
+                    display_order: 2,
+                    is_active: true,
+                    cards: [
+                        defaultCarouselCard("starter-terminal", "2", 1, "Linux terminal race", "Shell practice", snippets[4].html, "#4f46e5", ["linnn"]),
+                        defaultCarouselCard("starter-stack", "2", 2, "Full stack flow", "Generated mini card", snippets[5].html, "#0f766e", ["frontend1", "backend1"]),
+                        defaultCarouselCard("starter-circuit", "2", 3, "Security capture", "Generated mini card", snippets[6].html, "#7c2d12", ["cybersecurity"]),
+                        { ...defaultCarouselCard("starter-cloud", "2", 4, "Cloud deploy lab", "Generated mini card", snippets[1].html, "#2f76d2", ["awssub", "aws2", "azure1"]), content_type: "standard" },
+                        { ...defaultCarouselCard("starter-api", "2", 5, "API workflow", "Generated mini card", snippets[0].html, "#312e81", ["backend1"]), content_type: "standard" }
+                    ]
+                }
+            ]
+        };
+    }
+
+    function defaultCarouselCard(id, carouselId, order, title, description, html, color, courseLinks) {
+        const links = (courseLinks || []).map(String).filter(Boolean);
+        return {
+            id,
+            carousel_id: carouselId,
+            title,
+            description,
+            icon_class: "fas fa-layer-group",
+            color_hex: color,
+            target_type: links.length ? "course_list" : "none",
+            target_id: links.length ? "custom" : "none",
+            display_order: order,
+            is_active: true,
+            content_type: "html",
+            image_url: "",
+            iframe_url: "",
+            content_html: html,
+            width: carouselId === "2" ? "220px" : "400px",
+            height_px: carouselId === "2" ? "160px" : "420px",
+            full_bleed: true,
+            course_links: links
+        };
+    }
+
+    async function loadLegacyLearnCarouselConfig() {
+        const [allCarousels, carouselOne, carouselTwo] = await Promise.all([
+            apiJson("/api/admin/carousels?t=" + Date.now(), { headers: authHeaders() }),
+            apiJson("/api/admin/carousel?type=1&t=" + Date.now(), { headers: authHeaders() }),
+            apiJson("/api/admin/carousel?type=2&t=" + Date.now(), { headers: authHeaders() })
+        ]);
+        const carousels = Array.isArray(allCarousels)
+            ? allCarousels
+            : Array.isArray(allCarousels?.carousels)
+                ? allCarousels.carousels
+                : [];
+        const byId = new Map(carousels.filter(Boolean).map((carousel) => [String(carousel.id), carousel]));
+        return {
+            carousels: ["1", "2"].map((id) => {
+                const existing = byId.get(id) || {};
+                const cardsPayload = id === "1" ? carouselOne : carouselTwo;
+                return {
+                    ...existing,
+                    id,
+                    name: existing.name || (id === "1" ? "Big Carousel" : "Bottom Small Carousel"),
+                    header: existing.header || cardsPayload?.header || (id === "1" ? "Featured lab previews" : "Quick course paths"),
+                    eyebrow: existing.eyebrow || (id === "1" ? "HTML Demo Thumbnails" : ""),
+                    display_order: Number(existing.display_order || id),
+                    is_active: existing.is_active === undefined ? true : existing.is_active,
+                    cards: Array.isArray(cardsPayload?.cards) ? cardsPayload.cards : []
+                };
+            })
+        };
+    }
+
+    function hasCarouselCards(payload) {
+        return Array.isArray(payload?.carousels) && payload.carousels.some((carousel) => {
+            return carousel && Array.isArray(carousel.cards) && carousel.cards.length > 0;
+        });
+    }
+
+    function isOldCourseCarouselPayload(payload) {
+        const carousels = Array.isArray(payload?.carousels) ? payload.carousels : [];
+        const featured = carousels.find((carousel) => String(carousel.id) === "1");
+        if (!featured || !Array.isArray(featured.cards) || !featured.cards.length) return false;
+        const header = String(featured.header || "").toLowerCase();
+        const firstTitles = featured.cards.slice(0, 4).map((card) => String(card.title || "").toLowerCase()).join("|");
+        const hasHtmlDemoMedia = featured.cards.some((card) => {
+            const type = String(card.content_type || "").toLowerCase();
+            return (type === "html" && card.content_html) || (type === "image" && card.image_url) || (type === "iframe" && card.iframe_url);
+        });
+        return !hasHtmlDemoMedia && (header.includes("ai fundamentals") || firstTitles.includes("artificial intelligence") || firstTitles.includes("machine learning"));
+    }
+
+    function readLocalLearnCarouselConfig() {
+        try {
+            const raw = localStorage.getItem(LEARN_CAROUSEL_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && Array.isArray(parsed.carousels) ? parsed : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function writeLocalLearnCarouselConfig(payload) {
+        try {
+            localStorage.setItem(LEARN_CAROUSEL_STORAGE_KEY, JSON.stringify(payload));
+        } catch (_) {}
+    }
+
+    function fixedCarouselSlot(id, name, fallbackHeader, existing, fallbackEyebrow = "") {
+        const defaultVisible = id === "1" ? 2 : 5;
         return {
             ...(existing || {}),
             id,
             name,
+            block_type: choiceValue(existing && existing.block_type, ["carousel", "text"], String(id).startsWith("text-") ? "text" : "carousel"),
             header: String(existing && existing.header ? existing.header : fallbackHeader),
-            display_order: Number(existing && existing.display_order ? existing.display_order : id),
-            is_active: !existing || (existing.is_active !== 0 && existing.is_active !== false)
+            eyebrow: String(existing && existing.eyebrow ? existing.eyebrow : fallbackEyebrow),
+            display_order: Number(existing && existing.display_order ? existing.display_order : (id === "1" ? 1 : id === "2" ? 2 : 0)),
+            is_active: !existing || (existing.is_active !== 0 && existing.is_active !== false),
+            layout_align: choiceValue(existing && (existing.layout_align || existing.align), ["left", "center", "right", "stretch"], "stretch"),
+            max_width: String(existing && existing.max_width ? existing.max_width : "1480px"),
+            layout_style: choiceValue(existing && existing.layout_style, ["fit", "custom_width"], "fit"),
+            visible_count: numberValue(existing && (existing.visible_count || existing.grid_columns), defaultVisible),
+            grid_columns: numberValue(existing && (existing.grid_columns || existing.visible_count), defaultVisible),
+            card_gap: numberValue(existing && existing.card_gap, id === "1" ? 12 : 10),
+            infinite_scroll: !existing || existing.infinite_scroll === undefined ? true : (existing.infinite_scroll !== 0 && existing.infinite_scroll !== false),
+            text_align: choiceValue(existing && existing.text_align, ["left", "center", "right"], "left"),
+            header_font: String(existing && existing.header_font ? existing.header_font : "Inter"),
+            header_font_size: numberValue(existing && existing.header_font_size, id === "1" ? 28 : 24),
+            header_color: String(existing && existing.header_color ? existing.header_color : "#1d2233"),
+            section_text: String(existing && existing.section_text ? existing.section_text : ""),
+            section_text_font: String(existing && existing.section_text_font ? existing.section_text_font : "Inter"),
+            section_text_size: numberValue(existing && existing.section_text_size, 44),
+            section_text_color: String(existing && existing.section_text_color ? existing.section_text_color : "#1d2233"),
+            section_text_align: choiceValue(existing && existing.section_text_align, ["left", "center", "right"], "left"),
+            section_text_max_width: String(existing && existing.section_text_max_width ? existing.section_text_max_width : "860px"),
+            cards: normalizeCarouselCards(existing && Array.isArray(existing.cards) ? existing.cards : [])
         };
     }
 
+    function blockTypeLabel(block) {
+        return block && block.block_type === "text" ? "Text Block" : "Carousel Layer";
+    }
+
+    function choiceValue(value, choices, fallback) {
+        const normalized = String(value || "").trim();
+        return choices.includes(normalized) ? normalized : fallback;
+    }
+
+    function numberValue(value, fallback) {
+        const num = Number(value);
+        return Number.isFinite(num) && num > 0 ? num : fallback;
+    }
+
+    function colorInputValue(value, fallback) {
+        const normalized = String(value || "").trim();
+        return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized : fallback;
+    }
+
     function carouselSlotLabel(carousel) {
-        return carousel.id === "1" ? "Big Carousel" : "Bottom Small Carousel";
+        if (carousel.id === "1") return "Big Carousel";
+        if (carousel.id === "2") return "Bottom Small Carousel";
+        if (carousel.block_type === "text") return carousel.name || "Text Block";
+        return carousel.name || carousel.header || "Carousel Layer";
     }
 
     function normalizeCarouselCards(cards) {
@@ -235,20 +455,39 @@
                 description: String(card.description || ""),
                 icon_class: String(card.icon_class || "fas fa-star"),
                 color_hex: String(card.color_hex || "#3b82f6"),
-                target_type: String(card.target_type || "course_list"),
+                target_type: normalizeCarouselTargetType(card.target_type, parseCourseLinks(card.course_links), card),
                 target_id: String(card.target_id || "custom"),
                 display_order: Number(card.display_order || 0),
                 is_active: card.is_active !== 0 && card.is_active !== false,
                 content_type: String(card.content_type || "html"),
                 image_url: String(card.image_url || ""),
                 iframe_url: String(card.iframe_url || ""),
-                content_html: String(card.content_html || ""),
+                content_html: normalizeStoredHtml(card.content_html),
                 width: String(card.width || "400px"),
                 height_px: String(card.height_px || "420px"),
                 full_bleed: card.full_bleed === 1 || card.full_bleed === true,
+                bg_color: String(card.bg_color || ""),
+                chip_text: String(card.chip_text || ""),
+                chip_color: String(card.chip_color || ""),
+                chip_enabled: card.chip_enabled === undefined ? true : (card.chip_enabled !== 0 && card.chip_enabled !== false),
+                heading_font: String(card.heading_font || "Inter"),
+                heading_size: numberValue(card.heading_size, 24),
+                heading_color: String(card.heading_color || "#ffffff"),
+                sub_font: String(card.sub_font || "Inter"),
+                sub_size: numberValue(card.sub_size, 13),
+                sub_color: String(card.sub_color || "#dbe3f1"),
+                text_position: choiceValue(card.text_position, ["bottom", "top", "center", "hidden"], "bottom"),
+                text_align: choiceValue(card.text_align, ["left", "center", "right"], "left"),
                 course_links: parseCourseLinks(card.course_links)
             }))
             .sort((a, b) => (a.display_order - b.display_order) || a.title.localeCompare(b.title));
+    }
+
+    function normalizeStoredHtml(value) {
+        return String(value || "")
+            .replace(/\\"/g, '"')
+            .replace(/\\'/g, "'")
+            .replace(/\\\//g, "/");
     }
 
     function parseCardMeta(value) {
@@ -330,6 +569,19 @@
             return String(value.id || value.course_id || value.target_id || "").trim();
         }
         return "";
+    }
+
+    function normalizeCarouselTargetType(value, courseIds, card) {
+        const targetType = String(value || "").trim();
+        if (targetType === "course_page" || targetType === "course_cards") {
+            if (courseIds.length) return "course_list";
+            const targetId = String(card?.target_id || "").trim();
+            return targetId && targetId !== "none" && targetId !== "custom" ? "course" : "none";
+        }
+        if (targetType === "course" || targetType === "course_list" || targetType === "none") {
+            return targetType;
+        }
+        return courseIds.length ? "course_list" : "none";
     }
 
     function renderSidebar() {
@@ -440,7 +692,7 @@
 
         state.mode = "edit";
         state.activeCourseId = id;
-        state.activeFolderId = course.category;
+        state.activeFolderId = resolveCourseFolderId(course);
         expandCoursePath(course);
         state.currentCourseData = null;
         fillCourseForm(course);
@@ -665,9 +917,9 @@
         let media = "";
 
         if (thumbType === "image" && els.cThumbImage.value.trim()) {
-            media = '<img src="' + escAttr(els.cThumbImage.value.trim()) + '" alt="' + escAttr(title + " thumbnail") + '">';
+            media = '<img src="' + escAttr(resolveAssetUrl(els.cThumbImage.value.trim())) + '" alt="' + escAttr(title + " thumbnail") + '">';
         } else {
-            media = sanitizePreviewHtml(els.cThumbHtml.value) || '<div class="hint">Thumbnail preview</div>';
+            media = renderSafeHtmlPreview(els.cThumbHtml.value, title) || '<div class="hint">Thumbnail preview</div>';
         }
 
         els.coursePreview.innerHTML = '' +
@@ -680,14 +932,63 @@
     function sanitizePreviewHtml(html) {
         const template = document.createElement("template");
         template.innerHTML = String(html || "");
-        template.content.querySelectorAll("script,iframe,object,embed,link,meta").forEach((node) => node.remove());
+        template.content.querySelectorAll("script,style,iframe,object,embed,link,meta,base").forEach((node) => node.remove());
         template.content.querySelectorAll("*").forEach((node) => {
             Array.from(node.attributes).forEach((attr) => {
                 const name = attr.name.toLowerCase();
                 if (name.startsWith("on")) node.removeAttribute(attr.name);
+                if (name === "style") node.setAttribute("style", sanitizeInlinePreviewStyle(attr.value, node));
             });
         });
         return template.innerHTML;
+    }
+
+    function renderSafeHtmlPreview(html, title) {
+        const value = normalizeStoredHtml(html);
+        if (!value.trim()) return "";
+        if (isFullHtmlDocument(value)) {
+            return '<iframe title="' + escAttr((title || "Carousel") + " thumbnail preview") + '" srcdoc="' + escAttr(value) + '" sandbox="" loading="lazy"></iframe>';
+        }
+        return sanitizePreviewHtml(value);
+    }
+
+    function isFullHtmlDocument(value) {
+        return /<!doctype\s+html|<html[\s>]|<head[\s>]|<body[\s>]|<script[\s>]|<link[\s>]|<style[\s>]/i.test(String(value || ""));
+    }
+
+    function sanitizeInlinePreviewStyle(value, node) {
+        const allowedVars = new Set([
+            "--bg-dark-1",
+            "--bg-dark-2",
+            "--bg-dark-3",
+            "--glow-top-left",
+            "--glow-bottom-right",
+            "--badge-bg",
+            "--badge-text",
+            "--badge-top",
+            "--badge-left",
+            "--badge-size",
+            "--title-color",
+            "--title-left",
+            "--title-top",
+            "--title-width",
+            "--title-size",
+            "--logo-size",
+            "--logo-top",
+            "--logo-right"
+        ]);
+        const declarations = String(value || "").split(";").map((part) => part.trim()).filter(Boolean);
+        const safe = [];
+        declarations.forEach((declaration) => {
+            const separator = declaration.indexOf(":");
+            if (separator === -1) return;
+            const property = declaration.slice(0, separator).trim();
+            const rawValue = declaration.slice(separator + 1).trim();
+            if (!allowedVars.has(property)) return;
+            if (!/^[#(),.%\sa-z0-9-]+$/i.test(rawValue)) return;
+            safe.push(property + ": " + rawValue);
+        });
+        return node.classList.contains("thumbnail-card") && safe.length ? safe.join("; ") + ";" : "";
     }
 
     async function openAddFolderModal() {
@@ -1135,10 +1436,24 @@
         return null;
     }
 
+    function resolveCourseFolderId(course) {
+        if (!course) return state.activeFolderId || "";
+        let current = course;
+        const seen = new Set();
+        while (current && current.parent_course_id && !seen.has(current.id)) {
+            seen.add(current.id);
+            const parent = state.courses.find((item) => item.id === current.parent_course_id);
+            if (!parent) break;
+            current = parent;
+        }
+        return (current && current.category) || course.category || state.activeFolderId || "";
+    }
+
     function expandCoursePath(course) {
-        if (!course || !course.category) return;
+        const folderId = resolveCourseFolderId(course);
+        if (!folderId) return;
         state.expandedFolders.clear();
-        state.expandedFolders.add(course.category);
+        state.expandedFolders.add(folderId);
     }
 
     async function openCarouselManager() {
@@ -1158,16 +1473,24 @@
 
     async function loadCarouselCards(carouselId) {
         state.activeCarouselId = String(carouselId || state.activeCarouselId || "1");
+        const carousel = state.carousels.find((item) => item.id === state.activeCarouselId);
+        state.carouselCards = normalizeCarouselCards(carousel && Array.isArray(carousel.cards) ? carousel.cards : []);
+        renderCarouselManager(false);
+    }
+
+    async function refreshCarouselConfig() {
+        renderCarouselManager(true);
         try {
-            const payload = await apiJson("/api/admin/carousel?type=" + encodeURIComponent(state.activeCarouselId) + "&t=" + Date.now(), {
-                headers: authHeaders()
-            });
-            state.carouselCards = normalizeCarouselCards(payload.cards || []);
-            const carousel = state.carousels.find((item) => item.id === state.activeCarouselId);
-            if (carousel && payload.header !== undefined) carousel.header = String(payload.header || carousel.header || "");
-            renderCarouselManager(false);
+            const payload = await loadLearnCarouselConfig();
+            state.carousels = normalizeCarousels(payload.carousels || []);
+            if (!state.carousels.some((carousel) => carousel.id === state.activeCarouselId)) {
+                state.activeCarouselId = state.carousels[0] ? state.carousels[0].id : "1";
+            }
+            await loadCarouselCards(state.activeCarouselId);
+            showToast("Carousel cards refreshed", "ok");
         } catch (error) {
-            els.carouselArea.innerHTML = '<h1>Carousel Cards</h1><div class="empty-box">Failed to load carousel cards.<br><small>' + esc(error.message) + '</small></div>';
+            els.carouselArea.innerHTML = '<h1>Carousel Cards</h1><div class="empty-box">Failed to refresh carousel cards.<br><small>' + esc(error.message) + '</small></div>';
+            showToast(error.message, "err");
         }
     }
 
@@ -1179,31 +1502,52 @@
             display_order: 1,
             is_active: true
         };
-        const options = state.carousels.map((carousel) => {
-            const label = carouselSlotLabel(carousel);
-            return '<option value="' + escAttr(carousel.id) + '"' + (carousel.id === active.id ? " selected" : "") + ">" + esc(label) + "</option>";
-        }).join("");
 
         els.carouselArea.innerHTML = '' +
-            '<div class="carousel-toolbar">' +
-            '<div><h1 style="margin:0">Carousel Cards</h1><p class="hint">Big cards can open a custom set of course cards. Small cards can either open a course directly or open a custom set.</p></div>' +
+            '<div class="simple-carousel-admin">' +
+            '<div class="simple-carousel-topbar">' +
+            '<div class="simple-title"><i class="far fa-images"></i><div><h1>' + esc(carouselSlotLabel(active)) + '</h1><p>' + esc(carouselPlacementText(active)) + '</p></div></div>' +
             '<div class="action-row">' +
-            '<button class="btn-a" type="button" id="btnAddCarouselCard"><i class="fas fa-plus"></i> Add Card</button>' +
             '<button class="btn-s" type="button" id="btnRefreshCarousel"><i class="fas fa-sync"></i> Refresh</button>' +
+            '<button class="btn-s" type="button" id="btnEditCarouselHeader"><i class="fas fa-heading"></i> Edit Header</button>' +
+            '<button class="btn-s" type="button" id="btnEditCarouselLayout"><i class="fas fa-sliders"></i> Layout / Text</button>' +
+            '<button class="btn-s" type="button" id="btnAddTextBlock"><i class="fas fa-align-left"></i> Add Text</button>' +
+            '<button class="btn-s" type="button" id="btnAddCarouselLayer"><i class="far fa-images"></i> Add Carousel Layer</button>' +
+            (!["1", "2"].includes(String(active.id)) ? '<button class="btn-s btn-danger" type="button" id="btnDeleteLayoutBlock"><i class="fas fa-trash"></i> Delete Layer</button>' : '') +
+            '<button class="btn-a" type="button" id="btnAddCarouselCard"><i class="fas fa-plus"></i> Add Card</button>' +
             '</div></div>' +
-            '<div class="carousel-toolbar" style="align-items:start">' +
-            '<div class="fg"><label>Carousel</label><select id="carouselSelect">' + options + '</select><small>Only these new admin slots are used. Old carousel records are hidden.</small></div>' +
-            '<div class="fg" style="flex:1"><label>Carousel Header</label><input id="carouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured paths"></div>' +
-            '<div class="fg" style="width:120px"><label>Order</label><input id="carouselOrder" type="number" value="' + escAttr(active.display_order || 1) + '"></div>' +
-            '<label class="inline-check" style="margin-top:28px"><input id="carouselActive" type="checkbox" ' + (active.is_active ? "checked" : "") + '> Active</label>' +
-            '<button class="btn-s" type="button" id="btnSaveCarouselSettings" style="margin-top:22px">Save Settings</button>' +
-            '</div>' +
-            (isLoading ? '<div style="display:flex;align-items:center;color:var(--muted)"><div class="spinner"></div> Loading carousel cards...</div>' : renderCarouselCardsList());
+            '<div class="simple-carousel-shell">' +
+            '<aside class="carousel-slot-list" aria-label="Homepage carousels">' +
+            '<div class="slot-list-title">Layouts & Carousels</div>' +
+            state.carousels.map(renderCarouselSlotButton).join("") +
+            '</aside>' +
+            '<section class="carousel-main-panel">' +
+            renderCarouselHeaderSummary(active) +
+            renderCarouselPlacementSummary(active) +
+            (active.block_type === "text" ? renderTextBlockEditorHint(active) : (isLoading ? '<div style="display:flex;align-items:center;color:var(--muted)"><div class="spinner"></div> Loading carousel cards...</div>' : renderCarouselCardsList())) +
+            '</section>' +
+            '</div></div>';
 
-        document.getElementById("carouselSelect").addEventListener("change", (event) => loadCarouselCards(event.target.value));
+        els.carouselArea.querySelectorAll("[data-carousel-slot]").forEach((button) => {
+            button.addEventListener("click", () => loadCarouselCards(button.dataset.carouselSlot));
+        });
+        bindCarouselSlotDrag();
         document.getElementById("btnAddCarouselCard").addEventListener("click", () => openCarouselCardModal());
-        document.getElementById("btnRefreshCarousel").addEventListener("click", () => loadCarouselCards(state.activeCarouselId));
-        document.getElementById("btnSaveCarouselSettings").addEventListener("click", saveCarouselSettings);
+        document.getElementById("btnRefreshCarousel").addEventListener("click", refreshCarouselConfig);
+        document.getElementById("btnEditCarouselHeader").addEventListener("click", openCarouselHeaderModal);
+        document.getElementById("btnEditCarouselLayout").addEventListener("click", openCarouselLayoutModal);
+        document.getElementById("btnAddTextBlock").addEventListener("click", addStandaloneTextBlock);
+        document.getElementById("btnAddCarouselLayer").addEventListener("click", addCarouselLayer);
+        document.getElementById("btnDeleteLayoutBlock")?.addEventListener("click", deleteActiveLayoutBlock);
+        document.getElementById("btnAddCarouselCard").disabled = active.block_type === "text";
+        document.getElementById("btnEditCarouselHeaderInline")?.addEventListener("click", openCarouselHeaderModal);
+        document.getElementById("btnEditCarouselLayoutInline")?.addEventListener("click", openCarouselLayoutModal);
+        els.carouselArea.querySelectorAll("[data-move-carousel]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                moveCarouselBlock(button.dataset.moveCarousel, Number(button.dataset.moveDir));
+            });
+        });
         els.carouselArea.querySelectorAll("[data-edit-carousel-card]").forEach((button) => {
             button.addEventListener("click", () => {
                 const card = state.carouselCards.find((item) => item.id === button.dataset.editCarouselCard);
@@ -1213,6 +1557,396 @@
         els.carouselArea.querySelectorAll("[data-delete-carousel-card]").forEach((button) => {
             button.addEventListener("click", () => deleteCarouselCard(button.dataset.deleteCarouselCard));
         });
+    }
+
+    function activeCarousel() {
+        return state.carousels.find((carousel) => String(carousel.id) === String(state.activeCarouselId)) || state.carousels[0] || null;
+    }
+
+    function renderCarouselSlotButton(carousel) {
+        const isActive = String(carousel.id) === String(state.activeCarouselId);
+        const isText = carousel.block_type === "text";
+        return '' +
+            '<div class="carousel-slot-card ' + (isActive ? "active" : "") + '" draggable="true" data-drag-carousel="' + escAttr(carousel.id) + '">' +
+            '<button class="slot-main" type="button" data-carousel-slot="' + escAttr(carousel.id) + '">' +
+            '<span class="slot-grip" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>' +
+            '<span class="slot-icon" aria-hidden="true"><i class="' + (isText ? "fas fa-align-left" : "far fa-images") + '"></i></span>' +
+            '<span class="slot-copy"><b>' + esc(carouselSlotLabel(carousel)) + '</b><small>' + esc(isText ? (carousel.section_text || "Standalone text block") : (carousel.header || "No header set")) + '</small></span>' +
+            '<span class="slot-count">' + esc(isText ? "T" : String((carousel.cards || []).length)) + '</span>' +
+            '</button>' +
+            '<div class="slot-move-actions">' +
+            '<button type="button" title="Move up" data-move-carousel="' + escAttr(carousel.id) + '" data-move-dir="-1"><i class="fas fa-arrow-up"></i></button>' +
+            '<button type="button" title="Move down" data-move-carousel="' + escAttr(carousel.id) + '" data-move-dir="1"><i class="fas fa-arrow-down"></i></button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function renderCarouselHeaderSummary(active) {
+        return '' +
+            '<div class="current-carousel-header">' +
+            '<div><span>Current carousel header</span><h2>' + esc(active.header || "No header set") + '</h2>' +
+            (active.eyebrow ? '<small>' + esc(active.eyebrow) + '</small>' : '') + '</div>' +
+            '<button class="btn-s" type="button" id="btnEditCarouselHeaderInline"><i class="fas fa-pen"></i> Edit Header</button>' +
+            '</div>';
+    }
+
+    function renderCarouselPlacementSummary(active) {
+        const textState = active.section_text ? "Text block added" : "No text block";
+        const cardMode = active.layout_style === "custom_width" ? "Custom card widths" : "Fit visible cards";
+        return '' +
+            '<div class="placement-summary">' +
+            '<div><span>Homepage position</span><b>' + esc(carouselPlacementText(active)) + '</b></div>' +
+            '<div><span>Alignment</span><b>' + esc(layoutAlignLabel(active.layout_align)) + '</b></div>' +
+            '<div><span>Cards</span><b>' + esc(active.visible_count || active.grid_columns || (active.id === "1" ? 2 : 5)) + ' visible</b></div>' +
+            '<div><span>Text</span><b>' + esc(textState) + '</b></div>' +
+            '<div><span>Width mode</span><b>' + esc(cardMode) + '</b></div>' +
+            '<button class="btn-s" type="button" id="btnEditCarouselLayoutInline"><i class="fas fa-sliders"></i> Edit Layout / Text</button>' +
+            '</div>';
+    }
+
+    function renderTextBlockEditorHint(active) {
+        return '<div class="empty-box" style="text-align:left"><strong>This is a standalone text layer.</strong><br><span class="hint">Use Layout / Text to edit the text, color, width, and alignment. Drag it in the left list or use the arrows to move it above or below carousel layers.</span><div style="margin-top:14px;font-size:24px;font-weight:850;color:' + escAttr(colorInputValue(active.section_text_color, "#1d2233")) + '">' + esc(active.section_text || "Standalone text block") + '</div></div>';
+    }
+
+    function carouselPlacementText(active) {
+        if (active.block_type === "text") return "Standalone text layer in homepage layout";
+        return String(active.id) === "1"
+            ? "Homepage below the course catalog"
+            : "Homepage below the featured carousel";
+    }
+
+    function layoutAlignLabel(value) {
+        const labels = {
+            stretch: "Stretch page width",
+            left: "Left edge",
+            center: "Center",
+            right: "Right edge"
+        };
+        return labels[value || "stretch"] || "Stretch page width";
+    }
+
+    function renderOptions(items, current) {
+        return items.map(([value, label]) => {
+            return '<option value="' + escAttr(value) + '"' + (String(current) === String(value) ? " selected" : "") + ">" + esc(label) + "</option>";
+        }).join("");
+    }
+
+    function openCarouselHeaderModal() {
+        const active = activeCarousel();
+        if (!active) return;
+        showModal({
+            title: "Edit Carousel Header",
+            body: '' +
+                '<form id="carouselHeaderForm">' +
+                '<div class="fg"><label>Eyebrow</label><input id="modalCarouselEyebrow" value="' + escAttr(active.eyebrow || "") + '" placeholder="HTML Demo Thumbnails"><small>Small label above the carousel title.</small></div>' +
+                '<div class="fg"><label>Carousel Title</label><input id="modalCarouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured lab previews"><small>This appears directly above the cards.</small></div>' +
+                '<label class="inline-check"><input id="modalCarouselActive" type="checkbox" ' + (active.is_active ? "checked" : "") + '> Show this carousel on the homepage</label>' +
+                '</form>',
+            footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselHeaderForm">Save Header</button>'
+        });
+        document.getElementById("carouselHeaderForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            active.eyebrow = document.getElementById("modalCarouselEyebrow").value.trim();
+            active.header = document.getElementById("modalCarouselHeader").value.trim();
+            active.is_active = document.getElementById("modalCarouselActive").checked;
+            await saveCarouselConfigFromModal("Carousel header saved");
+        });
+    }
+
+    function openCarouselLayoutModal() {
+        const active = activeCarousel();
+        if (!active) return;
+        const activeAlign = active.layout_align || "stretch";
+        const activeStyle = active.layout_style || "fit";
+        const activeTextAlign = active.text_align || "left";
+        const activeSectionAlign = active.section_text_align || "left";
+        showModal({
+            title: "Edit Layout / Text",
+            wide: true,
+            body: '' +
+                '<form id="carouselLayoutForm">' +
+                '<div class="layout-modal-summary"><span class="location-chip"><i class="fas fa-location-dot"></i> ' + esc(carouselPlacementText(active)) + '</span><p class="hint">Use this only when you want to move the carousel, center one card, or add text before this carousel.</p></div>' +
+                '<div class="form-grid thirds">' +
+                '<div class="fg"><label>Carousel position</label><select id="modalCarouselAlign">' + renderOptions([["stretch", "Stretch page width"], ["left", "Left edge"], ["center", "Center"], ["right", "Right edge"]], activeAlign) + '</select><small>Center is best for a single card.</small></div>' +
+                '<div class="fg"><label>Section max width</label><input id="modalCarouselMaxWidth" value="' + escAttr(active.max_width || "1480px") + '" placeholder="1480px"></div>' +
+                '<div class="fg"><label>Card width behavior</label><select id="modalCarouselLayoutStyle">' + renderOptions([["fit", "Fit visible cards"], ["custom_width", "Use each card width"]], activeStyle) + '</select></div>' +
+                '<div class="fg"><label>Visible cards</label><input id="modalCarouselVisibleCount" type="number" min="1" max="8" value="' + escAttr(active.visible_count || active.grid_columns || (active.id === "1" ? 2 : 5)) + '"></div>' +
+                '<div class="fg"><label>Gap between cards</label><input id="modalCarouselCardGap" type="number" min="0" max="80" value="' + escAttr(active.card_gap || (active.id === "1" ? 12 : 10)) + '"></div>' +
+                '<div class="fg"><label>Heading align</label><select id="modalCarouselTextAlign">' + renderOptions([["left", "Left"], ["center", "Center"], ["right", "Right"]], activeTextAlign) + '</select></div>' +
+                '</div>' +
+                '<div class="fg" style="margin-top:16px"><label>Optional text before this carousel</label><textarea id="modalCarouselSectionText" placeholder="Example: Take a closer look.">' + esc(active.section_text || "") + '</textarea><small>Leave empty if you do not want an extra text block.</small></div>' +
+                '<div class="form-grid thirds">' +
+                '<div class="fg"><label>Text align</label><select id="modalCarouselSectionAlign">' + renderOptions([["left", "Left"], ["center", "Center"], ["right", "Right"]], activeSectionAlign) + '</select></div>' +
+                '<div class="fg"><label>Text size</label><input id="modalCarouselSectionSize" type="number" min="14" max="96" value="' + escAttr(active.section_text_size || 44) + '"></div>' +
+                '<div class="fg"><label>Text color</label><input id="modalCarouselSectionColor" type="color" value="' + escAttr(colorInputValue(active.section_text_color, "#1d2233")) + '"></div>' +
+                '<div class="fg"><label>Text font</label><input id="modalCarouselSectionFont" value="' + escAttr(active.section_text_font || "Inter") + '"></div>' +
+                '<div class="fg"><label>Text max width</label><input id="modalCarouselSectionMaxWidth" value="' + escAttr(active.section_text_max_width || "860px") + '"></div>' +
+                '<div class="fg"><label>Order</label><input id="modalCarouselOrder" type="number" value="' + escAttr(active.display_order || 1) + '"></div>' +
+                '</div>' +
+                '<details class="advanced-layout"><summary>Advanced heading style</summary>' +
+                '<div class="form-grid thirds" style="margin-top:12px">' +
+                '<div class="fg"><label>Heading font</label><input id="modalCarouselHeaderFont" value="' + escAttr(active.header_font || "Inter") + '"></div>' +
+                '<div class="fg"><label>Heading size</label><input id="modalCarouselHeaderSize" type="number" min="14" max="96" value="' + escAttr(active.header_font_size || 28) + '"></div>' +
+                '<div class="fg"><label>Heading color</label><input id="modalCarouselHeaderColor" type="color" value="' + escAttr(colorInputValue(active.header_color, "#1d2233")) + '"></div>' +
+                '</div></details>' +
+                '<label class="inline-check" style="margin-top:14px"><input id="modalCarouselInfinite" type="checkbox" ' + (active.infinite_scroll === false ? "" : "checked") + '> Infinite carousel arrows</label>' +
+                '</form>',
+            footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselLayoutForm">Save Layout</button>'
+        });
+        document.getElementById("carouselLayoutForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            active.layout_align = document.getElementById("modalCarouselAlign").value;
+            active.max_width = document.getElementById("modalCarouselMaxWidth").value.trim() || "1480px";
+            active.layout_style = document.getElementById("modalCarouselLayoutStyle").value;
+            active.visible_count = Number(document.getElementById("modalCarouselVisibleCount").value || active.visible_count || 2);
+            active.grid_columns = active.visible_count;
+            active.card_gap = Number(document.getElementById("modalCarouselCardGap").value || active.card_gap || 12);
+            active.text_align = document.getElementById("modalCarouselTextAlign").value;
+            active.section_text = document.getElementById("modalCarouselSectionText").value.trim();
+            active.section_text_align = document.getElementById("modalCarouselSectionAlign").value;
+            active.section_text_size = Number(document.getElementById("modalCarouselSectionSize").value || active.section_text_size || 44);
+            active.section_text_color = document.getElementById("modalCarouselSectionColor").value || "#1d2233";
+            active.section_text_font = document.getElementById("modalCarouselSectionFont").value.trim() || "Inter";
+            active.section_text_max_width = document.getElementById("modalCarouselSectionMaxWidth").value.trim() || "860px";
+            active.display_order = Number(document.getElementById("modalCarouselOrder").value || active.display_order || 1);
+            active.header_font = document.getElementById("modalCarouselHeaderFont").value.trim() || "Inter";
+            active.header_font_size = Number(document.getElementById("modalCarouselHeaderSize").value || active.header_font_size || 28);
+            active.header_color = document.getElementById("modalCarouselHeaderColor").value || "#1d2233";
+            active.infinite_scroll = document.getElementById("modalCarouselInfinite").checked;
+            await saveCarouselConfigFromModal("Carousel layout saved");
+        });
+    }
+
+    async function saveCarouselConfigFromModal(message) {
+        try {
+            await saveCarouselConfig();
+            closeModal();
+            showToast(message, "ok");
+            broadcastAdminUpdate();
+            await loadCarouselCards(state.activeCarouselId);
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
+    async function addCarouselLayer() {
+        const order = nextCarouselBlockOrder();
+        const id = "carousel-" + Date.now();
+        state.carousels.push(fixedCarouselSlot(id, "Carousel Layer", "New carousel layer", {
+            id,
+            name: "Carousel Layer",
+            block_type: "carousel",
+            header: "New carousel layer",
+            eyebrow: "",
+            display_order: order,
+            is_active: true,
+            cards: []
+        }));
+        state.activeCarouselId = id;
+        await saveCarouselConfigFromModal("Carousel layer added");
+    }
+
+    async function addStandaloneTextBlock() {
+        const order = nextCarouselBlockOrder();
+        const id = "text-" + Date.now();
+        state.carousels.push(fixedCarouselSlot(id, "Text Block", "Text Block", {
+            id,
+            name: "Text Block",
+            block_type: "text",
+            header: "Text Block",
+            section_text: "Take a closer look.",
+            section_text_size: 44,
+            section_text_color: "#1d2233",
+            section_text_align: "left",
+            section_text_max_width: "860px",
+            display_order: order,
+            is_active: true,
+            cards: []
+        }));
+        state.activeCarouselId = id;
+        await saveCarouselConfigFromModal("Text layer added");
+    }
+
+    function nextCarouselBlockOrder() {
+        return Math.max(0, ...state.carousels.map((carousel) => Number(carousel.display_order) || 0)) + 1;
+    }
+
+    async function moveCarouselBlock(id, direction) {
+        const blocks = sortedCarouselBlocks();
+        const index = blocks.findIndex((carousel) => String(carousel.id) === String(id));
+        const nextIndex = index + direction;
+        if (index < 0 || nextIndex < 0 || nextIndex >= blocks.length) return;
+        const [item] = blocks.splice(index, 1);
+        blocks.splice(nextIndex, 0, item);
+        blocks.forEach((carousel, blockIndex) => {
+            carousel.display_order = blockIndex + 1;
+        });
+        state.carousels = blocks;
+        state.activeCarouselId = String(id);
+        await saveCarouselConfigFromModal("Layout order updated");
+    }
+
+    async function deleteActiveLayoutBlock() {
+        const active = activeCarousel();
+        if (!active || ["1", "2"].includes(String(active.id))) return;
+        if (!confirm("Delete this homepage layout layer?")) return;
+        state.carousels = state.carousels.filter((carousel) => String(carousel.id) !== String(active.id));
+        state.carousels.forEach((carousel, index) => {
+            carousel.display_order = index + 1;
+        });
+        state.activeCarouselId = state.carousels[0] ? String(state.carousels[0].id) : "1";
+        await saveCarouselConfigFromModal("Layout layer deleted");
+    }
+
+    function sortedCarouselBlocks() {
+        return state.carousels
+            .slice()
+            .sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0));
+    }
+
+    function bindCarouselSlotDrag() {
+        let draggedId = "";
+        els.carouselArea.querySelectorAll("[data-drag-carousel]").forEach((node) => {
+            node.addEventListener("dragstart", (event) => {
+                draggedId = node.dataset.dragCarousel;
+                event.dataTransfer.effectAllowed = "move";
+                node.classList.add("is-dragging");
+            });
+            node.addEventListener("dragend", () => {
+                node.classList.remove("is-dragging");
+                draggedId = "";
+            });
+            node.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                node.classList.add("is-drop-target");
+            });
+            node.addEventListener("dragleave", () => node.classList.remove("is-drop-target"));
+            node.addEventListener("drop", async (event) => {
+                event.preventDefault();
+                node.classList.remove("is-drop-target");
+                const targetId = node.dataset.dragCarousel;
+                if (!draggedId || draggedId === targetId) return;
+                const blocks = sortedCarouselBlocks();
+                const from = blocks.findIndex((carousel) => String(carousel.id) === String(draggedId));
+                const to = blocks.findIndex((carousel) => String(carousel.id) === String(targetId));
+                if (from < 0 || to < 0) return;
+                const [item] = blocks.splice(from, 1);
+                blocks.splice(to, 0, item);
+                blocks.forEach((carousel, blockIndex) => {
+                    carousel.display_order = blockIndex + 1;
+                });
+                state.carousels = blocks;
+                state.activeCarouselId = draggedId;
+                await saveCarouselConfigFromModal("Layout order updated");
+            });
+        });
+    }
+
+    function renderCarouselLocationGuide(active) {
+        const isFeatured = String(active.id) === "1";
+        const slotName = isFeatured ? "Big Carousel" : "Bottom Small Carousel";
+        const locationText = isFeatured
+            ? "Homepage -> after Course Catalog -> before Featured lab previews"
+            : "Homepage -> after Big Carousel -> before Bottom Small Carousel cards";
+        const textNote = isFeatured
+            ? "Optional text appears between the Course Catalog and the Big Carousel."
+            : "Optional text appears between the Big Carousel and the Bottom Small Carousel.";
+        return '' +
+            '<div class="layout-guide">' +
+            '<div class="layout-guide-card">' +
+            '<span class="location-chip"><i class="fas fa-location-dot"></i> Editing: ' + esc(slotName) + '</span>' +
+            '<h4 style="margin-top:14px">Where this appears on the homepage</h4>' +
+            '<div class="homepage-map" aria-label="Homepage section map">' +
+            renderMapBlock("Hero", "GradStudio title and buttons", false) +
+            renderMapBlock("Catalog", "Course filters and course cards", false) +
+            renderMapBlock("Text + Big", "Optional text, then main carousel cards", isFeatured) +
+            renderMapBlock("Text + Small", "Optional text, then smaller carousel row", !isFeatured) +
+            renderMapBlock("Footer", "About, contact, legal links", false) +
+            '</div>' +
+            '<p class="preview-note"><strong>Text slot:</strong> ' + esc(textNote) + '</p>' +
+            '</div>' +
+            '<div class="layout-preview-panel">' +
+            '<div class="preview-label"><span>Live placement preview</span><span id="layoutPreviewSlot">' + esc(slotName) + '</span></div>' +
+            '<div id="carouselLayoutPreview" class="layout-preview-stage" data-location="' + escAttr(locationText) + '"></div>' +
+            '<p class="preview-note">This is a small map of the homepage. The card rows below this panel are the cards used in the highlighted carousel.</p>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function renderMapBlock(label, description, active) {
+        return '<div class="map-block ' + (active ? "active" : "") + '">' +
+            '<span>' + esc(label) + '</span>' +
+            '<div><b>' + esc(active ? "You are changing this section" : description) + '</b><small>' + esc(active ? description : "") + '</small></div>' +
+            '</div>';
+    }
+
+    function bindCarouselLayoutPreview() {
+        updateCarouselLayoutPreview();
+        [
+            "carouselAlign", "carouselMaxWidth", "carouselLayoutStyle", "carouselVisibleCount", "carouselCardGap",
+            "carouselEyebrow", "carouselHeader", "carouselTextAlign", "carouselHeaderFont", "carouselHeaderSize",
+            "carouselHeaderColor", "carouselSectionText", "carouselSectionFont", "carouselSectionSize",
+            "carouselSectionColor", "carouselSectionAlign", "carouselSectionMaxWidth"
+        ].forEach((id) => {
+            const node = document.getElementById(id);
+            if (!node) return;
+            node.addEventListener("input", updateCarouselLayoutPreview);
+            node.addEventListener("change", updateCarouselLayoutPreview);
+        });
+    }
+
+    function updateCarouselLayoutPreview() {
+        const preview = document.getElementById("carouselLayoutPreview");
+        if (!preview) return;
+        const align = getInputValue("carouselAlign", "stretch");
+        const width = previewCssLength(getInputValue("carouselMaxWidth", "1480px"), "100%");
+        const layoutStyle = getInputValue("carouselLayoutStyle", "fit");
+        const visible = Math.max(1, Math.min(8, Number(getInputValue("carouselVisibleCount", "2")) || 2));
+        const sectionText = getInputValue("carouselSectionText", "").trim();
+        const sectionAlign = getInputValue("carouselSectionAlign", "left");
+        const textColor = getInputValue("carouselSectionColor", "#1d2233");
+        const textSize = Math.max(14, Math.min(96, Number(getInputValue("carouselSectionSize", "44")) || 44));
+        const heading = getInputValue("carouselHeader", "Featured lab previews").trim() || "Carousel title";
+        const eyebrow = getInputValue("carouselEyebrow", "").trim();
+        const headingAlign = getInputValue("carouselTextAlign", "left");
+        const headingColor = getInputValue("carouselHeaderColor", "#1d2233");
+        const headingSize = Math.max(14, Math.min(96, Number(getInputValue("carouselHeaderSize", "28")) || 28));
+        const cards = state.carouselCards.length ? state.carouselCards : [{ title: "Carousel card" }, { title: "Second card" }];
+        const previewCards = cards.slice(0, Math.max(visible, Math.min(cards.length, 4)));
+        const cardWidth = layoutStyle === "custom_width" ? "86px" : Math.max(42, Math.floor(260 / visible) - 6) + "px";
+
+        preview.innerHTML = '' +
+            '<div class="mini-home-section"></div>' +
+            '<div class="mini-home-section catalog"></div>' +
+            '<div class="mini-carousel-wrap ' + escAttr(align) + '" style="width:' + escAttr(width === "auto" ? "100%" : width) + ';max-width:100%">' +
+            (sectionText ? '<div class="mini-section-text" style="text-align:' + escAttr(sectionAlign) + ';color:' + escAttr(textColor) + ';font-size:' + Math.round(textSize * 0.34) + 'px">' + esc(sectionText) + '</div>' : '<div class="mini-section-text" style="font-size:12px;color:#94a3b8;font-weight:700">No text block added yet</div>') +
+            (eyebrow ? '<div class="mini-eyebrow" style="text-align:' + escAttr(headingAlign) + '">' + esc(eyebrow) + '</div>' : '') +
+            '<div class="mini-heading" style="text-align:' + escAttr(headingAlign) + ';color:' + escAttr(headingColor) + ';font-size:' + Math.round(headingSize * 0.42) + 'px">' + esc(heading) + '</div>' +
+            '<div class="mini-rail ' + escAttr(align) + '">' +
+            previewCards.map((card) => renderMiniLayoutCard(card, cardWidth)).join("") +
+            '</div>' +
+            '</div>';
+    }
+
+    function renderMiniLayoutCard(card, cardWidth) {
+        return '<div class="mini-card" style="--mini-card-width:' + escAttr(cardWidth) + '">' +
+            (card && card.id ? renderCarouselThumb(card) : '') +
+            '<span class="mini-card-title">' + esc(card.title || "Card") + '</span>' +
+            '</div>';
+    }
+
+    function getInputValue(id, fallback) {
+        const node = document.getElementById(id);
+        return node ? node.value : fallback;
+    }
+
+    function previewCssLength(value, fallback) {
+        const text = String(value || "").trim();
+        if (!text) return fallback;
+        if (/^(auto|none)$/i.test(text)) return text.toLowerCase();
+        if (/^\d+(\.\d+)?(px|rem|em|%|vw|vh)$/i.test(text)) return text;
+        if (/^\d+(\.\d+)?$/i.test(text)) return text + "px";
+        return fallback;
     }
 
     function renderCarouselCardsList() {
@@ -1237,13 +1971,13 @@
 
     function renderCarouselThumb(card) {
         if (card.content_type === "image" && card.image_url) {
-            return '<img src="' + escAttr(card.image_url) + '" alt="' + escAttr(card.title + " thumbnail") + '">';
+            return '<img src="' + escAttr(resolveAssetUrl(card.image_url)) + '" alt="' + escAttr(card.title + " thumbnail") + '">';
         }
         if (card.content_type === "iframe" && card.iframe_url) {
-            return '<iframe title="' + escAttr(card.title) + '" src="' + escAttr(card.iframe_url) + '" loading="lazy"></iframe>';
+            return '<iframe title="' + escAttr(card.title) + '" src="' + escAttr(resolveAssetUrl(card.iframe_url)) + '" loading="lazy"></iframe>';
         }
         if (card.content_type === "html" && card.content_html) {
-            return sanitizePreviewHtml(card.content_html);
+            return renderSafeHtmlPreview(card.content_html, card.title);
         }
         return '<i class="' + escAttr(card.icon_class || "fas fa-star") + '"></i>';
     }
@@ -1284,13 +2018,30 @@
                 '<div class="fg"><label>Image URL</label><input id="ccImageUrl" value="' + escAttr(card ? card.image_url : "") + '" placeholder="https://... or /carousel/images/card.png"></div>' +
                 '<div class="fg"><label>Iframe URL</label><input id="ccIframeUrl" value="' + escAttr(card ? card.iframe_url : "") + '" placeholder="/carousel/html/card.html"></div>' +
                 '</div>' +
-                '<div class="fg"><label>Upload HTML Thumbnail File</label><div class="action-row"><input id="ccHtmlFile" type="file" accept=".html,text/html" style="flex:1"><button class="btn-s" type="button" id="ccUploadHtml"><i class="fas fa-upload"></i> Upload HTML</button></div><small>Uploads a standalone .html thumbnail and uses it as an iframe carousel thumbnail.</small></div>' +
+                '<div class="fg" id="ccImageUploadWrap"><label>Upload Image Thumbnail</label><div class="action-row"><input id="ccImageFile" type="file" accept="image/*" style="flex:1"><button class="btn-s" type="button" id="ccUploadImage"><i class="fas fa-upload"></i> Upload Image</button></div><small>Uploads an image to the carousel media folder and fills Image URL.</small></div>' +
+                '<div class="fg" id="ccHtmlUploadWrap"><label>Upload HTML Thumbnail File</label><div class="action-row"><input id="ccHtmlFile" type="file" accept=".html,text/html" style="flex:1"><button class="btn-s" type="button" id="ccUploadHtml"><i class="fas fa-upload"></i> Upload HTML</button></div><small>Uploads a standalone .html thumbnail and uses it as an iframe carousel thumbnail.</small></div>' +
                 '<div class="fg"><label>HTML Thumbnail</label><textarea id="ccContentHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>">' + esc(card ? card.content_html : snippets[3].html) + '</textarea><small>Use this for custom carousel HTML thumbnails.</small></div>' +
+                '<div class="fg" id="ccSnippetWrap"><label>Starter Thumbnails</label><div class="pill-row" id="ccSnippetLibrary"></div></div>' +
                 '<div class="row">' +
                 '<div class="fg"><label>Icon Class</label><input id="ccIcon" value="' + escAttr(card ? card.icon_class : "fas fa-layer-group") + '"></div>' +
                 '<div class="fg"><label>Accent Color</label><input id="ccColor" type="color" value="' + escAttr(card ? card.color_hex : "#3b82f6") + '"></div>' +
                 '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : (activeCarouselId === "2" ? "220px" : "400px")) + '"></div>' +
                 '<div class="fg"><label>Height</label><input id="ccHeight" value="' + escAttr(card ? card.height_px : (activeCarouselId === "2" ? "160px" : "420px")) + '"></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Text Position</label><select id="ccTextPosition"><option value="bottom">Bottom overlay</option><option value="top">Top overlay</option><option value="center">Center overlay</option><option value="hidden">Hide text</option></select></div>' +
+                '<div class="fg"><label>Text Align</label><select id="ccTextAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>' +
+                '<div class="fg"><label>Card Background</label><input id="ccBgColor" type="color" value="' + escAttr(colorInputValue(card && card.bg_color, "#111827")) + '"></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Title Font</label><input id="ccHeadingFont" value="' + escAttr(card && card.heading_font ? card.heading_font : "Inter") + '"></div>' +
+                '<div class="fg"><label>Title Size</label><input id="ccHeadingSize" type="number" min="10" max="64" value="' + escAttr(card && card.heading_size ? card.heading_size : 24) + '"></div>' +
+                '<div class="fg"><label>Title Color</label><input id="ccHeadingColor" type="color" value="' + escAttr(colorInputValue(card && card.heading_color, "#ffffff")) + '"></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="fg"><label>Subtitle Font</label><input id="ccSubFont" value="' + escAttr(card && card.sub_font ? card.sub_font : "Inter") + '"></div>' +
+                '<div class="fg"><label>Subtitle Size</label><input id="ccSubSize" type="number" min="10" max="40" value="' + escAttr(card && card.sub_size ? card.sub_size : 13) + '"></div>' +
+                '<div class="fg"><label>Subtitle Color</label><input id="ccSubColor" type="color" value="' + escAttr(colorInputValue(card && card.sub_color, "#dbe3f1")) + '"></div>' +
                 '</div>' +
                 '<label class="inline-check" style="margin-bottom:14px"><input id="ccActive" type="checkbox" ' + (!card || card.is_active ? "checked" : "") + '> Active card</label>' +
                 '<div id="ccDirectCourseWrap" class="fg"><label>Direct Course</label><select id="ccDirectCourse">' + renderCourseOptions(selectedCourse) + '</select><small>Used when click behavior opens course contents directly.</small></div>' +
@@ -1302,7 +2053,9 @@
 
         document.getElementById("ccContentType").value = card ? card.content_type : "html";
         document.getElementById("ccTargetType").value = card ? card.target_type : defaultTarget;
-        ["ccCarousel", "ccTitle", "ccDescription", "ccContentType", "ccTargetType", "ccImageUrl", "ccIframeUrl", "ccContentHtml", "ccIcon", "ccColor", "ccDirectCourse"].forEach((id) => {
+        document.getElementById("ccTextPosition").value = card ? (card.text_position || "bottom") : "bottom";
+        document.getElementById("ccTextAlign").value = card ? (card.text_align || "left") : "left";
+        ["ccCarousel", "ccTitle", "ccDescription", "ccContentType", "ccTargetType", "ccImageUrl", "ccIframeUrl", "ccContentHtml", "ccIcon", "ccColor", "ccWidth", "ccHeight", "ccTextPosition", "ccTextAlign", "ccBgColor", "ccHeadingFont", "ccHeadingSize", "ccHeadingColor", "ccSubFont", "ccSubSize", "ccSubColor", "ccDirectCourse"].forEach((id) => {
             const node = document.getElementById(id);
             if (node) {
                 node.addEventListener("input", updateCarouselCardModal);
@@ -1310,6 +2063,8 @@
             }
         });
         els.modalBox.querySelectorAll('input[name="ccCourseLink"]').forEach((input) => input.addEventListener("change", updateCarouselCardModal));
+        renderCarouselSnippetLibrary();
+        document.getElementById("ccUploadImage").addEventListener("click", uploadCarouselImageThumbnail);
         document.getElementById("ccUploadHtml").addEventListener("click", uploadCarouselHtmlThumbnail);
         document.getElementById("carouselCardForm").addEventListener("submit", (event) => saveCarouselCardFromModal(event, card));
         updateCarouselCardModal();
@@ -1323,11 +2078,35 @@
 
     function renderCoursePicker(selectedIds) {
         const selected = new Set((selectedIds || []).map(String));
-        return '<div class="course-picker">' + state.courses.map((course) => {
+        const knownRows = state.courses.map((course) => {
             const meta = categoryName(course.category) + (course.parent_course_id ? " / nested" : "");
             return '<label class="course-picker-row"><input type="checkbox" name="ccCourseLink" value="' + escAttr(course.id) + '"' + (selected.has(course.id) ? " checked" : "") + '>' +
                 '<div><span>' + esc(course.title) + '</span><small>' + esc(meta) + '</small></div></label>';
-        }).join("") + '</div>';
+        }).join("");
+        const knownIds = new Set(state.courses.map((course) => course.id));
+        const missingRows = Array.from(selected)
+            .filter((id) => id && !knownIds.has(id))
+            .map((id) => '<label class="course-picker-row"><input type="checkbox" name="ccCourseLink" value="' + escAttr(id) + '" checked>' +
+                '<div><span>' + esc(id) + '</span><small>Saved course id not currently in the catalog</small></div></label>')
+            .join("");
+        return '<div class="course-picker">' + knownRows + missingRows + '</div>';
+    }
+
+    function renderCarouselSnippetLibrary() {
+        const target = document.getElementById("ccSnippetLibrary");
+        if (!target) return;
+        target.innerHTML = snippets.map((snippet, index) => {
+            return '<button type="button" class="pill-btn" data-carousel-snippet="' + index + '">' + esc(snippet.name) + '</button>';
+        }).join("");
+        target.querySelectorAll("[data-carousel-snippet]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const snippet = snippets[Number(button.dataset.carouselSnippet)];
+                if (!snippet) return;
+                document.getElementById("ccContentType").value = "html";
+                document.getElementById("ccContentHtml").value = snippet.html;
+                updateCarouselCardModal();
+            });
+        });
     }
 
     function updateCarouselCardModal() {
@@ -1338,6 +2117,9 @@
         document.getElementById("ccImageUrl").closest(".fg").style.display = contentType === "image" ? "block" : "none";
         document.getElementById("ccIframeUrl").closest(".fg").style.display = contentType === "iframe" ? "block" : "none";
         document.getElementById("ccContentHtml").closest(".fg").style.display = contentType === "html" ? "block" : "none";
+        document.getElementById("ccImageUploadWrap").style.display = contentType === "image" ? "block" : "none";
+        document.getElementById("ccHtmlUploadWrap").style.display = contentType === "iframe" ? "block" : "none";
+        document.getElementById("ccSnippetWrap").style.display = contentType === "html" ? "block" : "none";
         renderCarouselModalPreview();
     }
 
@@ -1347,15 +2129,20 @@
         const description = document.getElementById("ccDescription").value.trim() || targetLabelFromModal();
         let media = "";
         if (contentType === "image" && document.getElementById("ccImageUrl").value.trim()) {
-            media = '<img src="' + escAttr(document.getElementById("ccImageUrl").value.trim()) + '" alt="' + escAttr(title + " thumbnail") + '">';
+            media = '<img src="' + escAttr(resolveAssetUrl(document.getElementById("ccImageUrl").value.trim())) + '" alt="' + escAttr(title + " thumbnail") + '">';
         } else if (contentType === "iframe" && document.getElementById("ccIframeUrl").value.trim()) {
-            media = '<iframe title="' + escAttr(title) + '" src="' + escAttr(document.getElementById("ccIframeUrl").value.trim()) + '" loading="lazy" style="width:100%;height:190px;border:0"></iframe>';
+            media = '<iframe title="' + escAttr(title) + '" src="' + escAttr(resolveAssetUrl(document.getElementById("ccIframeUrl").value.trim())) + '" loading="lazy" style="width:100%;height:190px;border:0"></iframe>';
         } else if (contentType === "html") {
-            media = sanitizePreviewHtml(document.getElementById("ccContentHtml").value) || '<div class="hint">HTML thumbnail preview</div>';
+            media = renderSafeHtmlPreview(document.getElementById("ccContentHtml").value, title) || '<div class="hint">HTML thumbnail preview</div>';
         } else {
             media = '<i class="' + escAttr(document.getElementById("ccIcon").value.trim() || "fas fa-star") + '" style="font-size:42px;color:' + escAttr(document.getElementById("ccColor").value || "#3b82f6") + '"></i>';
         }
-        document.getElementById("ccPreview").innerHTML = '<div class="preview-media">' + media + '</div><div class="preview-body"><strong>' + esc(title) + '</strong><div class="preview-meta"><span>' + esc(description) + '</span></div></div>';
+        const titleStyle = 'font-family:' + escAttr(document.getElementById("ccHeadingFont").value.trim() || "Inter") + ';font-size:' + escAttr(document.getElementById("ccHeadingSize").value || 24) + 'px;color:' + escAttr(document.getElementById("ccHeadingColor").value || "#ffffff") + ';text-align:' + escAttr(document.getElementById("ccTextAlign").value || "left");
+        const subStyle = 'font-family:' + escAttr(document.getElementById("ccSubFont").value.trim() || "Inter") + ';font-size:' + escAttr(document.getElementById("ccSubSize").value || 13) + 'px;color:' + escAttr(document.getElementById("ccSubColor").value || "#dbe3f1") + ';text-align:' + escAttr(document.getElementById("ccTextAlign").value || "left");
+        const previewBody = document.getElementById("ccTextPosition").value === "hidden"
+            ? ""
+            : '<div class="preview-body" style="background:' + escAttr(document.getElementById("ccBgColor").value || "#111827") + ';text-align:' + escAttr(document.getElementById("ccTextAlign").value || "left") + '"><strong style="' + titleStyle + '">' + esc(title) + '</strong><div class="preview-meta" style="' + subStyle + '"><span>' + esc(description) + '</span></div></div>';
+        document.getElementById("ccPreview").innerHTML = '<div class="preview-media">' + media + '</div>' + previewBody;
     }
 
     function targetLabelFromModal() {
@@ -1375,6 +2162,26 @@
         return Array.from(els.modalBox.querySelectorAll('input[name="ccCourseLink"]:checked')).map((input) => input.value);
     }
 
+    async function uploadCarouselImageThumbnail() {
+        const input = document.getElementById("ccImageFile");
+        const file = input && input.files ? input.files[0] : null;
+        if (!file) {
+            showToast("Choose an image thumbnail file", "err");
+            return;
+        }
+
+        try {
+            showToast("Uploading image thumbnail...", "ok");
+            const result = await uploadCarouselMedia(file, "image");
+            document.getElementById("ccContentType").value = "image";
+            document.getElementById("ccImageUrl").value = result.url || "";
+            updateCarouselCardModal();
+            showToast("Image thumbnail uploaded", "ok");
+        } catch (error) {
+            showToast(error.message, "err");
+        }
+    }
+
     async function uploadCarouselHtmlThumbnail() {
         const input = document.getElementById("ccHtmlFile");
         const file = input && input.files ? input.files[0] : null;
@@ -1383,17 +2190,9 @@
             return;
         }
 
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("type", "html");
-
         try {
             showToast("Uploading HTML thumbnail...", "ok");
-            const result = await apiJson("/api/admin/carousel/upload", {
-                method: "POST",
-                headers: authHeaders(),
-                body: formData
-            });
+            const result = await uploadCarouselMedia(file, "html");
             document.getElementById("ccContentType").value = "iframe";
             document.getElementById("ccIframeUrl").value = result.url || "";
             updateCarouselCardModal();
@@ -1401,6 +2200,18 @@
         } catch (error) {
             showToast(error.message, "err");
         }
+    }
+
+    async function uploadCarouselMedia(file, type) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", type);
+
+        return apiJson("/api/admin/carousel/upload", {
+            method: "POST",
+            headers: authHeaders(),
+            body: formData
+        });
     }
 
     async function saveCarouselCardFromModal(event, existingCard) {
@@ -1421,7 +2232,9 @@
             showToast("Select at least one course card to display", "err");
             return;
         }
+        const carouselId = document.getElementById("ccCarousel").value;
         const payload = {
+            id: existingCard ? existingCard.id : String(Date.now()),
             title,
             description: document.getElementById("ccDescription").value.trim(),
             icon_class: document.getElementById("ccIcon").value.trim() || "fas fa-star",
@@ -1433,21 +2246,31 @@
             content_type: document.getElementById("ccContentType").value,
             image_url: document.getElementById("ccImageUrl").value.trim(),
             iframe_url: document.getElementById("ccIframeUrl").value.trim(),
-            content_html: document.getElementById("ccContentHtml").value,
+            content_html: normalizeStoredHtml(document.getElementById("ccContentHtml").value),
             width: document.getElementById("ccWidth").value.trim() || "400px",
             height_px: document.getElementById("ccHeight").value.trim() || "420px",
             full_bleed: true,
-            carousel_id: document.getElementById("ccCarousel").value,
+            bg_color: document.getElementById("ccBgColor").value || "",
+            heading_font: document.getElementById("ccHeadingFont").value.trim() || "Inter",
+            heading_size: Number(document.getElementById("ccHeadingSize").value || 24),
+            heading_color: document.getElementById("ccHeadingColor").value || "#ffffff",
+            sub_font: document.getElementById("ccSubFont").value.trim() || "Inter",
+            sub_size: Number(document.getElementById("ccSubSize").value || 13),
+            sub_color: document.getElementById("ccSubColor").value || "#dbe3f1",
+            text_position: document.getElementById("ccTextPosition").value,
+            text_align: document.getElementById("ccTextAlign").value,
+            carousel_id: carouselId,
             course_links: targetType === "course_list" ? selectedIds : []
         };
-        if (existingCard) payload.id = existingCard.id;
 
         try {
-            await apiJson("/api/admin/carousel", {
-                method: existingCard ? "PUT" : "POST",
-                headers: authJsonHeaders(),
-                body: JSON.stringify(payload)
-            });
+            upsertCarouselCard(payload, existingCard);
+            const targetCarousel = state.carousels.find((carousel) => String(carousel.id) === String(payload.carousel_id));
+            if (targetCarousel && hasCustomCardWidth(payload, targetCarousel)) {
+                targetCarousel.layout_style = "custom_width";
+                showToast("Card width saved. This carousel now uses custom card widths.", "ok");
+            }
+            await saveCarouselConfig();
             closeModal();
             state.activeCarouselId = String(payload.carousel_id);
             showToast(existingCard ? "Carousel card saved" : "Carousel card created", "ok");
@@ -1458,24 +2281,44 @@
         }
     }
 
+    function hasCustomCardWidth(card, carousel) {
+        const defaultWidth = String(carousel.id) === "2" ? "220px" : "400px";
+        return normalizeLengthText(card.width) !== normalizeLengthText(defaultWidth);
+    }
+
+    function normalizeLengthText(value) {
+        const text = String(value || "").trim().toLowerCase();
+        return /^\d+(\.\d+)?$/.test(text) ? text + "px" : text;
+    }
+
     async function saveCarouselSettings() {
         const active = state.carousels.find((carousel) => carousel.id === state.activeCarouselId);
         if (!active) return;
         try {
-            await apiJson("/api/admin/carousels", {
-                method: "PUT",
-                headers: authJsonHeaders(),
-                body: JSON.stringify({
-                    id: active.id,
-                    name: active.name,
-                    header: document.getElementById("carouselHeader").value.trim(),
-                    display_order: Number(document.getElementById("carouselOrder").value || active.display_order || 1),
-                    is_active: document.getElementById("carouselActive").checked
-                })
-            });
+            active.header = document.getElementById("carouselHeader").value.trim();
+            active.eyebrow = document.getElementById("carouselEyebrow").value.trim();
+            active.display_order = Number(document.getElementById("carouselOrder").value || active.display_order || 1);
+            active.is_active = document.getElementById("carouselActive").checked;
+            active.layout_align = document.getElementById("carouselAlign").value;
+            active.max_width = document.getElementById("carouselMaxWidth").value.trim() || "1480px";
+            active.layout_style = document.getElementById("carouselLayoutStyle").value;
+            active.visible_count = Number(document.getElementById("carouselVisibleCount").value || active.visible_count || 2);
+            active.grid_columns = active.visible_count;
+            active.card_gap = Number(document.getElementById("carouselCardGap").value || active.card_gap || 12);
+            active.infinite_scroll = document.getElementById("carouselInfinite").checked;
+            active.text_align = document.getElementById("carouselTextAlign").value;
+            active.header_font = document.getElementById("carouselHeaderFont").value.trim() || "Inter";
+            active.header_font_size = Number(document.getElementById("carouselHeaderSize").value || active.header_font_size || 28);
+            active.header_color = document.getElementById("carouselHeaderColor").value || "#1d2233";
+            active.section_text = document.getElementById("carouselSectionText").value.trim();
+            active.section_text_font = document.getElementById("carouselSectionFont").value.trim() || "Inter";
+            active.section_text_size = Number(document.getElementById("carouselSectionSize").value || active.section_text_size || 44);
+            active.section_text_color = document.getElementById("carouselSectionColor").value || "#1d2233";
+            active.section_text_align = document.getElementById("carouselSectionAlign").value;
+            active.section_text_max_width = document.getElementById("carouselSectionMaxWidth").value.trim() || "860px";
+            await saveCarouselConfig();
             showToast("Carousel settings saved", "ok");
             broadcastAdminUpdate();
-            await loadData({ keepSelection: false });
             await loadCarouselCards(state.activeCarouselId);
         } catch (error) {
             showToast(error.message, "err");
@@ -1485,16 +2328,175 @@
     async function deleteCarouselCard(id) {
         if (!confirm("Delete this carousel card?")) return;
         try {
-            await apiJson("/api/admin/carousel/" + encodeURIComponent(id), {
-                method: "DELETE",
-                headers: authHeaders()
+            state.carousels.forEach((carousel) => {
+                carousel.cards = (carousel.cards || []).filter((card) => String(card.id) !== String(id));
             });
+            await deleteLegacyCarouselCardIfPossible(id);
+            await saveCarouselConfig();
             showToast("Carousel card deleted", "ok");
             broadcastAdminUpdate();
             await loadCarouselCards(state.activeCarouselId);
         } catch (error) {
             showToast(error.message, "err");
         }
+    }
+
+    function upsertCarouselCard(payload, existingCard) {
+        state.carousels.forEach((carousel) => {
+            carousel.cards = (carousel.cards || []).filter((card) => {
+                return !existingCard || String(card.id) !== String(existingCard.id);
+            });
+        });
+        const targetCarousel = state.carousels.find((carousel) => carousel.id === String(payload.carousel_id));
+        if (!targetCarousel) throw new Error("Carousel slot not found");
+        targetCarousel.cards = targetCarousel.cards || [];
+        targetCarousel.cards.push(payload);
+        targetCarousel.cards = normalizeCarouselCards(targetCarousel.cards);
+    }
+
+    async function saveCarouselConfig() {
+        const payload = {
+            carousels: state.carousels.map((carousel) => ({
+                id: carousel.id,
+                name: carousel.name,
+                block_type: carousel.block_type || "carousel",
+                header: carousel.header,
+                eyebrow: carousel.eyebrow,
+                display_order: carousel.display_order,
+                is_active: carousel.is_active,
+                layout_align: carousel.layout_align,
+                max_width: carousel.max_width,
+                layout_style: carousel.layout_style,
+                visible_count: carousel.visible_count,
+                grid_columns: carousel.grid_columns || carousel.visible_count,
+                card_gap: carousel.card_gap,
+                infinite_scroll: carousel.infinite_scroll,
+                text_align: carousel.text_align,
+                header_font: carousel.header_font,
+                header_font_size: carousel.header_font_size,
+                header_color: carousel.header_color,
+                section_text: carousel.section_text,
+                section_text_font: carousel.section_text_font,
+                section_text_size: carousel.section_text_size,
+                section_text_color: carousel.section_text_color,
+                section_text_align: carousel.section_text_align,
+                section_text_max_width: carousel.section_text_max_width,
+                cards: normalizeCarouselCards(carousel.cards || [])
+            }))
+        };
+        let saved = null;
+        try {
+            saved = await apiJson("/api/admin/learn-carousels", {
+                method: "PUT",
+                headers: authJsonHeaders(),
+                body: JSON.stringify(payload)
+            });
+        } catch (error) {
+            console.warn("New learn carousel save failed; saving through legacy carousel API.", error);
+            saved = await saveLegacyCarouselConfig(payload);
+        }
+
+        if (USE_LOCAL_CAROUSEL_CACHE) {
+            writeLocalLearnCarouselConfig(saved);
+        }
+        state.carousels = normalizeCarousels(saved.carousels || payload.carousels);
+    }
+
+    async function saveLegacyCarouselConfig(payload) {
+        const savedCarousels = [];
+        for (const carousel of payload.carousels) {
+            await apiJson("/api/admin/carousels", {
+                method: "PUT",
+                headers: authJsonHeaders(),
+                body: JSON.stringify({
+                    id: Number(carousel.id),
+                    name: carousel.name,
+                    header: carousel.header,
+                    display_order: carousel.display_order,
+                    is_active: carousel.is_active,
+                    layout_style: carousel.layout_style,
+                    grid_columns: carousel.grid_columns || carousel.visible_count,
+                    infinite_scroll: carousel.infinite_scroll,
+                    text_align: carousel.text_align,
+                    header_font: carousel.header_font,
+                    header_font_size: carousel.header_font_size,
+                    header_color: carousel.header_color
+                })
+            });
+
+            const savedCards = [];
+            for (const card of carousel.cards || []) {
+                const legacyPayload = legacyCarouselCardPayload(card, carousel.id);
+                if (isLegacyCardId(card.id)) {
+                    await apiJson("/api/admin/carousel", {
+                        method: "PUT",
+                        headers: authJsonHeaders(),
+                        body: JSON.stringify({ ...legacyPayload, id: Number(card.id) })
+                    });
+                    savedCards.push(card);
+                } else {
+                    const result = await apiJson("/api/admin/carousel", {
+                        method: "POST",
+                        headers: authJsonHeaders(),
+                        body: JSON.stringify(legacyPayload)
+                    });
+                    savedCards.push({ ...card, id: String(result.id || card.id) });
+                }
+            }
+
+            savedCarousels.push({ ...carousel, cards: savedCards });
+        }
+
+        return { carousels: savedCarousels };
+    }
+
+    function legacyCarouselCardPayload(card, carouselId) {
+        return {
+            title: card.title,
+            description: card.description,
+            icon_class: card.icon_class,
+            color_hex: card.color_hex,
+            target_type: card.target_type,
+            target_id: card.target_id,
+            display_order: card.display_order,
+            is_active: card.is_active,
+            content_type: card.content_type,
+            image_url: card.image_url,
+            iframe_url: card.iframe_url,
+            content_html: card.content_html,
+            width: card.width,
+            height_px: card.height_px,
+            full_bleed: card.full_bleed,
+            bg_color: card.bg_color,
+            chip_text: card.chip_text,
+            chip_color: card.chip_color,
+            chip_enabled: card.chip_enabled,
+            heading_font: card.heading_font,
+            heading_size: card.heading_size,
+            heading_color: card.heading_color,
+            sub_font: card.sub_font,
+            sub_size: card.sub_size,
+            sub_color: card.sub_color,
+            text_position: card.text_position,
+            carousel_id: Number(carouselId || card.carousel_id || state.activeCarouselId || 1),
+            course_links: card.target_type === "course_list" ? card.course_links : []
+        };
+    }
+
+    async function deleteLegacyCarouselCardIfPossible(id) {
+        if (!isLegacyCardId(id)) return;
+        try {
+            await apiJson("/api/admin/carousel/" + encodeURIComponent(id), {
+                method: "DELETE",
+                headers: authHeaders()
+            });
+        } catch (error) {
+            console.warn("Legacy carousel card delete failed.", error);
+        }
+    }
+
+    function isLegacyCardId(id) {
+        return /^\d+$/.test(String(id || ""));
     }
 
     function nextCarouselCardOrder(carouselId) {
@@ -1626,6 +2628,20 @@
             throw new Error(message);
         }
         return payload || {};
+    }
+
+    function resolveAssetUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
+        if (raw.startsWith("//")) return window.location.protocol + raw;
+        if (raw.startsWith("/")) {
+            const needsApiOrigin = window.location.protocol === "file:" ||
+                window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1";
+            return needsApiOrigin ? API_BASE + raw : raw;
+        }
+        return raw;
     }
 
     function showToast(message, type) {

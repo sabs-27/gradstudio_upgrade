@@ -137,6 +137,7 @@ export default {
           path.startsWith('/api/courses') ||
           path.startsWith('/api/content') ||
           path.startsWith('/api/simulations') ||
+          path === '/api/learn-carousels' ||
           path === '/api/search' ||
           path === '/api/recent'
         )) {
@@ -249,6 +250,12 @@ export default {
         // GET /api/carousels
         if (path === '/api/carousels' && request.method === 'GET') {
           return await handleGetAllCarousels(request, env, corsHeaders);
+        }
+
+        // 7.2b. Get new GradStudio Learn carousel config
+        // GET /api/learn-carousels
+        if (path === '/api/learn-carousels' && request.method === 'GET') {
+          return await handleGetLearnCarousels(env, corsHeaders);
         }
 
         // 7.3. Get course links for a specific carousel card
@@ -511,7 +518,7 @@ export default {
                 VALUES 
                 ('AWS Certified', 'Explore our interactive AWS labs and simulations.', 'fa-brands fa-aws', '#FF9900', 'course', 'aws-1', 1, 1, 1),
                 ('DevOps Mastery', 'Master CI/CD pipelines and infrastructure as code.', 'fas fa-infinity', '#A855F7', 'course', 'devops-1', 2, 1, 1),
-                ('Linux Admin', 'Get hands-on experience with Linux command line.', 'fa-brands fa-linux', '#FCC624', 'course', 'linux-1', 3, 1, 1)
+                ('Linux Admin', 'Build practical Linux command line skills.', 'fa-brands fa-linux', '#FCC624', 'course', 'linux-1', 3, 1, 1)
               `).run().catch(e => console.error('Seed C1 Error:', e));
           }
 
@@ -867,6 +874,18 @@ export default {
         if (path === '/api/admin/carousels' && request.method === 'GET') {
           try { await requireAdmin(request, env); return await handleAdminGetCarousels(request, env, corsHeaders); }
           catch (e) { return jsonResponse({ error: e.message || 'Access Denied' }, 403, corsHeaders); }
+        }
+        // GET /api/admin/learn-carousels
+        if (path === '/api/admin/learn-carousels' && request.method === 'GET') {
+          try { await requireAdmin(request, env); return await handleGetLearnCarousels(env, corsHeaders); }
+          catch (e) { return jsonResponse({ error: e.message || 'Access Denied' }, 403, corsHeaders); }
+        }
+        // PUT /api/admin/learn-carousels
+        if (path === '/api/admin/learn-carousels' && request.method === 'PUT') {
+          try {
+            await requireAdmin(request, env);
+            return await handleSaveLearnCarousels(await request.json(), env, corsHeaders);
+          } catch (e) { return jsonResponse({ error: e.message || 'Access Denied' }, 403, corsHeaders); }
         }
         // POST /api/admin/carousels
         if (path === '/api/admin/carousels' && request.method === 'POST') {
@@ -4086,6 +4105,147 @@ function jsonResponse(data, status = 200, corsHeaders = {}) {
     }
   });
   return addSecurityHeaders(res);
+}
+
+function learnCarouselKey(env) {
+  return `gradstudio-learn-carousels:${env.ENVIRONMENT || 'production'}`;
+}
+
+async function handleGetLearnCarousels(env, corsHeaders) {
+  let saved = null;
+  try {
+    saved = env.KV ? await env.KV.get(learnCarouselKey(env), 'json') : null;
+  } catch (_) {
+    saved = null;
+  }
+  const normalized = normalizeLearnCarouselConfig(saved);
+  normalized.source = saved ? 'kv' : 'empty';
+  return jsonResponse(normalized, 200, corsHeaders);
+}
+
+async function handleSaveLearnCarousels(data, env, corsHeaders) {
+  if (!env.KV) {
+    return jsonResponse({ error: 'KV binding is not available' }, 500, corsHeaders);
+  }
+  const normalized = normalizeLearnCarouselConfig(data);
+  normalized.source = 'kv';
+  await env.KV.put(learnCarouselKey(env), JSON.stringify(normalized));
+  return jsonResponse(normalized, 200, corsHeaders);
+}
+
+function normalizeLearnCarouselConfig(data) {
+  const inputCarousels = Array.isArray(data?.carousels) ? data.carousels : [];
+  const byId = new Map(inputCarousels.map((carousel) => [String(carousel.id), carousel]));
+  const fixed = [
+    normalizeLearnCarouselSlot('1', 'Big Carousel', 'Featured lab previews', byId.get('1'), 'HTML Demo Thumbnails'),
+    normalizeLearnCarouselSlot('2', 'Bottom Small Carousel', 'More lab previews', byId.get('2'))
+  ];
+  const extra = inputCarousels
+    .filter((carousel) => carousel && !['1', '2'].includes(String(carousel.id)))
+    .map((carousel) => normalizeLearnCarouselSlot(String(carousel.id), String(carousel.name || 'Carousel Layer'), String(carousel.header || 'Carousel Layer'), carousel, carousel.eyebrow || ''));
+  return {
+    version: 1,
+    updated_at: new Date().toISOString(),
+    carousels: [...fixed, ...extra].sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
+  };
+}
+
+function normalizeLearnCarouselSlot(id, name, header, carousel = {}, eyebrow = '') {
+  const defaultVisible = id === '2' ? 5 : 2;
+  return {
+    id,
+    name,
+    block_type: normalizeCarouselChoice(carousel.block_type, ['carousel', 'text'], String(id).startsWith('text-') ? 'text' : 'carousel'),
+    header: String(carousel.header || header),
+    eyebrow: String(carousel.eyebrow || eyebrow),
+    display_order: Number(carousel.display_order || (id === '1' ? 1 : id === '2' ? 2 : 0)),
+    is_active: carousel.is_active === undefined ? true : !!carousel.is_active,
+    layout_align: normalizeCarouselChoice(carousel.layout_align || carousel.align, ['left', 'center', 'right', 'stretch'], 'stretch'),
+    max_width: String(carousel.max_width || '1480px'),
+    layout_style: normalizeCarouselChoice(carousel.layout_style, ['fit', 'custom_width'], 'fit'),
+    visible_count: normalizeCarouselNumber(carousel.visible_count || carousel.grid_columns, defaultVisible, 1, 8),
+    grid_columns: normalizeCarouselNumber(carousel.grid_columns || carousel.visible_count, defaultVisible, 1, 8),
+    card_gap: normalizeCarouselNumber(carousel.card_gap, id === '2' ? 10 : 12, 0, 80),
+    infinite_scroll: carousel.infinite_scroll === undefined ? true : !!carousel.infinite_scroll,
+    text_align: normalizeCarouselChoice(carousel.text_align, ['left', 'center', 'right'], 'left'),
+    header_font: String(carousel.header_font || 'Inter'),
+    header_font_size: normalizeCarouselNumber(carousel.header_font_size, id === '2' ? 24 : 28, 14, 96),
+    header_color: String(carousel.header_color || '#1d2233'),
+    section_text: String(carousel.section_text || ''),
+    section_text_font: String(carousel.section_text_font || 'Inter'),
+    section_text_size: normalizeCarouselNumber(carousel.section_text_size, 44, 14, 96),
+    section_text_color: String(carousel.section_text_color || '#1d2233'),
+    section_text_align: normalizeCarouselChoice(carousel.section_text_align, ['left', 'center', 'right'], 'left'),
+    section_text_max_width: String(carousel.section_text_max_width || '860px'),
+    cards: Array.isArray(carousel.cards)
+      ? carousel.cards.map((card, index) => normalizeLearnCarouselCard(card, id, index)).filter(Boolean)
+      : []
+  };
+}
+
+function normalizeLearnCarouselCard(card, carouselId, index) {
+  if (!card || typeof card !== 'object') return null;
+  const title = String(card.title || '').trim();
+  if (!title) return null;
+  const targetType = ['course_list', 'course', 'none'].includes(card.target_type) ? card.target_type : 'course_list';
+  return {
+    id: String(card.id || `${carouselId}-${Date.now()}-${index}`),
+    carousel_id: String(carouselId),
+    title,
+    description: String(card.description || ''),
+    icon_class: String(card.icon_class || 'fas fa-star'),
+    color_hex: String(card.color_hex || '#3b82f6'),
+    target_type: targetType,
+    target_id: String(card.target_id || (targetType === 'course_list' ? 'custom' : 'none')),
+    display_order: Number(card.display_order || index + 1),
+    is_active: card.is_active === undefined ? true : !!card.is_active,
+    content_type: ['html', 'image', 'iframe', 'standard'].includes(card.content_type) ? card.content_type : 'html',
+    image_url: String(card.image_url || ''),
+    iframe_url: String(card.iframe_url || ''),
+    content_html: String(card.content_html || ''),
+    width: String(card.width || '400px'),
+    height_px: String(card.height_px || '420px'),
+    full_bleed: card.full_bleed === undefined ? true : !!card.full_bleed,
+    bg_color: String(card.bg_color || ''),
+    chip_text: String(card.chip_text || ''),
+    chip_color: String(card.chip_color || ''),
+    chip_enabled: card.chip_enabled === undefined ? true : !!card.chip_enabled,
+    heading_font: String(card.heading_font || 'Inter'),
+    heading_size: normalizeCarouselNumber(card.heading_size, 24, 10, 64),
+    heading_color: String(card.heading_color || '#ffffff'),
+    sub_font: String(card.sub_font || 'Inter'),
+    sub_size: normalizeCarouselNumber(card.sub_size, 13, 10, 40),
+    sub_color: String(card.sub_color || '#dbe3f1'),
+    text_position: normalizeCarouselChoice(card.text_position, ['bottom', 'top', 'center', 'hidden'], 'bottom'),
+    text_align: normalizeCarouselChoice(card.text_align, ['left', 'center', 'right'], 'left'),
+    course_links: normalizeLearnCourseLinks(card.course_links)
+  };
+}
+
+function normalizeCarouselChoice(value, choices, fallback) {
+  const normalized = String(value || '').trim();
+  return choices.includes(normalized) ? normalized : fallback;
+}
+
+function normalizeCarouselNumber(value, fallback, min, max) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(max, Math.max(min, num));
+}
+
+function normalizeLearnCourseLinks(value) {
+  if (Array.isArray(value)) {
+    return value.map((id) => String(id || '').trim()).filter(Boolean);
+  }
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+  } catch (_) {
+    return [];
+  }
 }
 
 async function hashString(str) {

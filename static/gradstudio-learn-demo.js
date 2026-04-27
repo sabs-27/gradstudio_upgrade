@@ -7,25 +7,33 @@
     const htmlDemoCards = [
         {
             title: "Express.js 3D Card",
-            eyebrow: "HTML preview from New folder",
-            src: "../New%20folder/express.html"
+            eyebrow: "Editable starter thumbnail",
+            html: starterThumbnailHtml("EXP", "Express.js<br>API Lab", "JS", "#101827", "#1f6f5b", "#34d399", "#60a5fa", "#111827", "#ffffff"),
+            courseIds: ["backend1", "frontend1", "pyb"]
         },
         {
             title: "MERN Stack 3D UI",
-            eyebrow: "HTML preview from New folder",
-            src: "../New%20folder/mern.html"
+            eyebrow: "Editable starter thumbnail",
+            html: starterThumbnailHtml("MERN", "MERN Stack<br>3D UI", "M", "#122019", "#0f766e", "#22c55e", "#93c5fd", "#dcfce7", "#064e3b"),
+            courseIds: ["mogodb1", "frontend1", "backend1"]
         },
         {
             title: "MongoDB 3D Card",
-            eyebrow: "HTML preview from New folder",
-            src: "../New%20folder/mongodbb.html"
+            eyebrow: "Editable starter thumbnail",
+            html: starterThumbnailHtml("DB", "MongoDB<br>Data Lab", "DB", "#102018", "#14532d", "#84cc16", "#34d399", "#dcfce7", "#14532d"),
+            courseIds: ["mogodb1", "dte"]
         },
         {
             title: "React 3D Card",
-            eyebrow: "HTML preview from New folder",
-            src: "../New%20folder/node.html"
+            eyebrow: "Editable starter thumbnail",
+            html: starterThumbnailHtml("UI", "React<br>Component Lab", "R", "#101827", "#1d4ed8", "#38bdf8", "#a78bfa", "#e0f2fe", "#0f172a"),
+            courseIds: ["frontend1"]
         }
     ];
+
+    function starterThumbnailHtml(badge, title, logo, bg1, bg2, glow1, glow2, badgeBg, badgeText) {
+        return '<div class="thumbnail-card" style="--bg-dark-1:' + bg1 + ';--bg-dark-2:' + bg2 + ';--glow-top-left:' + glow1 + ';--glow-bottom-right:' + glow2 + ';--badge-bg:' + badgeBg + ';--badge-text:' + badgeText + ';--title-top:58%;--title-width:62%;"><span class="thumbnail-badge">' + badge + '</span><h3 class="thumbnail-title">' + title + '</h3><div class="thumbnail-logo" aria-hidden="true"><span class="thumbnail-logo-text">' + logo + '</span></div></div>';
+    }
 
     const compactDemoCards = [
         {
@@ -90,11 +98,11 @@
         imageCourse("ml2", "ML", ["Machine Learning", "AI", "Python"], "Beginner", "58 labs", "#e4f0ff", "#2f76d2", "ML"),
         htmlCourse("pyb", "Python Introduction", ["Python"], "Beginner", "20 labs", "python"),
         htmlCourse("linnn", "Linux Introduction", ["Linux", "Shell"], "Beginner", "10 labs", "terminal"),
-        imageCourse("lqs", "SQL", ["SQL", "Backend"], "Beginner", "20 labs", "#efffd7", "#16876a", "SQL"),
+        imageCourse("lqs", "SQL", ["SQL", "Backend"], "Beginner", "20 labs", "#fff3e8", "#f97316", "SQL"),
         imageCourse("backend1", "Backend", ["Backend", "Web Development"], "Beginner", "23 labs", "#e3e6ff", "#5f6df6", "API"),
         imageCourse("java1", "Java", ["Java"], "Beginner", "295 labs", "#f3f0d8", "#2f76d2", "JAVA"),
         imageCourse("kubernetes1", "Kubernetes", ["Kubernetes", "DevOps"], "Beginner", "60 labs", "#f8eade", "#2f76d2", "K8S"),
-        imageCourse("mogodb1", "MongoDB", ["Backend", "SQL"], "Beginner", "73 labs", "#e3f0e9", "#16876a", "MDB"),
+        imageCourse("mogodb1", "MongoDB", ["Backend", "SQL"], "Beginner", "73 labs", "#fff3e8", "#f97316", "MDB"),
         imageCourse("gitty", "Github", ["Git", "DevOps"], "Beginner", "15 labs", "#e3f0e9", "#e05642", "GIT"),
         imageCourse("frontend1", "Front End", ["Web Development"], "Beginner", "34 labs", "#f1e7ff", "#5f6df6", "FE"),
         imageCourse("ai11", "Artificial Intelligence", ["AI"], "Beginner", "10 labs", "#f1e7ff", "#7c5cff", "AI"),
@@ -106,28 +114,39 @@
         imageCourse("aws2", "AWS", ["Cloud"], "Beginner", "5 labs", "#f8ead8", "#f59e0b", "AWS"),
         imageCourse("azure1", "Azure", ["Cloud"], "Beginner", "115 labs", "#e4f0ff", "#2f76d2", "AZ"),
         htmlCourse("tk", "SAP/S4hana", ["Backend"], "Beginner", "3 labs", "stack"),
-        imageCourse("dte", "Data Engineer", ["Backend", "SQL"], "Beginner", "4 labs", "#efffd7", "#16876a", "DE"),
+        imageCourse("dte", "Data Engineer", ["Backend", "SQL"], "Beginner", "4 labs", "#fff3e8", "#f97316", "DE"),
         imageCourse("qualcomm", "Qualcomm", ["Backend"], "Beginner", "3 labs", "#f3f0d8", "#e05642", "QC")
     ];
 
-    let topics = [...fallbackTopics];
-    let courses = fallbackCourses.slice();
+    const USE_LOCAL_FALLBACK_DATA = window.location.protocol === "file:" || new URLSearchParams(window.location.search).has("demoFallback");
+
+    let topics = USE_LOCAL_FALLBACK_DATA ? [...fallbackTopics] : ["All"];
+    let courses = USE_LOCAL_FALLBACK_DATA ? fallbackCourses.slice() : [];
     let courseLookup = new Map(courses.map((course) => [course.id, course]));
+    let catalogStatus = courses.length ? "ready" : "loading";
     let selectedCourseIds = null;
     let selectedCourseTitle = "";
     let featuredCarouselCards = [];
     let compactCarouselCards = [];
     let carouselCardMap = new Map();
+    let carouselEyebrowText = "HTML Demo Thumbnails";
+    let carouselHeadingText = "Featured lab previews";
+    let featuredCarouselConfig = defaultCarouselRuntimeConfig("featured");
+    let compactCarouselConfig = defaultCarouselRuntimeConfig("compact");
+    let homepageLayoutBlocks = [];
 
-    try {
-        const localData = normalizeStoredData(JSON.parse(localStorage.getItem('gradstudio-data')));
-        if (localData) {
-            topics = ["All", ...localData.topics];
-            courses = localData.courses;
-            courseLookup = new Map(courses.map((course) => [course.id, course]));
+    if (USE_LOCAL_FALLBACK_DATA) {
+        try {
+            const localData = normalizeStoredData(JSON.parse(localStorage.getItem('gradstudio-data')));
+            if (localData) {
+                topics = ["All", ...localData.topics];
+                courses = localData.courses;
+                courseLookup = new Map(courses.map((course) => [course.id, course]));
+                catalogStatus = "ready";
+            }
+        } catch(e) {
+            console.warn("localStorage blocked or unreadable. Using default courses.", e);
         }
-    } catch(e) {
-        console.warn("localStorage blocked or unreadable. Using default courses.", e);
     }
 
     /* ===== Live API integration ===== */
@@ -139,14 +158,27 @@
         : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? DEV_API_BASE
             : 'https://api.gradstudio.org';
+    const LEARN_CAROUSEL_STORAGE_KEY = "gradstudio_learn_carousels_dev";
+    const USE_LOCAL_CAROUSEL_CACHE = new URLSearchParams(window.location.search).has("localCarousel");
+    const API_CACHE_VERSION = "20260427-layout-stack-v1";
+    const API_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+    const CATALOG_API_CACHE_KEY = `${API_CACHE_VERSION}:catalog`;
+    const CAROUSEL_API_CACHE_KEY = `${API_CACHE_VERSION}:carousels`;
+    const COURSE_API_CACHE_PREFIX = `${API_CACHE_VERSION}:course:`;
 
     const _apiCourseCache = new Map();
 
     async function fetchCourseFromAPI(courseId) {
         if (_apiCourseCache.has(courseId)) return _apiCourseCache.get(courseId);
 
+        const cached = readApiCache(`${COURSE_API_CACHE_PREFIX}${courseId}`);
+        if (cached) {
+            _apiCourseCache.set(courseId, cached);
+            return cached;
+        }
+
         try {
-            const resp = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(courseId)}?t=${Date.now()}`);
+            const resp = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(courseId)}`);
             if (!resp.ok) return null;
             const data = await resp.json();
             if (!data || !data.sections) return null;
@@ -179,8 +211,15 @@
                 });
             });
 
-            const result = { lessons, sections, apiTitle: data.title, apiDescription: data.description };
+            const result = {
+                lessons,
+                sections,
+                apiTitle: data.title,
+                apiDescription: data.description,
+                sourceCourseId: String(courseId)
+            };
             _apiCourseCache.set(courseId, result);
+            writeApiCache(`${COURSE_API_CACHE_PREFIX}${courseId}`, result);
             return result;
         } catch (err) {
             console.warn('API fetch failed for', courseId, err);
@@ -188,11 +227,55 @@
         }
     }
 
+    async function hydrateCourseContent(course) {
+        if (!course || course._contentHydrated) return;
+        course._contentHydrated = true;
+
+        const primary = await fetchCourseFromAPI(course.id);
+        if (primary?.apiDescription && !course.description) {
+            course.description = primary.apiDescription;
+        }
+        if (primary && primary.lessons.length) {
+            applyApiCourseContent(course, primary);
+            return;
+        }
+
+        const children = findContentChildren(course.id);
+        for (const child of children) {
+            const childData = await fetchCourseFromAPI(child.id);
+            if (childData && childData.lessons.length) {
+                applyApiCourseContent(course, childData, child);
+                return;
+            }
+        }
+
+        if (primary) applyApiCourseContent(course, primary);
+    }
+
+    function applyApiCourseContent(course, apiData, sourceCourse = null) {
+        course._apiLessons = apiData.lessons || [];
+        course._apiSections = apiData.sections || [];
+        course._contentSourceCourseId = sourceCourse?.id || apiData.sourceCourseId || course.id;
+        course._contentSourceTitle = sourceCourse?.title || apiData.apiTitle || course.title;
+        const description = apiData.apiDescription || sourceCourse?.description || "";
+        if (description && !course.description) course.description = description;
+    }
+
+    function findContentChildren(parentCourseId) {
+        const parentId = String(parentCourseId || "");
+        return Array.from(courseLookup.values())
+            .filter((course) => course && course.parentCourseId === parentId)
+            .sort((a, b) => {
+                const order = (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0);
+                if (order) return order;
+                return String(a.title || "").localeCompare(String(b.title || ""));
+            });
+    }
+
     async function loadCatalogFromAPI() {
-        const cacheBuster = Date.now();
         const [categoryResp, courseResp] = await Promise.all([
-            fetch(`${API_BASE}/api/categories?t=${cacheBuster}`, { cache: "no-store" }),
-            fetch(`${API_BASE}/api/courses?admin=1&t=${cacheBuster}`, { cache: "no-store" })
+            fetch(`${API_BASE}/api/categories`),
+            fetch(`${API_BASE}/api/courses?admin=1`)
         ]);
 
         if (!categoryResp.ok || !courseResp.ok) {
@@ -209,11 +292,24 @@
             throw new Error("Catalog API returned no visible courses.");
         }
 
-        topics = normalized.topics;
-        courses = normalized.courses;
-        courseLookup = new Map(normalized.allCourses.map((course) => [course.id, course]));
+        applyCatalogData(normalized);
+        writeApiCache(CATALOG_API_CACHE_KEY, normalized);
         if (!topics.includes(activeTopic)) activeTopic = "All";
         activePage = 1;
+    }
+
+    function loadCatalogFromCache() {
+        const cached = readApiCache(CATALOG_API_CACHE_KEY);
+        if (!cached || !Array.isArray(cached.courses) || !Array.isArray(cached.topics)) return false;
+        applyCatalogData(cached);
+        return true;
+    }
+
+    function applyCatalogData(data) {
+        topics = data.topics;
+        courses = data.courses;
+        courseLookup = new Map((data.allCourses || data.courses).map((course) => [course.id, course]));
+        catalogStatus = "ready";
     }
 
     function normalizeApiCatalog(categoryData, courseData) {
@@ -290,6 +386,10 @@
             title,
             tags,
             topicFolder,
+            fromApi: true,
+            parentCourseId: course.parent_course_id ? String(course.parent_course_id) : "",
+            courseType: String(course.type || "").trim(),
+            displayOrder: Number(course.display_order) || index,
             level: String(meta.level || course.level || "Beginner").trim() || "Beginner",
             labs: normalizeApiLabs(meta.labs, simulationCount),
             description: String(course.description || "").trim(),
@@ -322,10 +422,10 @@
             ["#f8ead8", "#f59e0b"],
             ["#f1e7ff", "#7c5cff"],
             ["#e4f0ff", "#2f76d2"],
-            ["#efffd7", "#16876a"],
+            ["#fff3e8", "#f97316"],
             ["#e3e6ff", "#5f6df6"],
             ["#f3f0d8", "#e05642"],
-            ["#e3f0e9", "#16876a"],
+            ["#fff3e8", "#f97316"],
             ["#f8eade", "#2f76d2"]
         ];
         const paletteIndex = Math.abs(hashString(topicFolder || title) + index) % palettes.length;
@@ -365,14 +465,160 @@
     }
 
     async function loadCarouselsFromAPI() {
-        const resp = await fetch(`${API_BASE}/api/carousels?t=${Date.now()}`, { cache: "no-store" });
-        if (!resp.ok) throw new Error(`Carousel API failed: ${resp.status}`);
-        const payload = await resp.json();
-        const carousels = Array.isArray(payload) ? payload : [];
-        const normalized = normalizeApiCarousels(carousels);
-        featuredCarouselCards = normalized.featured;
-        compactCarouselCards = normalized.compact;
+        const local = USE_LOCAL_CAROUSEL_CACHE ? readLocalLearnCarouselConfig() : null;
+        if (local) {
+            const normalizedLocal = normalizeApiCarousels(local.carousels);
+            applyCarouselData(normalizedLocal);
+            return;
+        }
+
+        const errors = [];
+        const loaders = [loadLearnCarouselConfig, loadLegacyCarouselConfig];
+        for (const loader of loaders) {
+            try {
+                const carousels = await loader();
+                const normalized = normalizeApiCarousels(carousels);
+                if (normalized.featured.length || normalized.compact.length) {
+                    applyCarouselData(normalized);
+                    writeApiCache(CAROUSEL_API_CACHE_KEY, {
+                        ...normalized,
+                        eyebrow: carouselEyebrowText,
+                        heading: carouselHeadingText
+                    });
+                    return;
+                }
+            } catch (error) {
+                errors.push(error);
+            }
+        }
+
+        throw errors[0] || new Error("Carousel API returned no cards.");
+    }
+
+    function loadCarouselsFromCache() {
+        const cached = readApiCache(CAROUSEL_API_CACHE_KEY);
+        if (!cached || (!Array.isArray(cached.featured) && !Array.isArray(cached.compact))) return false;
+        applyCarouselData(cached);
+        carouselEyebrowText = String(cached.eyebrow || carouselEyebrowText);
+        carouselHeadingText = String(cached.heading || carouselHeadingText);
+        return true;
+    }
+
+    function applyCarouselData(data) {
+        featuredCarouselCards = Array.isArray(data.featured) ? data.featured : [];
+        compactCarouselCards = Array.isArray(data.compact) ? data.compact : [];
+        featuredCarouselConfig = data.featuredConfig || featuredCarouselConfig || defaultCarouselRuntimeConfig("featured");
+        compactCarouselConfig = data.compactConfig || compactCarouselConfig || defaultCarouselRuntimeConfig("compact");
+        homepageLayoutBlocks = Array.isArray(data.blocks) ? data.blocks : [];
         carouselCardMap = new Map();
+    }
+
+    async function loadLearnCarouselConfig() {
+        const resp = await fetch(`${API_BASE}/api/learn-carousels`);
+        if (!resp.ok) throw new Error(`Learn carousel API failed: ${resp.status}`);
+        const payload = await resp.json();
+        if (isOldCourseCarouselPayload(payload)) return [];
+        return Array.isArray(payload?.carousels) ? payload.carousels : [];
+    }
+
+    async function loadLegacyCarouselConfig() {
+        const resp = await fetch(`${API_BASE}/api/carousels`);
+        if (!resp.ok) throw new Error(`Legacy carousel API failed: ${resp.status}`);
+        const payload = await resp.json();
+        if (Array.isArray(payload?.carousels)) return payload.carousels;
+        return Array.isArray(payload) ? payload : [];
+    }
+
+    function readLocalLearnCarouselConfig() {
+        try {
+            const raw = localStorage.getItem(LEARN_CAROUSEL_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.carousels)) return null;
+            return parsed;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function readApiCache(key) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !parsed.savedAt || Date.now() - parsed.savedAt > API_CACHE_TTL_MS) return null;
+            return parsed.data || null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function writeApiCache(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify({
+                savedAt: Date.now(),
+                data
+            }));
+        } catch (_) {
+            /* Cache storage can fail in private mode or if quota is full. */
+        }
+    }
+
+    function currentRenderSignature() {
+        return JSON.stringify({
+            topics,
+            courses: courses.map((course) => ({
+                id: course.id,
+                title: course.title,
+                topicFolder: course.topicFolder,
+                labs: course.labs,
+                thumb: course.thumbnail
+            })),
+            featured: featuredCarouselCards.map(carouselCardSignature),
+            compact: compactCarouselCards.map(carouselCardSignature),
+            carouselEyebrowText,
+            carouselHeadingText,
+            featuredCarouselConfig,
+            compactCarouselConfig,
+            homepageLayoutBlocks: homepageLayoutBlocks.map((block) => ({
+                id: block.id,
+                type: block.type,
+                config: block.config,
+                cards: (block.cards || []).map(carouselCardSignature)
+            }))
+        });
+    }
+
+    function carouselCardSignature(card) {
+        return [
+            card.key || card.id || card.title,
+            card.width,
+            card.heightPx,
+            card.headingFont,
+            card.headingSize,
+            card.headingColor,
+            card.subFont,
+            card.subSize,
+            card.subColor,
+            card.textPosition,
+            card.textAlign,
+            card.contentType,
+            card.imageUrl,
+            card.iframeUrl
+        ].join(":");
+    }
+
+    function isOldCourseCarouselPayload(payload) {
+        const carousels = Array.isArray(payload?.carousels) ? payload.carousels : [];
+        const featured = carousels.find((carousel) => String(carousel.id) === "1");
+        if (!featured || !Array.isArray(featured.cards) || !featured.cards.length) return false;
+        const header = String(featured.header || "").toLowerCase();
+        const firstTitles = featured.cards.slice(0, 4).map((card) => String(card.title || "").toLowerCase()).join("|");
+        const hasHtmlDemoMedia = featured.cards.some((card) => {
+            const type = String(card.content_type || "").toLowerCase();
+            return (type === "html" && card.content_html) || (type === "image" && card.image_url) || (type === "iframe" && card.iframe_url);
+        });
+        return !hasHtmlDemoMedia && (header.includes("ai fundamentals") || firstTitles.includes("artificial intelligence") || firstTitles.includes("machine learning"));
     }
 
     function normalizeApiCarousels(carousels) {
@@ -381,10 +627,78 @@
             .sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0));
         const featuredCarousel = sorted.find((carousel) => String(carousel.id) === "1");
         const compactCarousel = sorted.find((carousel) => String(carousel.id) === "2");
+        if (featuredCarousel) {
+            carouselEyebrowText = String(featuredCarousel.eyebrow || carouselEyebrowText || "HTML Demo Thumbnails");
+            carouselHeadingText = String(featuredCarousel.header || carouselHeadingText || "Featured lab previews");
+        }
 
+        const blocks = sorted.map((carousel) => normalizeLayoutBlock(carousel)).filter(Boolean);
         return {
             featured: featuredCarousel ? normalizeCarouselCards(featuredCarousel, "featured") : [],
-            compact: compactCarousel ? normalizeCarouselCards(compactCarousel, "compact") : []
+            compact: compactCarousel ? normalizeCarouselCards(compactCarousel, "compact") : [],
+            featuredConfig: normalizeCarouselConfig(featuredCarousel, "featured"),
+            compactConfig: normalizeCarouselConfig(compactCarousel, "compact"),
+            blocks
+        };
+    }
+
+    function normalizeLayoutBlock(carousel) {
+        const type = carousel.block_type === "text" ? "text" : "carousel";
+        const id = String(carousel.id || `${type}-${Date.now()}`);
+        const slot = id === "2" ? "compact" : "featured";
+        const config = normalizeCarouselConfig(carousel, slot);
+        return {
+            id,
+            type,
+            slot,
+            header: String(carousel.header || ""),
+            eyebrow: String(carousel.eyebrow || ""),
+            config,
+            cards: type === "carousel" ? normalizeCarouselCards(carousel, slot) : []
+        };
+    }
+
+    function defaultCarouselRuntimeConfig(slot) {
+        return {
+            layoutAlign: "stretch",
+            maxWidth: "1480px",
+            layoutStyle: "fit",
+            visibleCount: slot === "compact" ? COMPACT_VISIBLE : FEATURED_VISIBLE,
+            cardGap: slot === "compact" ? COMPACT_GAP : FEATURED_GAP,
+            infiniteScroll: true,
+            textAlign: "left",
+            headerFont: "Inter",
+            headerFontSize: slot === "compact" ? 24 : 28,
+            headerColor: "#1d2233",
+            sectionText: "",
+            sectionTextFont: "Inter",
+            sectionTextSize: 44,
+            sectionTextColor: "#1d2233",
+            sectionTextAlign: "left",
+            sectionTextMaxWidth: "860px"
+        };
+    }
+
+    function normalizeCarouselConfig(carousel, slot) {
+        const fallback = defaultCarouselRuntimeConfig(slot);
+        if (!carousel || typeof carousel !== "object") return fallback;
+        return {
+            layoutAlign: normalizeChoice(carousel.layout_align || carousel.align, ["left", "center", "right", "stretch"], fallback.layoutAlign),
+            maxWidth: normalizeCssLength(carousel.max_width, fallback.maxWidth),
+            layoutStyle: normalizeChoice(carousel.layout_style, ["fit", "custom_width"], fallback.layoutStyle),
+            visibleCount: clampNumber(carousel.visible_count || carousel.grid_columns, fallback.visibleCount, 1, 8),
+            cardGap: clampNumber(carousel.card_gap, fallback.cardGap, 0, 80),
+            infiniteScroll: carousel.infinite_scroll === undefined ? fallback.infiniteScroll : (carousel.infinite_scroll !== 0 && carousel.infinite_scroll !== false),
+            textAlign: normalizeChoice(carousel.text_align, ["left", "center", "right"], fallback.textAlign),
+            headerFont: cssFontValue(carousel.header_font || fallback.headerFont),
+            headerFontSize: clampNumber(carousel.header_font_size, fallback.headerFontSize, 14, 96),
+            headerColor: normalizeCssColor(carousel.header_color, fallback.headerColor),
+            sectionText: String(carousel.section_text || ""),
+            sectionTextFont: cssFontValue(carousel.section_text_font || fallback.sectionTextFont),
+            sectionTextSize: clampNumber(carousel.section_text_size, fallback.sectionTextSize, 14, 96),
+            sectionTextColor: normalizeCssColor(carousel.section_text_color, fallback.sectionTextColor),
+            sectionTextAlign: normalizeChoice(carousel.section_text_align, ["left", "center", "right"], fallback.sectionTextAlign),
+            sectionTextMaxWidth: normalizeCssLength(carousel.section_text_max_width, fallback.sectionTextMaxWidth)
         };
     }
 
@@ -395,8 +709,8 @@
             .sort((a, b) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
             .map((card, index) => {
                 const courseIds = parseCarouselCourseLinks(card.course_links);
-                const targetType = String(card.target_type || (courseIds.length ? "course_list" : "none"));
-                const key = `${slot}-${card.id || index}`;
+                const targetType = normalizeCarouselTargetType(card.target_type, courseIds, card);
+                const key = `${slot}-${carousel.id || "carousel"}-${card.id || index}`;
                 return {
                     key,
                     id: String(card.id || key),
@@ -406,15 +720,79 @@
                     contentType: String(card.content_type || "standard"),
                     imageUrl: String(card.image_url || ""),
                     iframeUrl: String(card.iframe_url || ""),
-                    contentHtml: String(card.content_html || ""),
+                    contentHtml: normalizeStoredHtml(card.content_html),
                     iconClass: String(card.icon_class || "fas fa-star"),
                     colorHex: String(card.color_hex || "#3b82f6"),
+                    width: normalizeCssLength(card.width, slot === "compact" ? "220px" : "400px"),
+                    heightPx: normalizeCssLength(card.height_px, slot === "compact" ? "160px" : "420px"),
+                    bgColor: normalizeCssColor(card.bg_color, "#111827"),
+                    headingFont: cssFontValue(card.heading_font || "Inter"),
+                    headingSize: clampNumber(card.heading_size, slot === "compact" ? 14 : 24, 10, 64),
+                    headingColor: normalizeCssColor(card.heading_color, "#ffffff"),
+                    subFont: cssFontValue(card.sub_font || "Inter"),
+                    subSize: clampNumber(card.sub_size, slot === "compact" ? 12 : 13, 10, 40),
+                    subColor: normalizeCssColor(card.sub_color, "#dbe3f1"),
+                    textPosition: normalizeChoice(card.text_position, ["bottom", "top", "center", "hidden"], "bottom"),
+                    textAlign: normalizeChoice(card.text_align, ["left", "center", "right"], "left"),
                     targetType,
                     targetId: String(card.target_id || ""),
                     courseIds,
                     bg: card.bg_color || carouselGradient(card.color_hex || "#3b82f6", index)
                 };
             });
+    }
+
+    function normalizeChoice(value, choices, fallback) {
+        const normalized = String(value || "").trim();
+        return choices.includes(normalized) ? normalized : fallback;
+    }
+
+    function clampNumber(value, fallback, min, max) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return fallback;
+        return Math.min(max, Math.max(min, num));
+    }
+
+    function normalizeCssLength(value, fallback) {
+        const text = String(value || "").trim();
+        if (!text) return fallback;
+        if (/^calc\([^)]+\)$/i.test(text)) return text;
+        if (/^(auto|none)$/i.test(text)) return text.toLowerCase();
+        if (/^\d+(\.\d+)?(px|rem|em|%|vw|vh)$/i.test(text)) return text;
+        if (/^\d+(\.\d+)?$/i.test(text)) return `${text}px`;
+        return fallback;
+    }
+
+    function normalizeCssColor(value, fallback) {
+        const text = String(value || "").trim();
+        if (/^#[0-9a-f]{3,8}$/i.test(text)) return text;
+        if (/^(rgb|rgba|hsl|hsla)\([^)]+\)$/i.test(text)) return text;
+        return fallback;
+    }
+
+    function cssFontValue(value) {
+        const text = String(value || "Inter").replace(/[;"<>]/g, "").trim();
+        return text || "Inter";
+    }
+
+    function normalizeStoredHtml(value) {
+        return String(value || "")
+            .replace(/\\"/g, '"')
+            .replace(/\\'/g, "'")
+            .replace(/\\\//g, "/");
+    }
+
+    function normalizeCarouselTargetType(value, courseIds, card) {
+        const targetType = String(value || "").trim();
+        if (targetType === "course_page" || targetType === "course_cards") {
+            if (courseIds.length) return "course_list";
+            const targetId = String(card?.target_id || "").trim();
+            return targetId && targetId !== "none" && targetId !== "custom" ? "course" : "none";
+        }
+        if (targetType === "course" || targetType === "course_list" || targetType === "external" || targetType === "none") {
+            return targetType;
+        }
+        return courseIds.length ? "course_list" : "none";
     }
 
     function parseCarouselCourseLinks(value) {
@@ -447,11 +825,23 @@
             key: `fallback-featured-${index}`,
             title: card.title,
             eyebrow: card.eyebrow,
-            contentType: "iframe",
-            iframeUrl: card.src,
-            targetType: "external",
+            contentType: card.html ? "html" : "iframe",
+            contentHtml: card.html || "",
+            iframeUrl: card.src || "",
+            width: "400px",
+            heightPx: "420px",
+            bgColor: "#111827",
+            headingFont: "Inter",
+            headingSize: 24,
+            headingColor: "#ffffff",
+            subFont: "Inter",
+            subSize: 13,
+            subColor: "#dbe3f1",
+            textPosition: "bottom",
+            textAlign: "left",
+            targetType: card.courseIds && card.courseIds.length ? "course_list" : (card.src ? "external" : "none"),
             href: card.src,
-            courseIds: []
+            courseIds: card.courseIds || []
         }));
     }
 
@@ -461,6 +851,17 @@
             title: card.title,
             eyebrow: card.meta,
             contentType: "standard",
+            width: "220px",
+            heightPx: "160px",
+            bgColor: "#111827",
+            headingFont: "Inter",
+            headingSize: 14,
+            headingColor: "#ffffff",
+            subFont: "Inter",
+            subSize: 12,
+            subColor: "#dbe3f1",
+            textPosition: "bottom",
+            textAlign: "left",
             targetType: "none",
             bg: card.bg,
             courseIds: []
@@ -663,9 +1064,380 @@
         renderPager(totalPages);
     }
 
+    function clearCatalogFilters(topic = "All") {
+        selectedCourseIds = null;
+        selectedCourseTitle = "";
+        activeTopic = topic || "All";
+        activePage = 1;
+        query = "";
+        const searchInput = document.getElementById("courseSearch");
+        if (searchInput) searchInput.value = "";
+        render();
+    }
+
+    function jumpToSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        const top = Math.max(0, section.offsetTop - 80);
+        window.scrollTo({ top, behavior: "auto" });
+    }
+
+    function showHome(updateUrl = true) {
+        clearCatalogFilters("All");
+        setDetailVisible(false);
+        updateNavState("home");
+        if (updateUrl) history.pushState({ view: "home" }, "", window.location.pathname);
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function showCatalog(topic = "All", updateUrl = true) {
+        clearCatalogFilters(topic);
+        setDetailVisible(false);
+        updateNavState("courses");
+        if (updateUrl) history.pushState({ view: "courses", topic }, "", "#courses");
+        jumpToSection("courses");
+    }
+
+    function updateNavState(active) {
+        document.querySelectorAll(".main-nav a").forEach((link) => {
+            const isActive =
+                (active === "home" && link.hasAttribute("data-nav-home")) ||
+                (active === "courses" && link.hasAttribute("data-nav-courses")) ||
+                (active === "about" && link.hasAttribute("data-nav-about")) ||
+                (active === "contact" && link.hasAttribute("data-nav-contact"));
+            if (isActive) link.setAttribute("aria-current", "page");
+            else link.removeAttribute("aria-current");
+        });
+    }
+
+    function showInfoPage(pageKey, updateUrl = true) {
+        const normalizedKey = normalizeInfoPageKey(pageKey);
+        const page = buildInfoPage(normalizedKey);
+        const infoPage = document.getElementById("infoPage");
+        const detail = document.getElementById("courseDetail");
+        const player = document.getElementById("coursePlayer");
+        const hero = document.getElementById("home");
+        const catalog = document.getElementById("courses");
+        const carousel = document.querySelector(".demo-carousel-block");
+        const footer = document.querySelector(".site-footer");
+        const topbar = document.querySelector(".topbar");
+
+        if (!infoPage) return;
+
+        infoPage.innerHTML = page;
+        infoPage.hidden = false;
+        if (detail) detail.hidden = true;
+        if (player) player.hidden = true;
+        if (hero) hero.hidden = true;
+        if (catalog) catalog.hidden = true;
+        if (carousel) carousel.hidden = true;
+        if (footer) footer.hidden = false;
+        if (topbar) topbar.hidden = false;
+        document.body.classList.toggle("is-course-player", false);
+        updateNavState(normalizedKey === "about" || normalizedKey === "contact" ? normalizedKey : "");
+
+        if (updateUrl) history.pushState({ view: normalizedKey }, "", `#${normalizedKey}`);
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function normalizeInfoPageKey(pageKey) {
+        const key = String(pageKey || "").toLowerCase();
+        return ["about", "contact", "legal", "privacy", "terms", "cookies"].includes(key) ? key : "about";
+    }
+
+    function buildInfoPage(pageKey) {
+        const pages = {
+            about: {
+                eyebrow: "About GradStudio",
+                title: "A practical learning platform for technical concepts.",
+                body: "GradStudio is built to make complex engineering, AI, cloud, data, and software topics easier to understand through structured lessons, guided demos, and focused refreshers.",
+                cards: [
+                    ["Clear Foundations", "Lessons focus on core intuition first, then move into implementation details so beginners can follow without feeling lost."],
+                    ["Interactive Practice", "Courses use demos, guided modules, and visual explanations to help learners connect theory with real system behavior."],
+                    ["Refresh Anytime", "Short modules make it easy to revisit topics, strengthen prior knowledge, and prepare for projects, interviews, or coursework."]
+                ]
+            },
+            contact: {
+                eyebrow: "Contact",
+                title: "Questions, feedback, or support.",
+                body: "For course questions, technical issues, or platform feedback, reach out directly and include the course or module name when relevant.",
+                contact: true
+            },
+            legal: {
+                eyebrow: "Legal",
+                title: "Platform policies and learner protections.",
+                body: "Review the GradStudio policies that explain privacy, terms of use, cookies, and how platform data is handled.",
+                cards: [
+                    ["Privacy", "How learner and platform data is handled, stored, and protected."],
+                    ["Terms", "The rules for using GradStudio lessons, demos, accounts, and platform content."],
+                    ["Cookies", "How cookies and local storage support preferences, sessions, and performance."]
+                ]
+            },
+            privacy: {
+                eyebrow: "Privacy",
+                title: "Privacy Policy",
+                body: "GradStudio collects only the information needed to operate learning features, support accounts, improve course quality, and keep the platform secure.",
+                cards: [
+                    ["Information Used", "Course activity, basic account details, and technical logs may be used to provide platform functionality and support."],
+                    ["Data Protection", "Platform data is handled with access controls and infrastructure safeguards appropriate for a learning system."],
+                    ["Contact", "Privacy questions can be sent to support@gradstudio.org."]
+                ]
+            },
+            terms: {
+                eyebrow: "Terms",
+                title: "Terms of Service",
+                body: "By using GradStudio, learners agree to use the platform responsibly, respect course content, and avoid activity that disrupts services or other users.",
+                cards: [
+                    ["Learning Content", "Course materials and demos are provided for education and practice."],
+                    ["Acceptable Use", "Do not misuse platform access, attempt unauthorized access, or interfere with service operation."],
+                    ["Updates", "Terms may be updated as the platform evolves."]
+                ]
+            },
+            cookies: {
+                eyebrow: "Cookies",
+                title: "Cookie Policy",
+                body: "GradStudio uses cookies and local browser storage to keep the learning experience fast, functional, and consistent between visits.",
+                cards: [
+                    ["Preferences", "Browser storage may remember UI preferences, cached catalog data, and local learning state."],
+                    ["Performance", "Caching helps pages and thumbnails load faster without repeating the same network work."],
+                    ["Control", "You can clear browser storage or cookies from your browser settings."]
+                ]
+            }
+        };
+        const page = pages[pageKey] || pages.about;
+        const cards = page.cards ? `
+            <div class="info-grid">
+                ${page.cards.map(([title, body]) => `
+                    <article>
+                        <h3>${escapeHtml(title)}</h3>
+                        <p>${escapeHtml(body)}</p>
+                    </article>
+                `).join("")}
+            </div>
+        ` : "";
+        const contact = page.contact ? `
+            <div class="contact-card">
+                <span>Email</span>
+                <a href="mailto:support@gradstudio.org">support@gradstudio.org</a>
+            </div>
+        ` : "";
+
+        return `
+            <section class="info-page-hero" aria-labelledby="infoPageTitle">
+                <div class="section-copy">
+                    <span class="eyebrow">${escapeHtml(page.eyebrow)}</span>
+                    <h1 id="infoPageTitle">${escapeHtml(page.title)}</h1>
+                    <p>${escapeHtml(page.body)}</p>
+                </div>
+                ${contact}
+            </section>
+            ${cards}
+        `;
+    }
+
     function renderDemoCarousels() {
+        const stack = document.getElementById("demoCarouselBlocks");
+        if (stack) {
+            renderLayoutStack(stack);
+            return;
+        }
+        const eyebrow = document.querySelector(".demo-carousel-block .eyebrow");
+        const heading = document.getElementById("demoCarouselTitle");
+        if (eyebrow) eyebrow.textContent = carouselEyebrowText || "HTML Demo Thumbnails";
+        if (heading) heading.textContent = carouselHeadingText || "Featured lab previews";
+        applyCarouselLayout();
         buildFeaturedCarousel();
         buildCompactCarousel();
+    }
+
+    function renderLayoutStack(stack) {
+        const blocks = homepageLayoutBlocks.length ? homepageLayoutBlocks : fallbackLayoutBlocks();
+        carouselCardMap = new Map();
+        if (!blocks.length) {
+            stack.innerHTML = "";
+            return;
+        }
+        stack.innerHTML = blocks.map(renderLayoutBlock).join("");
+        bindCarouselCardClicks(stack);
+        bindLayoutScrollButtons(stack);
+        bindLayoutSwipe(stack);
+    }
+
+    function fallbackLayoutBlocks() {
+        if (!USE_LOCAL_FALLBACK_DATA) return [];
+        return [
+            {
+                id: "1",
+                type: "carousel",
+                slot: "featured",
+                eyebrow: carouselEyebrowText || "HTML Demo Thumbnails",
+                header: carouselHeadingText || "Featured lab previews",
+                config: featuredCarouselConfig || defaultCarouselRuntimeConfig("featured"),
+                cards: featuredCarouselCards.length ? featuredCarouselCards : fallbackFeaturedCards()
+            },
+            {
+                id: "2",
+                type: "carousel",
+                slot: "compact",
+                eyebrow: "",
+                header: "More lab previews",
+                config: compactCarouselConfig || defaultCarouselRuntimeConfig("compact"),
+                cards: compactCarouselCards.length ? compactCarouselCards : fallbackCompactCards()
+            }
+        ];
+    }
+
+    function renderLayoutBlock(block) {
+        const config = block.config || defaultCarouselRuntimeConfig(block.slot || "featured");
+        if (block.type === "text") return renderStandaloneTextBlock(block, config);
+        return renderCarouselLayoutBlock(block, config);
+    }
+
+    function renderStandaloneTextBlock(block, config) {
+        const text = config.sectionText || block.header || "";
+        if (!text) return "";
+        return `
+            <section class="demo-carousel-block demo-text-layout-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" style="${carouselBlockStyle(config)}">
+                <div class="carousel-text-block">${escapeHtml(text)}</div>
+            </section>
+        `;
+    }
+
+    function renderCarouselLayoutBlock(block, config) {
+        const cards = block.cards && block.cards.length ? block.cards : (block.slot === "compact" ? fallbackCompactCards() : fallbackFeaturedCards());
+        const railId = `carouselRail-${cssIdent(block.id)}`;
+        const viewportId = `carouselViewport-${cssIdent(block.id)}`;
+        const railClass = block.slot === "compact" ? "compact-demo-rail" : "featured-demo-rail";
+        const cardMarkup = cards.map((card, index) => {
+            return block.slot === "compact"
+                ? renderCompactDemoCard(card, config)
+                : renderFeatureDemoCard(card, index % 2 === 0 ? "is-primary" : "is-secondary", config);
+        }).join("");
+        return `
+            <section class="demo-carousel-block" data-align="${escapeHtml(config.layoutAlign)}" data-copy-align="${escapeHtml(config.sectionTextAlign)}" style="${carouselBlockStyle(config)}">
+                ${config.sectionText ? `<div class="carousel-text-block">${escapeHtml(config.sectionText)}</div>` : ""}
+                <div class="carousel-heading">
+                    <div>
+                        ${block.eyebrow ? `<span class="eyebrow">${escapeHtml(block.eyebrow)}</span>` : ""}
+                        <h3>${escapeHtml(block.header || "Carousel")}</h3>
+                    </div>
+                    <div class="carousel-controls" aria-label="Carousel controls">
+                        ${carouselButtonSvg(-1, viewportId)}
+                        ${carouselButtonSvg(1, viewportId)}
+                    </div>
+                </div>
+                <div class="carousel-viewport" id="${escapeHtml(viewportId)}">
+                    <div id="${escapeHtml(railId)}" class="${railClass} is-static" style="${carouselRailStyle(config)}">${cardMarkup}</div>
+                </div>
+            </section>
+        `;
+    }
+
+    function carouselButtonSvg(dir, viewportId) {
+        const label = dir < 0 ? "Previous carousel cards" : "Next carousel cards";
+        const path = dir < 0
+            ? "M14.7 6.3 9 12l5.7 5.7-1.4 1.4L6.2 12l7.1-7.1 1.4 1.4Z"
+            : "m9.3 17.7 5.7-5.7-5.7-5.7 1.4-1.4 7.1 7.1-7.1 7.1-1.4-1.4Z";
+        return `<button class="carousel-button" type="button" data-layout-scroll="${escapeHtml(viewportId)}" data-scroll-dir="${dir}" aria-label="${label}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="${path}" /></svg></button>`;
+    }
+
+    function carouselBlockStyle(config) {
+        return [
+            `--carousel-max-width:${config.maxWidth}`,
+            `--carousel-heading-align:${config.textAlign}`,
+            `--carousel-heading-font:${config.headerFont}`,
+            `--carousel-heading-size:${config.headerFontSize}px`,
+            `--carousel-heading-color:${config.headerColor}`,
+            `--carousel-copy-font:${config.sectionTextFont}`,
+            `--carousel-copy-size:${config.sectionTextSize}px`,
+            `--carousel-copy-color:${config.sectionTextColor}`,
+            `--carousel-copy-align:${config.sectionTextAlign}`,
+            `--carousel-copy-max-width:${config.sectionTextMaxWidth}`
+        ].join(";");
+    }
+
+    function carouselRailStyle(config) {
+        return [
+            `--carousel-gap:${config.cardGap}px`,
+            `--carousel-rail-align:${alignToJustify(config.layoutAlign)}`,
+            `--fit-card-width:calc((100% - ${(config.visibleCount - 1) * config.cardGap}px) / ${config.visibleCount})`
+        ].join(";");
+    }
+
+    function bindLayoutScrollButtons(root) {
+        root.querySelectorAll("[data-layout-scroll]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const viewport = document.getElementById(button.dataset.layoutScroll);
+                if (!viewport) return;
+                viewport.scrollBy({ left: Number(button.dataset.scrollDir || 1) * viewport.clientWidth * 0.82, behavior: "smooth" });
+            });
+        });
+    }
+
+    function bindLayoutSwipe(root) {
+        root.querySelectorAll(".carousel-viewport").forEach((viewport) => {
+            addSwipeHandlers(viewport, (dir) => {
+                viewport.scrollBy({ left: dir * viewport.clientWidth * 0.82, behavior: "smooth" });
+            });
+        });
+    }
+
+    function cssIdent(value) {
+        return String(value || "carousel").replace(/[^a-zA-Z0-9_-]/g, "-");
+    }
+
+    function applyCarouselLayout() {
+        const block = document.querySelector(".demo-carousel-block");
+        if (!block) return;
+        const config = featuredCarouselConfig || defaultCarouselRuntimeConfig("featured");
+        block.dataset.align = config.layoutAlign;
+        block.dataset.copyAlign = config.sectionTextAlign;
+        block.style.setProperty("--carousel-max-width", config.maxWidth);
+        block.style.setProperty("--carousel-heading-align", config.textAlign);
+        block.style.setProperty("--carousel-heading-font", config.headerFont);
+        block.style.setProperty("--carousel-heading-size", `${config.headerFontSize}px`);
+        block.style.setProperty("--carousel-heading-color", config.headerColor);
+        block.style.setProperty("--carousel-copy-font", config.sectionTextFont);
+        block.style.setProperty("--carousel-copy-size", `${config.sectionTextSize}px`);
+        block.style.setProperty("--carousel-copy-color", config.sectionTextColor);
+        block.style.setProperty("--carousel-copy-align", config.sectionTextAlign);
+        block.style.setProperty("--carousel-copy-max-width", config.sectionTextMaxWidth);
+
+        applyCarouselTextBlock(document.getElementById("carouselTextBlock"), config);
+        applyCarouselTextBlock(document.getElementById("compactCarouselTextBlock"), compactCarouselConfig || defaultCarouselRuntimeConfig("compact"));
+
+        const featuredRail = document.getElementById("featuredDemoRail");
+        const compactRail = document.getElementById("compactDemoRail");
+        applyRailConfig(featuredRail, featuredCarouselConfig, "featured");
+        applyRailConfig(compactRail, compactCarouselConfig, "compact");
+    }
+
+    function applyRailConfig(rail, config, slot) {
+        if (!rail) return;
+        const fallback = defaultCarouselRuntimeConfig(slot);
+        const active = config || fallback;
+        rail.dataset.sizing = active.layoutStyle;
+        rail.style.setProperty("--carousel-gap", `${active.cardGap}px`);
+        rail.style.setProperty("--carousel-rail-align", alignToJustify(active.layoutAlign || featuredCarouselConfig.layoutAlign));
+        rail.style.setProperty("--fit-card-width", `calc((100% - ${(active.visibleCount - 1) * active.cardGap}px) / ${active.visibleCount})`);
+    }
+
+    function applyCarouselTextBlock(node, config) {
+        if (!node || !config) return;
+        node.textContent = config.sectionText || "";
+        node.hidden = !config.sectionText;
+        node.dataset.copyAlign = config.sectionTextAlign;
+        node.style.setProperty("--carousel-copy-font", config.sectionTextFont);
+        node.style.setProperty("--carousel-copy-size", `${config.sectionTextSize}px`);
+        node.style.setProperty("--carousel-copy-color", config.sectionTextColor);
+        node.style.setProperty("--carousel-copy-align", config.sectionTextAlign);
+        node.style.setProperty("--carousel-copy-max-width", config.sectionTextMaxWidth);
+    }
+
+    function alignToJustify(value) {
+        if (value === "center") return "center";
+        if (value === "right") return "flex-end";
+        return "flex-start";
     }
 
     /* Infinite carousel engine */
@@ -673,12 +1445,18 @@
     function buildFeaturedCarousel() {
         const rail = document.getElementById("featuredDemoRail");
         const cards = featuredCarouselCards.length ? featuredCarouselCards : fallbackFeaturedCards();
-        const key = cards.map((card) => card.key).join("|");
+        const config = featuredCarouselConfig || defaultCarouselRuntimeConfig("featured");
+        const visible = config.visibleCount || FEATURED_VISIBLE;
+        const gap = config.cardGap || FEATURED_GAP;
+        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}`).join("|") + JSON.stringify(config);
         if (rail.dataset.carouselKey === key) return;
         rail.dataset.carouselKey = key;
 
-        const clones = Math.min(FEATURED_VISIBLE, cards.length);
-        const all = [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
+        const staticRail = !config.infiniteScroll || cards.length <= visible;
+        const clones = staticRail ? 0 : Math.min(visible, cards.length);
+        const all = staticRail ? cards : [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
+        rail.classList.toggle("is-static", staticRail);
+        setCarouselControlsVisible("featured", !staticRail);
 
         rail.innerHTML = all.map((card, i) => {
             const idx = i < clones ? cards.length - clones + i : (i - clones) >= cards.length ? (i - clones - cards.length) : i - clones;
@@ -687,12 +1465,13 @@
         bindCarouselCardClicks(rail);
 
         featuredPos = 0;
-        setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false);
+        setTrackPos(rail, featuredPos, clones, visible, gap, false);
 
         rail.ontransitionend = () => {
+            if (staticRail) return;
             const n = cards.length;
-            if (featuredPos >= n) { featuredPos -= n; setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false); }
-            if (featuredPos < 0)  { featuredPos += n; setTrackPos(rail, featuredPos, clones, FEATURED_VISIBLE, FEATURED_GAP, false); }
+            if (featuredPos >= n) { featuredPos -= n; setTrackPos(rail, featuredPos, clones, visible, gap, false); }
+            if (featuredPos < 0)  { featuredPos += n; setTrackPos(rail, featuredPos, clones, visible, gap, false); }
             featuredBusy = false;
         };
     }
@@ -700,54 +1479,74 @@
     function buildCompactCarousel() {
         const rail = document.getElementById("compactDemoRail");
         const cards = compactCarouselCards.length ? compactCarouselCards : fallbackCompactCards();
-        const key = cards.map((card) => card.key).join("|");
+        const config = compactCarouselConfig || defaultCarouselRuntimeConfig("compact");
+        const visible = config.visibleCount || COMPACT_VISIBLE;
+        const gap = config.cardGap || COMPACT_GAP;
+        const key = cards.map((card) => `${card.key}:${card.width}:${card.heightPx}:${card.textPosition}:${card.textAlign}`).join("|") + JSON.stringify(config);
         if (rail.dataset.carouselKey === key) return;
         rail.dataset.carouselKey = key;
 
-        const clones = Math.min(COMPACT_VISIBLE, cards.length);
-        const all = [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
+        const staticRail = !config.infiniteScroll || cards.length <= visible;
+        const clones = staticRail ? 0 : Math.min(visible, cards.length);
+        const all = staticRail ? cards : [...cards.slice(-clones), ...cards, ...cards.slice(0, clones)];
+        rail.classList.toggle("is-static", staticRail);
+        setCarouselControlsVisible("compact", !staticRail);
 
         rail.innerHTML = all.map((card) => renderCompactDemoCard(card)).join("");
         bindCarouselCardClicks(rail);
 
         compactPos = 0;
-        setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false);
+        setTrackPos(rail, compactPos, clones, visible, gap, false);
 
         rail.ontransitionend = () => {
+            if (staticRail) return;
             const n = cards.length;
-            if (compactPos >= n) { compactPos -= n; setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false); }
-            if (compactPos < 0)  { compactPos += n; setTrackPos(rail, compactPos, clones, COMPACT_VISIBLE, COMPACT_GAP, false); }
+            if (compactPos >= n) { compactPos -= n; setTrackPos(rail, compactPos, clones, visible, gap, false); }
+            if (compactPos < 0)  { compactPos += n; setTrackPos(rail, compactPos, clones, visible, gap, false); }
             compactBusy = false;
         };
     }
 
     function setTrackPos(rail, pos, cloneCount, visible, gap, animate) {
-        const pct = 100 / visible;
-        const gapOffset = gap * (pos + cloneCount) / visible;
-        const offset = (pos + cloneCount) * pct;
+        const target = rail.children[pos + cloneCount];
+        const offset = target ? target.offsetLeft : 0;
         rail.style.transition = animate ? "" : "none";
-        rail.style.transform = `translateX(calc(-${offset}% - ${gapOffset}px))`;
+        rail.style.transform = `translateX(-${offset}px)`;
         if (!animate) { void rail.offsetWidth; rail.style.transition = ""; }
+    }
+
+    function setCarouselControlsVisible(target, visible) {
+        document.querySelectorAll(`[data-carousel-target="${target}"]`).forEach((button) => {
+            button.disabled = !visible;
+            const group = button.closest(".carousel-controls");
+            if (group) group.classList.toggle("is-hidden", !visible);
+        });
     }
 
     function slideFeatured(dir) {
         if (featuredBusy) return;
+        if (document.getElementById("featuredDemoRail")?.classList.contains("is-static")) return;
         featuredBusy = true;
         featuredPos += dir;
-        setTrackPos(document.getElementById("featuredDemoRail"), featuredPos, FEATURED_VISIBLE, FEATURED_VISIBLE, FEATURED_GAP, true);
+        const config = featuredCarouselConfig || defaultCarouselRuntimeConfig("featured");
+        const visible = config.visibleCount || FEATURED_VISIBLE;
+        setTrackPos(document.getElementById("featuredDemoRail"), featuredPos, visible, visible, config.cardGap || FEATURED_GAP, true);
     }
 
     function slideCompact(dir) {
         if (compactBusy) return;
+        if (document.getElementById("compactDemoRail")?.classList.contains("is-static")) return;
         compactBusy = true;
         compactPos += dir;
-        setTrackPos(document.getElementById("compactDemoRail"), compactPos, COMPACT_VISIBLE, COMPACT_VISIBLE, COMPACT_GAP, true);
+        const config = compactCarouselConfig || defaultCarouselRuntimeConfig("compact");
+        const visible = config.visibleCount || COMPACT_VISIBLE;
+        setTrackPos(document.getElementById("compactDemoRail"), compactPos, visible, visible, config.cardGap || COMPACT_GAP, true);
     }
 
-    function renderFeatureDemoCard(card, variantClass) {
+    function renderFeatureDemoCard(card, variantClass, config = featuredCarouselConfig) {
         carouselCardMap.set(card.key, card);
         return `
-            <article class="demo-feature-card ${variantClass}" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}">
+            <article class="demo-feature-card ${variantClass}" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" data-text-position="${escapeHtml(card.textPosition)}" style="${carouselCardStyle(card, "featured", config)}">
                 ${renderCarouselCardMedia(card, "featured")}
                 <div class="demo-card-meta">
                     <div>
@@ -760,10 +1559,10 @@
         `;
     }
 
-    function renderCompactDemoCard(card) {
+    function renderCompactDemoCard(card, config = compactCarouselConfig) {
         carouselCardMap.set(card.key, card);
         return `
-            <article class="compact-demo-card" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" style="--compact-bg: ${escapeHtml(card.bg || carouselGradient(card.colorHex, 0))}">
+            <article class="compact-demo-card" role="button" tabindex="0" data-carousel-card-key="${escapeHtml(card.key)}" data-text-position="${escapeHtml(card.textPosition)}" style="${carouselCardStyle(card, "compact", config)};--compact-bg: ${escapeHtml(card.bg || carouselGradient(card.colorHex, 0))}">
                 <div class="compact-card-media">${renderCarouselCardMedia(card, "compact")}</div>
                 <div class="compact-card-copy">
                     <b>${escapeHtml(card.title)}</b>
@@ -773,12 +1572,34 @@
         `;
     }
 
+    function carouselCardStyle(card, slot, config = null) {
+        const activeConfig = config || (slot === "compact" ? compactCarouselConfig : featuredCarouselConfig);
+        const width = activeConfig?.layoutStyle === "custom_width" || cardHasCustomWidth(card, slot) ? card.width : "var(--fit-card-width)";
+        return [
+            `--card-width:${width}`,
+            `--card-height:${card.heightPx}`,
+            `--card-bg:${card.bgColor}`,
+            `--card-title-font:${card.headingFont}`,
+            `--card-title-size:${card.headingSize}px`,
+            `--card-title-color:${card.headingColor}`,
+            `--card-sub-font:${card.subFont}`,
+            `--card-sub-size:${card.subSize}px`,
+            `--card-sub-color:${card.subColor}`,
+            `--card-text-align:${card.textAlign}`
+        ].join(";");
+    }
+
+    function cardHasCustomWidth(card, slot) {
+        const fallback = slot === "compact" ? "220px" : "400px";
+        return String(card.width || "").trim().toLowerCase() !== fallback;
+    }
+
     function renderCarouselCardMedia(card, size) {
         if (card.contentType === "image" && card.imageUrl) {
-            return `<img class="carousel-card-image" src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.title)} thumbnail" loading="lazy" decoding="async">`;
+            return `<img class="carousel-card-image" src="${escapeHtml(resolveAssetUrl(card.imageUrl))}" alt="${escapeHtml(card.title)} thumbnail" loading="lazy" decoding="async">`;
         }
         if (card.contentType === "iframe" && card.iframeUrl) {
-            return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(card.iframeUrl)}" loading="lazy" sandbox="allow-scripts"></iframe>`;
+            return `<iframe title="${escapeHtml(card.title)}" src="${escapeHtml(resolveAssetUrl(card.iframeUrl))}" loading="lazy" sandbox="allow-scripts"></iframe>`;
         }
         if (card.contentType === "html" && card.contentHtml) {
             if (isFullHtmlDocument(card.contentHtml)) {
@@ -828,7 +1649,7 @@
             setDetailVisible(false);
             render();
             if (updateUrl) history.pushState({ view: "carousel", cardId: card.id }, "", `#carousel/${encodeURIComponent(card.id)}`);
-            document.getElementById("courses").scrollIntoView({ behavior: "smooth", block: "start" });
+            jumpToSection("courses");
             return;
         }
         if (card.targetType === "external" && card.href) {
@@ -891,7 +1712,12 @@
         const grid = document.getElementById("courseGrid");
 
         if (!visibleCourses.length) {
-            grid.innerHTML = `<div class="empty-state">No courses found</div>`;
+            const message = catalogStatus === "loading"
+                ? "Loading live courses..."
+                : catalogStatus === "error"
+                    ? "Live courses could not be loaded. Refresh to try again."
+                    : "No courses found";
+            grid.innerHTML = `<div class="empty-state">${message}</div>`;
             return;
         }
 
@@ -939,7 +1765,7 @@
 
         if (course.thumbnail.type === "image") {
             const image = document.createElement("img");
-            image.src = course.thumbnail.src;
+            image.src = resolveAssetUrl(course.thumbnail.src);
             image.alt = course.thumbnail.alt || `${course.title} thumbnail`;
             image.loading = "lazy";
             image.decoding = "async";
@@ -968,16 +1794,11 @@
         const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
-        /* Try fetching real sections/lessons from API */
-        const apiData = await fetchCourseFromAPI(courseId);
-        if (apiData) {
-            course._apiLessons = apiData.lessons;
-            course._apiSections = apiData.sections;
-            if (apiData.apiDescription && !course.description) course.description = apiData.apiDescription;
-        }
+        await hydrateCourseContent(course);
 
         renderCourseDetail(course);
         setDetailVisible(true);
+        updateNavState("");
         history.pushState({ view: "course", courseId }, "", `#course/${encodeURIComponent(courseId)}`);
         window.scrollTo({ top: 0, behavior: "auto" });
     }
@@ -986,19 +1807,13 @@
         const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
         if (!course) return;
 
-        /* Ensure API data is loaded */
-        if (!course._apiLessons) {
-            const apiData = await fetchCourseFromAPI(courseId);
-            if (apiData) {
-                course._apiLessons = apiData.lessons;
-                course._apiSections = apiData.sections;
-            }
-        }
+        await hydrateCourseContent(course);
 
         const lessons = getCourseLessons(course);
         const safeIndex = Math.max(0, Math.min(Number(lessonIndex) || 0, lessons.length - 1));
         renderCoursePlayer(course, safeIndex);
         setPlayerVisible(true);
+        updateNavState("");
 
         const url = `#course/${encodeURIComponent(courseId)}/lesson/${safeIndex}`;
         if (replace) history.replaceState({ view: "lesson", courseId, lessonIndex: safeIndex }, "", url);
@@ -1017,6 +1832,20 @@
         return frame;
     }
 
+    function resolveAssetUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
+        if (raw.startsWith("//")) return `${window.location.protocol}${raw}`;
+        if (raw.startsWith("/")) {
+            const needsApiOrigin = window.location.protocol === "file:" ||
+                window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1";
+            return needsApiOrigin ? `${API_BASE}${raw}` : raw;
+        }
+        return raw;
+    }
+
     async function handleRoute() {
         const route = decodeURIComponent(window.location.hash.replace(/^#\/?/, ""));
         if (route.startsWith("carousel/")) {
@@ -1031,49 +1860,52 @@
             const [, courseId, routeType, routeIndex] = route.split("/");
             const course = courseLookup.get(courseId) || courses.find((item) => item.id === courseId);
             if (course) {
-                /* Fetch API data if not already loaded */
-                if (!course._apiLessons) {
-                    const apiData = await fetchCourseFromAPI(courseId);
-                    if (apiData) {
-                        course._apiLessons = apiData.lessons;
-                        course._apiSections = apiData.sections;
-                        if (apiData.apiDescription && !course.description) course.description = apiData.apiDescription;
-                    }
-                }
+                await hydrateCourseContent(course);
 
                 if (routeType === "lesson") {
                     const lessonIndex = Number(routeIndex) || 0;
                     renderCoursePlayer(course, lessonIndex);
                     setPlayerVisible(true);
+                    updateNavState("");
                     window.scrollTo({ top: 0, behavior: "auto" });
                     return;
                 }
 
                 renderCourseDetail(course);
                 setDetailVisible(true);
+                updateNavState("");
                 window.scrollTo({ top: 0, behavior: "auto" });
                 return;
             }
         }
 
-        if (route === "courses" || route === "about" || route === "") {
-            if (selectedCourseIds || selectedCourseTitle) {
-                selectedCourseIds = null;
-                selectedCourseTitle = "";
-                activePage = 1;
-                render();
-            }
+        if (route === "courses") {
+            showCatalog("All", false);
+            return;
+        }
+
+        if (route === "home" || route === "") {
+            showHome(false);
+            return;
+        }
+
+        if (["about", "contact", "legal", "privacy", "terms", "cookies"].includes(route)) {
+            showInfoPage(route, false);
+            return;
         }
 
         setDetailVisible(false);
+        updateNavState("home");
     }
 
     function setDetailVisible(isDetailVisible) {
         const detail = document.getElementById("courseDetail");
         const player = document.getElementById("coursePlayer");
-        const hero = document.getElementById("about");
+        const hero = document.getElementById("home");
         const catalog = document.getElementById("courses");
         const carousel = document.querySelector(".demo-carousel-block");
+        const infoPage = document.getElementById("infoPage");
+        const footer = document.querySelector(".site-footer");
         const topbar = document.querySelector(".topbar");
 
         if (detail) detail.hidden = !isDetailVisible;
@@ -1081,6 +1913,8 @@
         if (hero) hero.hidden = isDetailVisible;
         if (catalog) catalog.hidden = isDetailVisible;
         if (carousel) carousel.hidden = isDetailVisible;
+        if (infoPage) infoPage.hidden = true;
+        if (footer) footer.hidden = isDetailVisible;
         if (topbar) topbar.hidden = false;
         document.body.classList.toggle("is-course-player", false);
     }
@@ -1088,9 +1922,11 @@
     function setPlayerVisible(isPlayerVisible) {
         const detail = document.getElementById("courseDetail");
         const player = document.getElementById("coursePlayer");
-        const hero = document.getElementById("about");
+        const hero = document.getElementById("home");
         const catalog = document.getElementById("courses");
         const carousel = document.querySelector(".demo-carousel-block");
+        const infoPage = document.getElementById("infoPage");
+        const footer = document.querySelector(".site-footer");
         const topbar = document.querySelector(".topbar");
 
         if (detail) detail.hidden = true;
@@ -1098,6 +1934,8 @@
         if (hero) hero.hidden = isPlayerVisible;
         if (catalog) catalog.hidden = isPlayerVisible;
         if (carousel) carousel.hidden = isPlayerVisible;
+        if (infoPage) infoPage.hidden = true;
+        if (footer) footer.hidden = isPlayerVisible;
         if (topbar) topbar.hidden = isPlayerVisible;
         document.body.classList.toggle("is-course-player", isPlayerVisible);
     }
@@ -1107,14 +1945,13 @@
         if (!detail) return;
 
         const lessons = getCourseLessons(course);
-        const labCount = Math.ceil(lessons.length / 2);
-        const challengeCount = Math.floor(lessons.length / 2);
         const primaryTopic = course.topicFolder || course.tags[0] || "Course";
         const sections = getCourseSections(course, lessons);
+        const hasLessons = lessons.length > 0;
 
         detail.innerHTML = `
             <nav class="course-breadcrumb" aria-label="Breadcrumb">
-                <a href="#courses">Learn</a>
+                <a href="#courses" data-breadcrumb-learn>Learn</a>
                 <span aria-hidden="true">&gt;</span>
                 <button type="button" data-topic-link="${escapeHtml(primaryTopic)}">${escapeHtml(primaryTopic)}</button>
                 <span aria-hidden="true">&gt;</span>
@@ -1133,33 +1970,27 @@
                     <div class="tag-list course-detail-tags">
                         ${course.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
                     </div>
+                    ${hasLessons
+                        ? `<button class="start-learning-button" type="button" data-start-learning>Start Learning</button>`
+                        : `<button class="start-learning-button is-disabled" type="button" disabled>No modules published</button>`}
                 </article>
 
-                <aside class="course-side-card" aria-label="Course summary">
-                    <div class="detail-thumbnail card-media" data-thumbnail="${escapeHtml(course.thumbnail.type)}">
-                        <span class="course-label">COURSE</span>
+                <section class="course-contents-card" id="courseLessons" aria-labelledby="courseContentsTitle">
+                    <div class="course-contents-head">
+                        <div>
+                            <span class="eyebrow">Contents</span>
+                            <h2 id="courseContentsTitle">Labs and challenges</h2>
+                        </div>
+                        <span>${lessons.length} module${lessons.length === 1 ? "" : "s"}</span>
                     </div>
-                    <div class="course-side-stat"><span class="lesson-icon lab" aria-hidden="true"></span><strong>${labCount}</strong> Labs</div>
-                    <div class="course-side-stat"><span class="lesson-icon challenge" aria-hidden="true"></span><strong>${challengeCount}</strong> Challenges</div>
-                    <button class="start-learning-button" type="button" data-start-learning>Start Learning</button>
-                </aside>
-            </section>
-
-            <section class="course-contents-card" id="courseLessons" aria-labelledby="courseContentsTitle">
-                <div class="course-contents-head">
-                    <div>
-                        <span class="eyebrow">Contents</span>
-                        <h2 id="courseContentsTitle">Labs and challenges</h2>
+                    <div class="lesson-list detail-section-list">
+                        ${sections.length
+                            ? sections.map((section, sectionIndex) => renderDetailSection(section, sectionIndex)).join("")
+                            : `<div class="empty-state course-empty-state">No published modules found for this course.</div>`}
                     </div>
-                    <span>${lessons.length} modules</span>
-                </div>
-                <div class="lesson-list detail-section-list">
-                    ${sections.map((section, sectionIndex) => renderDetailSection(section, sectionIndex)).join("")}
-                </div>
+                </section>
             </section>
         `;
-
-        applyCourseThumbnail(detail.querySelector(".detail-thumbnail"), course);
 
         const startLearning = detail.querySelector("[data-start-learning]");
         if (startLearning) {
@@ -1190,24 +2021,27 @@
         const topicLink = detail.querySelector("[data-topic-link]");
         if (topicLink) {
             topicLink.addEventListener("click", () => {
-                activeTopic = primaryTopic;
-                activePage = 1;
-                query = "";
-                const searchInput = document.getElementById("courseSearch");
-                if (searchInput) searchInput.value = "";
-                render();
-                window.location.hash = "courses";
+                showCatalog(primaryTopic);
+            });
+        }
+
+        const learnLink = detail.querySelector("[data-breadcrumb-learn]");
+        if (learnLink) {
+            learnLink.addEventListener("click", (event) => {
+                event.preventDefault();
+                showCatalog("All");
             });
         }
     }
 
     function renderDetailSection(section, sectionIndex) {
+        const isExpanded = sectionIndex === 0;
         return `
             <section class="detail-section">
                 <button
                     class="detail-section-toggle"
                     type="button"
-                    aria-expanded="false"
+                    aria-expanded="${isExpanded}"
                     aria-controls="detail-section-${sectionIndex}"
                     data-detail-section="${sectionIndex}"
                 >
@@ -1215,7 +2049,7 @@
                     <small>${section.items.length} module${section.items.length === 1 ? "" : "s"}</small>
                     <span class="detail-section-chevron" aria-hidden="true">v</span>
                 </button>
-                <div class="detail-section-body" id="detail-section-${sectionIndex}" hidden>
+                <div class="detail-section-body" id="detail-section-${sectionIndex}" ${isExpanded ? "" : "hidden"}>
                     ${section.items.map((item) => renderLessonRow(item.lesson, item.index)).join("")}
                 </div>
             </section>
@@ -1224,15 +2058,26 @@
 
     function renderLessonRow(lesson, index) {
         const isLab = lesson.type === "lab";
-        const shouldShowButton = index === 0 || index === 6;
+        const title = cleanLessonTitle(lesson.title);
         return `
-            <article class="lesson-row" role="button" tabindex="0" data-lesson-index="${index}" aria-label="Open ${escapeHtml(lesson.title)}">
+            <article class="lesson-row" role="button" tabindex="0" data-lesson-index="${index}" aria-label="Open ${escapeHtml(title)}">
                 <span class="lesson-icon ${isLab ? "lab" : "challenge"}" aria-hidden="true"></span>
-                <h3>${escapeHtml(lesson.title)}</h3>
-                ${shouldShowButton ? `<button type="button" class="lesson-start-button">${index === 0 ? "Start Lab" : "Start Lab"}</button>` : ""}
+                <h3>${escapeHtml(title)}</h3>
                 <span class="lesson-status" aria-label="Not completed"></span>
             </article>
         `;
+    }
+
+    function cleanLessonTitle(value) {
+        return String(value || "")
+            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function getPlayerLessonLabel(lesson, index) {
+        const title = cleanLessonTitle(lesson.title).replace(/^\d+\s*[\).:-]\s*/, "");
+        return `${index + 1}. ${title || `Module ${index + 1}`}`;
     }
 
     function renderCoursePlayer(course, lessonIndex = 0) {
@@ -1240,9 +2085,26 @@
         if (!player) return;
 
         const lessons = getCourseLessons(course);
+        if (!lessons.length) {
+            player.innerHTML = `
+                <div class="course-player-layout">
+                    <section class="player-main" aria-label="Lesson viewer">
+                        <header class="player-toolbar">
+                            <a class="player-back-link" href="#course/${encodeURIComponent(course.id)}">Back to course</a>
+                            <h1>${escapeHtml(course.title)}</h1>
+                            <span></span>
+                        </header>
+                        <div class="empty-state course-empty-state">No published modules found for this course.</div>
+                    </section>
+                </div>
+            `;
+            return;
+        }
+
         const safeIndex = Math.max(0, Math.min(Number(lessonIndex) || 0, lessons.length - 1));
         const selectedLesson = lessons[safeIndex];
         const sections = getCourseSections(course, lessons);
+        const activeSectionIndex = Math.max(0, sections.findIndex((section) => section.items.some((item) => item.index === safeIndex)));
         const frameTitle = `${course.title}: ${selectedLesson.title}`;
         const frameSource = getLessonFrameSource(course, selectedLesson, safeIndex);
 
@@ -1256,45 +2118,50 @@
 
                     <label class="player-search">
                         <span class="sr-only">Search course contents</span>
-                        <input type="search" placeholder="Search course contents..." data-player-search>
+                        <input type="search" placeholder="Search lessons..." data-player-search>
                     </label>
 
                     <div class="player-sections">
-                        ${sections.map((section, sectionIndex) => `
+                        ${sections.map((section, sectionIndex) => {
+                            const isExpanded = sectionIndex === activeSectionIndex;
+                            return `
                             <section class="player-section">
                                 <button
                                     class="player-section-title"
                                     type="button"
-                                    aria-expanded="false"
+                                    aria-expanded="${isExpanded}"
                                     aria-controls="player-section-${sectionIndex}"
                                     data-player-section="${sectionIndex}"
                                 >
                                     <span>${escapeHtml(section.title)}</span>
                                     <span class="player-section-chevron" aria-hidden="true">v</span>
                                 </button>
-                                <nav class="player-lesson-nav" id="player-section-${sectionIndex}" hidden>
+                                <nav class="player-lesson-nav" id="player-section-${sectionIndex}" ${isExpanded ? "" : "hidden"}>
                                     ${section.items.map((item) => `
                                         <button class="player-lesson-link ${item.index === safeIndex ? "is-active" : ""}" type="button" data-player-lesson="${item.index}">
-                                            <span>${item.index + 1}. ${escapeHtml(item.lesson.title)}</span>
+                                            <span>${escapeHtml(getPlayerLessonLabel(item.lesson, item.index))}</span>
                                         </button>
                                     `).join("")}
                                 </nav>
                             </section>
-                        `).join("")}
+                        `; }).join("")}
                     </div>
                 </aside>
 
                 <section class="player-main" aria-label="Lesson viewer">
                     <header class="player-toolbar">
-                        <button class="player-pill" type="button" data-bookmark>
-                            <span aria-hidden="true">[]</span>
-                            Bookmark
-                        </button>
+                        <a class="player-back-link" href="#course/${encodeURIComponent(course.id)}">Back to course</a>
                         <h1>${escapeHtml(selectedLesson.title)}</h1>
-                        <button class="player-pill" type="button" data-fullscreen>
-                            <span aria-hidden="true">[ ]</span>
-                            Fullscreen
-                        </button>
+                        <div class="player-toolbar-actions">
+                            <button class="player-pill" type="button" data-bookmark>
+                                <span aria-hidden="true">[]</span>
+                                Bookmark
+                            </button>
+                            <button class="player-pill" type="button" data-fullscreen>
+                                <span aria-hidden="true">[ ]</span>
+                                Fullscreen
+                            </button>
+                        </div>
                     </header>
 
                     <div class="player-frame-shell">
@@ -1344,8 +2211,10 @@
                         toggle.setAttribute("aria-expanded", String(hasMatch));
                         sectionNav.hidden = !hasMatch;
                     } else {
-                        toggle.setAttribute("aria-expanded", "false");
-                        sectionNav.hidden = true;
+                        const sectionIndex = Number(toggle.dataset.playerSection);
+                        const isCurrentSection = sectionIndex === activeSectionIndex;
+                        toggle.setAttribute("aria-expanded", String(isCurrentSection));
+                        sectionNav.hidden = !isCurrentSection;
                     }
                 });
             });
@@ -1366,6 +2235,8 @@
     }
 
     function getCourseSections(course, lessons) {
+        if (!Array.isArray(lessons) || !lessons.length) return [];
+
         /* Prefer API sections when available */
         if (Array.isArray(course._apiSections) && course._apiSections.length) {
             const sections = course._apiSections.map((section, sectionIndex) => {
@@ -1521,6 +2392,8 @@ $ status: loaded in iframe</code>
                 type: lesson.type === "challenge" ? "challenge" : "lab"
             }));
         }
+
+        if (course.fromApi) return [];
 
         const id = String(course.id || "").toLowerCase();
 
@@ -1682,7 +2555,7 @@ $ status: loaded in iframe</code>
             ai: "Gain insight into artificial intelligence concepts, terminology, and applications across modern industries.",
             ml2: "Study machine learning fundamentals, model types, and learning paradigms from supervised to unsupervised approaches.",
             python1: "Understand Python syntax, data types, control flow, and programming logic from the ground up.",
-            linux: "Explore Linux commands, file systems, processes, and permission models through hands-on terminal labs.",
+            linux: "Explore Linux commands, file systems, processes, and permission models through guided terminal exercises.",
             sql1: "Grasp relational database concepts, queries, schemas, and data relationships with practical SQL exercises.",
             backend1: "Learn how backend systems function including APIs, middleware, authentication, and server-side architecture.",
             java1: "Master Java fundamentals, OOP, and core language features through guided coding exercises."
@@ -1690,6 +2563,9 @@ $ status: loaded in iframe</code>
 
         const id = String(course.id || "").toLowerCase();
         if (descriptions[id]) return descriptions[id];
+
+        if (!moduleCount) return "No published modules are available for this course yet.";
+        if (course.fromApi) return "Published modules below are loaded from the GradStudio course library.";
 
         const topic = course.topicFolder || course.tags[0] || "this topic";
         return `This course introduces ${topic} through focused labs and challenges. Complete ${moduleCount} modules to practice the core tasks and build confidence with real workflows.`;
@@ -1716,7 +2592,7 @@ $ status: loaded in iframe</code>
                 else if (target === "next") activePage += 1;
                 else activePage = Number(target);
                 render();
-                window.scrollTo({ top: document.getElementById("courses").offsetTop - 80, behavior: "smooth" });
+                jumpToSection("courses");
             });
         });
     }
@@ -1850,6 +2726,41 @@ $ status: loaded in iframe</code>
         render();
     });
 
+    document.querySelectorAll("[data-nav-home]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            showHome();
+        });
+    });
+
+    document.querySelectorAll('a[href="#courses"]').forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            showCatalog("All");
+        });
+    });
+
+    document.querySelectorAll("[data-nav-about]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            showInfoPage("about");
+        });
+    });
+
+    document.querySelectorAll("[data-nav-contact]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            showInfoPage("contact");
+        });
+    });
+
+    document.querySelectorAll("[data-info-page]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            showInfoPage(link.dataset.infoPage);
+        });
+    });
+
     document.querySelectorAll("[data-carousel-dir]").forEach((button) => {
         button.addEventListener("click", () => {
             const dir = Number(button.dataset.carouselDir);
@@ -1862,6 +2773,11 @@ $ status: loaded in iframe</code>
     /* Touch swipe support */
     function addSwipe(viewportId, slideFn) {
         const el = document.getElementById(viewportId);
+        if (!el) return;
+        addSwipeHandlers(el, slideFn);
+    }
+
+    function addSwipeHandlers(el, slideFn) {
         let startX = 0;
         let startY = 0;
         let tracking = false;
@@ -1900,18 +2816,29 @@ $ status: loaded in iframe</code>
     initializeCatalog();
 
     async function initializeCatalog() {
+        const usedCatalogCache = loadCatalogFromCache();
+        const usedCarouselCache = loadCarouselsFromCache();
+        const usedAnyCache = usedCatalogCache || usedCarouselCache;
+
+        render();
+        handleRoute();
+        const beforeRefresh = currentRenderSignature();
+
         try {
             await loadCatalogFromAPI();
         } catch (err) {
-            console.warn("Using fallback catalog because the API catalog could not be loaded.", err);
+            console.warn("Live catalog could not be loaded.", err);
+            if (!courses.length) catalogStatus = "error";
         }
         try {
             await loadCarouselsFromAPI();
         } catch (err) {
-            console.warn("Using fallback carousel cards because the API carousel data could not be loaded.", err);
+            console.warn("Live carousel data could not be loaded.", err);
         }
 
-        render();
-        handleRoute();
+        if (!usedAnyCache || currentRenderSignature() !== beforeRefresh) {
+            render();
+            handleRoute();
+        }
     }
 })();

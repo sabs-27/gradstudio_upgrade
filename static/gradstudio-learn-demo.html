@@ -4,22 +4,24 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GradStudio Learn</title>
+    <title>GradStudio</title>
     <link rel="icon" type="image/png" href="favicon-32.png">
-    <link rel="stylesheet" href="gradstudio-learn-demo.css?v=20260426-carousel">
+    <link rel="stylesheet" href="gradstudio-learn-demo.css?v=20260427-layout-stack">
 </head>
 
 <body>
     <div class="site-shell">
         <header class="topbar">
-            <a class="brand" href="gradstudio-learn-demo.html" aria-label="GradStudio Learn home">
+            <a class="brand" href="gradstudio-learn-demo.html" aria-label="GradStudio home">
                 <span class="brand-mark" aria-hidden="true">G</span>
-                <span class="brand-name">GradStudio Learn</span>
+                <span class="brand-name">GradStudio</span>
             </a>
 
             <nav class="main-nav" aria-label="Primary navigation">
-                <a href="#courses">Courses</a>
-                <a href="#about">About</a>
+                <a href="#home" data-nav-home>Home</a>
+                <a href="#courses" data-nav-courses>Courses</a>
+                <a href="#about" data-nav-about>About</a>
+                <a href="#contact" data-nav-contact>Contact</a>
             </nav>
 
             <div class="top-actions">
@@ -27,11 +29,11 @@
             </div>
         </header>
 
-        <section id="about" class="hero-section" aria-labelledby="heroTitle">
+        <section id="home" class="hero-section" aria-labelledby="heroTitle">
             <div class="hero-copy">
-                <span class="eyebrow">Hands-on learning platform</span>
-                <h1 id="heroTitle" class="hero-title">Learn Linux, DevOps &amp; Cybersecurity with <span>Hands-on Labs</span></h1>
-                <p>Build practical skills through guided labs, real terminals, cloud exercises, and admin-controlled course content.</p>
+                <span class="eyebrow">Learn technical concepts faster</span>
+                <h1 id="heroTitle" class="hero-title" aria-label="GradStudio"><span>Grad</span><span>Studio</span></h1>
+                <p class="hero-subheading"><strong>Master technical ideas without the guesswork.</strong><span>GradStudio turns complex topics into clear explanations, guided demos, and focused refreshers you can return to anytime.</span></p>
                 <div class="hero-actions">
                     <a class="primary-action" href="#courses">Start Learning</a>
                     <a class="secondary-action" href="#courses">Explore Courses</a>
@@ -61,11 +63,11 @@
                         </div>
                         <div class="terminal-panel">
                             <span>$ kubectl get pods</span>
-                            <strong>lab-api&nbsp;&nbsp; Running</strong>
+                            <strong>api-service&nbsp;&nbsp; Running</strong>
                             <strong>web-ui&nbsp;&nbsp;&nbsp; Running</strong>
                         </div>
                         <div class="guide-panel">
-                            <b>Lab Guide</b>
+                            <b>Course Guide</b>
                             <span>Complete the deployment task</span>
                             <button type="button">Check</button>
                         </div>
@@ -110,47 +112,28 @@
         <main id="courseDetail" class="course-detail-shell" hidden></main>
         <main id="coursePlayer" class="course-player-shell" hidden></main>
 
-        <section class="demo-carousel-block" aria-labelledby="demoCarouselTitle">
-            <div class="carousel-heading">
-                <div>
-                    <span class="eyebrow">HTML Demo Thumbnails</span>
-                    <h3 id="demoCarouselTitle">Featured lab previews</h3>
-                </div>
-                <div class="carousel-controls" aria-label="Featured carousel controls">
-                    <button class="carousel-button" type="button" data-carousel-dir="-1" data-carousel-target="featured" aria-label="Previous featured demo">
-                        <svg aria-hidden="true" viewBox="0 0 24 24">
-                            <path d="M14.7 6.3 9 12l5.7 5.7-1.4 1.4L6.2 12l7.1-7.1 1.4 1.4Z" />
-                        </svg>
-                    </button>
-                    <button class="carousel-button" type="button" data-carousel-dir="1" data-carousel-target="featured" aria-label="Next featured demo">
-                        <svg aria-hidden="true" viewBox="0 0 24 24">
-                            <path d="m9.3 17.7 5.7-5.7-5.7-5.7 1.4-1.4 7.1 7.1-7.1 7.1-1.4-1.4Z" />
-                        </svg>
-                    </button>
-                </div>
+        <section id="demoCarouselBlocks" class="demo-carousel-stack" aria-label="Homepage layout blocks"></section>
+
+        <main id="infoPage" class="info-page-shell" hidden></main>
+
+        <footer class="site-footer">
+            <div class="footer-brand-block">
+                <div class="footer-logo"><span>Grad</span>Studio</div>
+                <p>Clear, structured courses focused on real understanding, practical examples, and stronger technical foundations.</p>
             </div>
-            <div class="carousel-viewport" id="featuredViewport">
-                <div id="featuredDemoRail" class="featured-demo-rail" aria-label="Featured HTML demo cards"></div>
-            </div>
-            <div class="carousel-viewport" id="compactViewport">
-                <div id="compactDemoRail" class="compact-demo-rail" aria-label="More demo cards"></div>
-            </div>
-            <div class="carousel-controls carousel-controls--below" aria-label="Compact carousel controls">
-                <button class="carousel-button carousel-button--sm" type="button" data-carousel-dir="-1" data-carousel-target="compact" aria-label="Previous compact demo">
-                    <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="M14.7 6.3 9 12l5.7 5.7-1.4 1.4L6.2 12l7.1-7.1 1.4 1.4Z" />
-                    </svg>
-                </button>
-                <button class="carousel-button carousel-button--sm" type="button" data-carousel-dir="1" data-carousel-target="compact" aria-label="Next compact demo">
-                    <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <path d="m9.3 17.7 5.7-5.7-5.7-5.7 1.4-1.4 7.1 7.1-7.1 7.1-1.4-1.4Z" />
-                    </svg>
-                </button>
-            </div>
-        </section>
+            <nav class="footer-links" aria-label="Footer navigation">
+                <a href="#about" data-nav-about>About</a>
+                <a href="#contact" data-nav-contact>Contact</a>
+                <a href="#legal" data-info-page="legal">Legal</a>
+                <a href="#privacy" data-info-page="privacy">Privacy</a>
+                <a href="#terms" data-info-page="terms">Terms</a>
+                <a href="#cookies" data-info-page="cookies">Cookies</a>
+            </nav>
+            <div class="footer-bottom">Copyright 2026 GradStudio.org. All rights reserved.</div>
+        </footer>
     </div>
 
-    <script src="gradstudio-learn-demo.js?v=20260426-carousel"></script>
+    <script src="gradstudio-learn-demo-layout-stack-fix.js"></script>
 </body>
 
 </html>

@@ -5655,7 +5655,7 @@ async function refreshCarousel() {
                 cards: [
                     { id: 1, title: 'AWS Certified', description: 'Explore our interactive AWS labs and simulations.', icon_class: 'fa-brands fa-aws', color_hex: '#FF9900', target_type: 'course', target_id: 'aws', is_active: 1, display_order: 1 },
                     { id: 2, title: 'DevOps Mastery', description: 'Master CI/CD pipelines and infrastructure as code.', icon_class: 'fas fa-infinity', color_hex: '#A855F7', target_type: 'course', target_id: 'docker', is_active: 1, display_order: 2 },
-                    { id: 3, title: 'Linux Admin', description: 'Get hands-on experience with Linux command line.', icon_class: 'fa-brands fa-linux', color_hex: '#FCC624', target_type: 'course', target_id: 'linux', is_active: 1, display_order: 3 }
+                    { id: 3, title: 'Linux Admin', description: 'Build practical Linux command line skills.', icon_class: 'fa-brands fa-linux', color_hex: '#FCC624', target_type: 'course', target_id: 'linux', is_active: 1, display_order: 3 }
                 ]
             };
         } else {
@@ -5727,7 +5727,7 @@ async function refreshCarousel() {
                 const mockCards = [
                     { id: 1, title: 'AWS Certified', description: 'Explore our interactive AWS labs and simulations.', icon_class: 'fa-brands fa-aws', color_hex: '#FF9900', target_type: 'course', target_id: 'aws', is_active: 1, display_order: 1 },
                     { id: 2, title: 'DevOps Mastery', description: 'Master CI/CD pipelines and infrastructure as code.', icon_class: 'fas fa-infinity', color_hex: '#A855F7', target_type: 'course', target_id: 'docker', is_active: 1, display_order: 2 },
-                    { id: 3, title: 'Linux Admin', description: 'Get hands-on experience with Linux command line.', icon_class: 'fa-brands fa-linux', color_hex: '#FCC624', target_type: 'course', target_id: 'linux', is_active: 1, display_order: 3 }
+                    { id: 3, title: 'Linux Admin', description: 'Build practical Linux command line skills.', icon_class: 'fa-brands fa-linux', color_hex: '#FCC624', target_type: 'course', target_id: 'linux', is_active: 1, display_order: 3 }
                 ];
                 let mockHtml = '';
                 mockCards.forEach(card => {
