@@ -1,0 +1,2332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1024">
+  <title>GradStudio Architecture</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --paper: #ffffff;
+      --ink: #172033;
+      --muted: #5c667a;
+      --line: #dfe5ef;
+      --soft: #eef2f7;
+      --orange: #e85d24;
+      --orange-dark: #b84b22;
+      --navy: #121827;
+      --blue: #2563eb;
+      --green: #16885a;
+      --violet: #6d5bd0;
+      --amber: #b7791f;
+      --shadow: 0 24px 70px rgba(23, 32, 51, 0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+    }
+
+    body {
+      -ms-overflow-style: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #ffffff 0, rgba(255, 255, 255, 0) 340px), var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    code, .mono {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    .page {
+      width: min(1480px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 28px 0 72px;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 94px;
+      padding: 14px clamp(24px, 3vw, 56px);
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid rgba(223, 229, 239, 0.95);
+      box-shadow: 0 14px 34px rgba(23, 32, 51, 0.06);
+      backdrop-filter: blur(16px);
+    }
+
+    .site-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      min-width: max-content;
+      padding: 8px 24px 8px 8px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #050505 0%, #24130c 52%, #5b321d 100%);
+      color: #fff;
+      font-size: 28px;
+      font-weight: 950;
+      line-height: 1;
+      box-shadow: 0 18px 40px rgba(74, 35, 16, 0.14);
+    }
+
+    .site-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #050505;
+    }
+
+    .site-brand-mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .site-brand-name span {
+      color: var(--orange);
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin-left: 22px;
+    }
+
+    .site-nav a {
+      color: #4b5265;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .site-nav a:hover,
+    .site-nav a:focus-visible,
+    .site-nav a[aria-current="page"] {
+      color: var(--orange-dark);
+      background: #fff1e9;
+      outline: 0;
+    }
+
+    .site-actions {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 156px;
+    }
+
+    .site-signin,
+    .site-account-chip {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      border-radius: 999px;
+      box-shadow: 0 12px 28px rgba(23, 32, 51, 0.08);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .site-signin {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 22px;
+    }
+
+    .site-account-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 240px;
+      padding: 8px 14px 8px 8px;
+    }
+
+    .site-avatar {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 950;
+    }
+
+    .site-account-chip strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .site-account-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 12px);
+      width: min(280px, calc(100vw - 32px));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(23, 32, 51, 0.18);
+      overflow: hidden;
+    }
+
+    .site-account-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .site-account-summary div {
+      min-width: 0;
+    }
+
+    .site-account-summary strong,
+    .site-account-summary small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .site-account-summary small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-account-menu a,
+    .site-account-menu button {
+      display: flex;
+      width: 100%;
+      border: 0;
+      background: #fff;
+      color: #465164;
+      padding: 14px 16px;
+      font: inherit;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .site-account-menu a:hover,
+    .site-account-menu button:hover {
+      background: #f7f8fb;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: clamp(18px, 3vw, 32px);
+      min-height: 66px;
+      padding: 0 clamp(20px, 4vw, 56px);
+      background: rgba(255, 255, 255, 0.94);
+      border-bottom: 1px solid rgba(224, 229, 238, 0.82);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 1px 14px rgba(15, 23, 42, 0.035);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      min-height: 42px;
+      padding: 4px 16px 4px 5px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #050505 0%, #15100d 48%, #6f3215 100%);
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(22, 15, 12, 0.16);
+      overflow: hidden;
+    }
+
+    .brand-mark-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #000000;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: scale(1.5);
+      transform-origin: center;
+      filter: drop-shadow(0 6px 12px rgba(255, 90, 0, 0.18));
+    }
+
+    .brand-name {
+      color: #ff7a1a;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand-name-grad {
+      color: #ffffff;
+    }
+
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .main-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: #4d586b;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .main-nav a[aria-current="page"],
+    .main-nav a:hover,
+    .main-nav a:focus-visible {
+      background: rgba(255, 90, 0, 0.08);
+      color: var(--orange);
+      outline: 0;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      min-width: 0;
+      margin-left: auto;
+    }
+
+    .signin-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      padding: 0 18px;
+      border: 1px solid #d8deea;
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: 0;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .signin-button:hover,
+    .signin-button:focus-visible {
+      border-color: var(--orange);
+      color: var(--orange);
+      outline: 0;
+      box-shadow: 0 6px 16px rgba(255, 90, 0, 0.12);
+    }
+
+    .auth-account-menu-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .auth-user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      height: 40px;
+      max-width: 220px;
+      border: 1px solid #d8deea;
+      border-radius: 999px;
+      padding: 0 13px 0 6px;
+      background: #ffffff;
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .auth-user-chip span {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #151c2b;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .auth-user-chip strong {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 780;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-user-chip svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      opacity: 0.72;
+    }
+
+    .auth-user-chip:hover,
+    .auth-user-chip:focus-visible,
+    .auth-user-chip[aria-expanded="true"] {
+      border-color: var(--orange);
+      outline: 0;
+      box-shadow: 0 8px 22px rgba(255, 90, 0, 0.12);
+    }
+
+    .auth-account-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 80;
+      width: 282px;
+      overflow: hidden;
+      border: 1px solid #d8deea;
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.16);
+    }
+
+    .auth-account-summary {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .auth-account-summary > span {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      background: #151c2b;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .auth-account-summary strong,
+    .auth-account-summary small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-account-summary strong {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .auth-account-summary small {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .auth-account-menu a,
+    .auth-account-menu button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 0 16px;
+      background: #ffffff;
+      color: #374151;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 650;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .auth-account-menu a:last-child,
+    .auth-account-menu button:last-child {
+      border-bottom: 0;
+    }
+
+    .auth-account-menu a:hover,
+    .auth-account-menu button:hover,
+    .auth-account-menu a:focus-visible,
+    .auth-account-menu button:focus-visible {
+      background: #fff7ed;
+      color: var(--orange);
+      outline: 0;
+    }
+
+    .auth-account-menu small {
+      color: #8a94a8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .architecture-tabs-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: sticky;
+      top: 66px;
+      z-index: 30;
+      margin: 0 -2px 28px;
+      padding: 18px 2px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+      backdrop-filter: blur(14px);
+    }
+
+    .section-nav-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav a {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.8);
+      color: #465164;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(232, 93, 36, 0.28);
+      background: #fff1e9;
+      color: var(--orange-dark);
+      outline: 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+      gap: 28px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+
+    .hero-card {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 18px;
+      padding: clamp(28px, 5vw, 64px);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--orange);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow:before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--orange);
+    }
+
+    h1, h2, h3 {
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 18px 0 0;
+      font-size: clamp(52px, 7vw, 108px);
+      font-weight: 950;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: clamp(18px, 1.7vw, 24px);
+      margin: 22px 0 0;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .button.primary {
+      border-color: var(--orange);
+      background: var(--orange);
+      color: #fff;
+      box-shadow: 0 14px 32px rgba(232, 93, 36, 0.22);
+    }
+
+    .status-card {
+      display: grid;
+      gap: 16px;
+      border-radius: 18px;
+      background: #121827;
+      color: #fff;
+      padding: 28px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .status-card:after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -90px auto;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 93, 36, 0.34), rgba(232, 93, 36, 0));
+    }
+
+    .status-card h2 {
+      margin: 0;
+      font-size: 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-list li {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .status-list strong {
+      color: #fff;
+    }
+
+    section {
+      margin-top: 32px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(32px, 4vw, 56px);
+      font-weight: 950;
+    }
+
+    .section-head p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 12px 34px rgba(23, 32, 51, 0.06);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .card p {
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #475569;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.orange {
+      background: #fff1e9;
+      color: var(--orange-dark);
+    }
+
+    .tag.green {
+      background: #e8f7ef;
+      color: #127247;
+    }
+
+    .tag.blue {
+      background: #eaf1ff;
+      color: #1d4ed8;
+    }
+
+    .tag.violet {
+      background: #f0edff;
+      color: #5d4ac4;
+    }
+
+    .architecture-board {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(190px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .lane {
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcff;
+      padding: 12px;
+    }
+
+    .lane h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .node {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .node:hover,
+    .node.active {
+      transform: translateY(-2px);
+      border-color: var(--orange);
+      box-shadow: 0 14px 32px rgba(232, 93, 36, 0.15);
+    }
+
+    .node strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .node span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .detail-panel {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 18px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    .detail-panel h3 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .detail-panel p {
+      color: var(--muted);
+      margin: 10px 0 0;
+    }
+
+    .detail-panel ul,
+    .flow-card ul,
+    .api-card ul,
+    .checklist {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .node-map-board {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 22% 18%, rgba(232, 93, 36, 0.12), transparent 28%),
+        radial-gradient(circle at 82% 78%, rgba(37, 99, 235, 0.1), transparent 32%),
+        #ffffff;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      overflow: hidden;
+    }
+
+    .node-map-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .node-map-head h3 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 42px);
+      font-weight: 950;
+    }
+
+    .node-map-head p {
+      max-width: 560px;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .node-map-canvas {
+      position: relative;
+      min-height: 620px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        linear-gradient(90deg, rgba(226, 232, 240, 0.42) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(226, 232, 240, 0.42) 1px, transparent 1px),
+        linear-gradient(180deg, #fbfcff, #ffffff);
+      background-size: 64px 64px, 64px 64px, auto;
+      overflow: hidden;
+    }
+
+    .node-map-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .node-map-lines path {
+      fill: none;
+      stroke: rgba(100, 116, 139, 0.42);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .node-map-lines path.hot {
+      stroke: rgba(232, 93, 36, 0.78);
+      stroke-width: 4;
+    }
+
+    .node-map-lines marker path {
+      fill: rgba(100, 116, 139, 0.52);
+      stroke: none;
+    }
+
+    .graph-node {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: 202px;
+      min-height: 92px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(203, 213, 225, 0.95);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 42px rgba(23, 32, 51, 0.1);
+      padding: 14px;
+      text-align: left;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .graph-node:hover,
+    .graph-node.active {
+      transform: translate(-50%, -54%);
+      border-color: var(--orange);
+      background: #ffffff;
+      box-shadow: 0 22px 46px rgba(232, 93, 36, 0.18);
+    }
+
+    .graph-node small {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .graph-node strong {
+      display: block;
+      margin-top: 9px;
+      font-size: 17px;
+      line-height: 1.12;
+      font-weight: 950;
+    }
+
+    .graph-node span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .graph-node.orange small { background: #fff1e9; color: var(--orange-dark); }
+    .graph-node.blue small { background: #eaf1ff; color: #1d4ed8; }
+    .graph-node.green small { background: #e8f7ef; color: #127247; }
+    .graph-node.violet small { background: #f0edff; color: #5d4ac4; }
+    .graph-node.dark small { background: #e5e7eb; color: #111827; }
+
+    .node-map-legend {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 620px;
+    }
+
+    .node-map-detail {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    .node-map-detail h3 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .node-map-detail p {
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    .node-map-detail ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .flow-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 900;
+      color: #536178;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--orange);
+      color: #fff;
+      border-color: var(--orange);
+    }
+
+    .flow-card {
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 22px;
+    }
+
+    .flow-card.active {
+      display: block;
+    }
+
+    .flow-card h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fbfcff;
+    }
+
+    .step b {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #172033;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .step strong {
+      display: block;
+      font-weight: 900;
+    }
+
+    .step span {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .api-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .api-card h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 7px 0;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .method {
+      min-width: 48px;
+      text-align: center;
+      border-radius: 7px;
+      padding: 3px 6px;
+      color: #fff;
+      background: #475569;
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .method.get { background: var(--green); }
+    .method.post { background: var(--blue); }
+    .method.put { background: var(--amber); }
+    .method.delete { background: #c2410c; }
+
+    .file-map {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-row {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .file-row code {
+      font-size: 13px;
+      color: var(--orange-dark);
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+
+    .file-row span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #fbfcff;
+      color: #475569;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    td {
+      color: #536178;
+      font-size: 14px;
+    }
+
+    td strong {
+      color: var(--ink);
+    }
+
+    .callout {
+      border: 1px solid #ffd7c2;
+      background: #fff7f1;
+      color: #6b3a20;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .callout strong {
+      color: #522510;
+    }
+
+    .footer-note {
+      margin-top: 34px;
+      color: #6b7280;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .page {
+        width: min(100% - 28px, 760px);
+      }
+
+      .topbar {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: 0;
+        padding: 14px;
+      }
+
+      .main-nav {
+        width: 100%;
+        margin-left: 0;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+      }
+
+      .main-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .top-actions {
+        min-width: 0;
+      }
+
+      .architecture-tabs-bar,
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .architecture-tabs-bar {
+        position: static;
+      }
+
+      .hero,
+      .grid.cols-2,
+      .grid.cols-3,
+      .grid.cols-4,
+      .detail-panel,
+      .node-map-detail {
+        grid-template-columns: 1fr;
+      }
+
+      .status-list li,
+      .file-row {
+        grid-template-columns: 1fr;
+      }
+
+      .diagram {
+        grid-template-columns: repeat(5, 230px);
+      }
+
+      .node-map-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .node-map-canvas {
+        min-height: auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .node-map-lines,
+      .node-map-legend {
+        display: none;
+      }
+
+      .graph-node {
+        position: static;
+        width: 100%;
+        min-height: 0;
+        transform: none;
+      }
+
+      .graph-node:hover,
+      .graph-node.active {
+        transform: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: calc(100% - 22px);
+        padding-top: 18px;
+      }
+
+      .brand {
+        font-size: 23px;
+        padding-right: 18px;
+      }
+
+      .brand-mark-wrap {
+        width: 46px;
+        height: 46px;
+      }
+
+      .main-nav a {
+        padding: 10px 14px;
+        font-size: 14px;
+      }
+
+      .hero-card,
+      .status-card {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar" aria-label="GradStudio site header">
+    <a class="brand" href="/" aria-label="GradStudio home">
+      <span class="brand-mark-wrap" aria-hidden="true"><img class="brand-mark" src="gradstudio-header-logo.png" alt=""></span>
+      <span class="brand-name"><span class="brand-name-grad">Grad</span>Studio</span>
+    </a>
+
+    <nav class="main-nav" aria-label="Primary navigation">
+      <a href="/">Home</a>
+      <a href="/#courses">Courses</a>
+      <a href="/#about">About</a>
+      <a href="/architecture.html" aria-current="page">Architecture</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+
+    <div class="top-actions" data-architecture-account>
+      <a class="signin-button" href="/#home">Sign in</a>
+    </div>
+  </header>
+
+  <div class="page">
+    <header class="architecture-tabs-bar">
+      <span class="section-nav-label">Architecture sections</span>
+      <nav class="nav" aria-label="Architecture sections">
+        <a href="#overview">Overview</a>
+        <a href="#diagram">Diagram</a>
+        <a href="#flows">Flows</a>
+        <a href="#api">API</a>
+        <a href="#data">Data</a>
+        <a href="#files">Files</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero-card">
+          <span class="eyebrow">Current production architecture</span>
+          <h1 id="pageTitle">GradStudio platform map</h1>
+          <p class="lead">A current view of the GradStudio learning platform after the latest homepage, carousel, account, pins, admin, and cleanup changes.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#diagram">View diagram</a>
+            <a class="button" href="#recent">Latest changes</a>
+          </div>
+        </div>
+
+        <aside class="status-card" aria-label="Build summary">
+          <h2>Live system summary</h2>
+          <ul class="status-list">
+            <li><strong>Production</strong><span>gradstudio.org and www.gradstudio.org route through Cloudflare Worker.</span></li>
+            <li><strong>API</strong><span>api.gradstudio.org custom domain serves Worker API routes.</span></li>
+            <li><strong>Frontend</strong><span>Static HTML shell plus `gradstudio-learn-demo.js` and `gradstudio-learn-demo.css`.</span></li>
+            <li><strong>Storage</strong><span>D1 for relational data, R2 for static assets and lesson files, KV for carousel config and tokens.</span></li>
+            <li><strong>Latest cache</strong><span>`20260429-architecture-search-v49` for current demo page assets.</span></li>
+          </ul>
+        </aside>
+      </section>
+
+      <section id="overview">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Overview</span>
+            <h2>What runs the product</h2>
+          </div>
+          <p>The app is split into a static learner experience, a browser admin editor, and a Cloudflare Worker backend that owns routing, auth, data, and object storage.</p>
+        </div>
+
+        <div class="grid cols-3">
+          <article class="card">
+            <h3>Learner frontend</h3>
+            <p>Homepage, course catalog, player, About page, account menu, pinned courses/modules, and responsive carousel UI.</p>
+            <div class="tag-row">
+              <span class="tag orange">static/index.html</span>
+              <span class="tag orange">gradstudio-learn-demo.js</span>
+              <span class="tag orange">gradstudio-learn-demo.css</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Admin editor</h3>
+            <p>Course/folder editing, simulation upload, carousel layout editing, card sizing, frame style, course-list selection, and search.</p>
+            <div class="tag-row">
+              <span class="tag blue">gradstudio-learn-admin.html</span>
+              <span class="tag blue">gradstudio-learn-admin.js</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Cloudflare backend</h3>
+            <p>A single Worker dispatches public APIs, admin APIs, auth, R2 file serving, D1 queries, KV config, and cache headers.</p>
+            <div class="tag-row">
+              <span class="tag green">worker/src/index.js</span>
+              <span class="tag green">worker/wrangler.toml</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="diagram">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Interactive diagram</span>
+            <h2>Request path</h2>
+          </div>
+          <p>Click any node to see what it does and where it lives in the codebase.</p>
+        </div>
+
+        <div class="architecture-board">
+          <div class="diagram" role="list" aria-label="Architecture lanes">
+            <div class="lane">
+              <h3>Browser</h3>
+              <button class="node active" data-node="learner"><strong>Learner app</strong><span>Home, catalog, player, pins</span></button>
+              <button class="node" data-node="admin"><strong>Admin app</strong><span>Editor for courses and carousels</span></button>
+              <button class="node" data-node="google"><strong>Google OAuth</strong><span>Token client in browser</span></button>
+            </div>
+
+            <div class="lane">
+              <h3>Cloudflare edge</h3>
+              <button class="node" data-node="routes"><strong>Routes</strong><span>gradstudio.org and api.gradstudio.org</span></button>
+              <button class="node" data-node="static"><strong>Static asset serving</strong><span>R2 objects under static prefixes</span></button>
+            </div>
+
+            <div class="lane">
+              <h3>Worker router</h3>
+              <button class="node" data-node="api"><strong>API dispatcher</strong><span>Public, auth, account, admin</span></button>
+              <button class="node" data-node="auth"><strong>Auth handlers</strong><span>JWT, refresh token, Google token</span></button>
+              <button class="node" data-node="adminApi"><strong>Admin handlers</strong><span>Course, upload, carousel, metrics</span></button>
+            </div>
+
+            <div class="lane">
+              <h3>Data and storage</h3>
+              <button class="node" data-node="d1"><strong>D1 database</strong><span>Courses, users, pins, analytics</span></button>
+              <button class="node" data-node="r2"><strong>R2 bucket</strong><span>HTML lessons, images, static assets</span></button>
+              <button class="node" data-node="kv"><strong>KV namespaces</strong><span>Carousel config, refresh tokens, rate limits</span></button>
+            </div>
+
+            <div class="lane">
+              <h3>Operations</h3>
+              <button class="node" data-node="deploy"><strong>Deploy scripts</strong><span>Production/dev Wrangler uploads</span></button>
+              <button class="node" data-node="clean"><strong>Cleanup policy</strong><span>USELESS is local and ignored</span></button>
+            </div>
+          </div>
+
+          <div class="detail-panel" aria-live="polite">
+            <div>
+              <h3 id="nodeTitle">Learner app</h3>
+              <p id="nodeDescription">The main GradStudio experience served to learners.</p>
+              <div class="tag-row" id="nodeTags"></div>
+            </div>
+            <div>
+              <strong>Responsibilities</strong>
+              <ul id="nodeResponsibilities"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-map-board" aria-labelledby="nodeMapTitle">
+          <div class="node-map-head">
+            <div>
+              <span class="eyebrow">Updated node map</span>
+              <h3 id="nodeMapTitle">Current GradStudio graph</h3>
+            </div>
+            <p>This is the same request path shown as a connected node graph, updated for the latest hero, carousel, account pins, admin editor, Worker, D1, R2, and KV changes.</p>
+          </div>
+
+          <div class="node-map-canvas" aria-label="Current GradStudio node graph">
+            <svg class="node-map-lines" viewBox="0 0 1200 620" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <marker id="arrowSoft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+                </marker>
+              </defs>
+              <path class="hot" d="M 150 130 C 260 110, 290 112, 380 120" marker-end="url(#arrowSoft)"></path>
+              <path class="hot" d="M 480 128 C 565 128, 640 142, 720 156" marker-end="url(#arrowSoft)"></path>
+              <path d="M 820 154 C 905 120, 970 105, 1050 102" marker-end="url(#arrowSoft)"></path>
+              <path d="M 822 170 C 920 190, 976 238, 1050 292" marker-end="url(#arrowSoft)"></path>
+              <path d="M 815 188 C 910 270, 970 392, 1050 476" marker-end="url(#arrowSoft)"></path>
+              <path d="M 382 180 C 360 250, 342 318, 322 392" marker-end="url(#arrowSoft)"></path>
+              <path d="M 470 426 C 566 400, 646 332, 720 220" marker-end="url(#arrowSoft)"></path>
+              <path d="M 390 500 C 470 535, 620 540, 720 508" marker-end="url(#arrowSoft)"></path>
+              <path d="M 214 490 C 344 542, 690 548, 1050 480" marker-end="url(#arrowSoft)"></path>
+              <path d="M 150 490 C 190 380, 272 256, 380 164" marker-end="url(#arrowSoft)"></path>
+            </svg>
+
+            <button class="graph-node orange active" type="button" style="--x: 12%; --y: 21%;" data-graph-node="shell">
+              <small>Static</small>
+              <strong>HTML shell</strong>
+              <span>Top nav, hero, catalog mounts, footer, cache keys.</span>
+            </button>
+
+            <button class="graph-node orange" type="button" style="--x: 34%; --y: 20%;" data-graph-node="runtime">
+              <small>Frontend</small>
+              <strong>Learner runtime</strong>
+              <span>Routing, carousel render, course player, pins, account menu.</span>
+            </button>
+
+            <button class="graph-node dark" type="button" style="--x: 62%; --y: 27%;" data-graph-node="worker">
+              <small>Edge</small>
+              <strong>Worker API</strong>
+              <span>One dispatcher for public, auth, admin, R2, D1, KV.</span>
+            </button>
+
+            <button class="graph-node green" type="button" style="--x: 88%; --y: 17%;" data-graph-node="database">
+              <small>D1</small>
+              <strong>Relational data</strong>
+              <span>Courses, users, sessions, comments, pins, analytics.</span>
+            </button>
+
+            <button class="graph-node blue" type="button" style="--x: 88%; --y: 47%;" data-graph-node="assets">
+              <small>R2</small>
+              <strong>Assets and lessons</strong>
+              <span>Static files, hero image, carousel media, lesson HTML.</span>
+            </button>
+
+            <button class="graph-node violet" type="button" style="--x: 88%; --y: 77%;" data-graph-node="config">
+              <small>KV</small>
+              <strong>Fast config</strong>
+              <span>Learn carousel layout, refresh tokens, rate limits.</span>
+            </button>
+
+            <button class="graph-node blue" type="button" style="--x: 31%; --y: 70%;" data-graph-node="adminGraph">
+              <small>Admin</small>
+              <strong>Content editor</strong>
+              <span>Folders, courses, uploads, carousel cards, layout blocks.</span>
+            </button>
+
+            <button class="graph-node green" type="button" style="--x: 64%; --y: 78%;" data-graph-node="accountGraph">
+              <small>Account</small>
+              <strong>Auth and pins</strong>
+              <span>Google token, JWT, account menu, user_pins sync.</span>
+            </button>
+
+            <button class="graph-node dark" type="button" style="--x: 13%; --y: 79%;" data-graph-node="deployGraph">
+              <small>Ops</small>
+              <strong>Deploy and cleanup</strong>
+              <span>Wrangler, R2 upload prefixes, USELESS ignored locally.</span>
+            </button>
+
+            <div class="node-map-legend" aria-hidden="true">
+              <span class="tag orange">Browser</span>
+              <span class="tag blue">Admin/R2</span>
+              <span class="tag green">D1/account</span>
+              <span class="tag violet">KV config</span>
+              <span class="tag">Worker/ops</span>
+            </div>
+          </div>
+
+          <div class="node-map-detail" aria-live="polite">
+            <div>
+              <h3 id="graphTitle">HTML shell</h3>
+              <p id="graphDescription">The browser starts with the static GradStudio shell.</p>
+              <div class="tag-row" id="graphTags"></div>
+            </div>
+            <div>
+              <strong>Current responsibilities</strong>
+              <ul id="graphResponsibilities"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="flows">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Runtime flows</span>
+            <h2>How features move through the stack</h2>
+          </div>
+          <p>The current app uses the same Worker for page serving and API calls, with D1/KV/R2 selected by the request type.</p>
+        </div>
+
+        <div class="flow-tabs" role="tablist" aria-label="Architecture flows">
+          <button class="tab active" data-flow="homepage">Homepage</button>
+          <button class="tab" data-flow="course">Course player</button>
+          <button class="tab" data-flow="account">Account and pins</button>
+          <button class="tab" data-flow="adminFlow">Admin editing</button>
+          <button class="tab" data-flow="deployFlow">Deployment</button>
+        </div>
+
+        <article class="flow-card active" id="flow-homepage">
+          <h3>Homepage and carousel rendering</h3>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Browser loads static shell</strong><span>`index.html` loads `gradstudio-learn-demo.css` and `gradstudio-learn-demo.js` with the current cache key.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Frontend requests carousel config</strong><span>`/api/learn-carousels` returns normalized hero, big carousel, bottom carousel, text blocks, and extra carousel layers.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Worker reads KV config</strong><span>`gradstudio-learn-carousels:{environment}` stores the modern layout config; legacy carousel rows remain supported.</span></div></div>
+            <div class="step"><b>4</b><div><strong>Frontend sizes cards</strong><span>The first active card height controls carousel card height. Width remains per-card. Arrows show when a carousel has more than one visible/scrollable card.</span></div></div>
+            <div class="step"><b>5</b><div><strong>Images and HTML assets resolve</strong><span>R2 serves hero images, carousel images, static HTML lessons, and admin uploaded assets.</span></div></div>
+          </div>
+        </article>
+
+        <article class="flow-card" id="flow-course">
+          <h3>Course catalog, detail, and player</h3>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Catalog loads courses</strong><span>`/api/courses` returns folders, courses, thumbnails, section counts, and searchable metadata.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Course opens</strong><span>`/api/courses/:courseId` hydrates sections and simulations for the detail page or player route.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Lesson content loads</strong><span>`/simulations/...` or `/api/simulations/:slug` pulls lesson HTML from R2 and applies safe serving headers.</span></div></div>
+            <div class="step"><b>4</b><div><strong>Engagement saves</strong><span>Views, likes, dislikes, comments, reports, bookmarks, and analytics are written to D1.</span></div></div>
+          </div>
+        </article>
+
+        <article class="flow-card" id="flow-account">
+          <h3>Account, Google sign-in, and pinned learning</h3>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Account actions start in the browser</strong><span>Signup/signin forms or Google token client call Worker auth endpoints.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Worker creates auth state</strong><span>D1 stores users/sessions. KV namespaces store refresh tokens and rate limits.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Account menu renders user context</strong><span>The user chip dropdown shows the logged-in name/email, pinned access, and logout actions.</span></div></div>
+            <div class="step"><b>4</b><div><strong>Pins sync to the account</strong><span>`GET /api/user-pins` and `PUT /api/user-pins` keep pinned courses/modules tied to the authenticated user.</span></div></div>
+          </div>
+        </article>
+
+        <article class="flow-card" id="flow-adminFlow">
+          <h3>Admin editing and publishing</h3>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Admin loads current data</strong><span>`gradstudio-learn-admin.js` pulls courses, categories, and carousel layout through authenticated admin routes.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Editor changes content</strong><span>Admins update folders, course data, sections, simulations, carousel layout blocks, and card settings.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Uploads go to R2</strong><span>Simulation files and carousel media are stored as R2 objects with generated object paths.</span></div></div>
+            <div class="step"><b>4</b><div><strong>Data saves to D1/KV</strong><span>Course rows and old carousel cards use D1; modern learn carousel layout uses KV through `/api/admin/learn-carousels`.</span></div></div>
+          </div>
+        </article>
+
+        <article class="flow-card" id="flow-deployFlow">
+          <h3>Deployment and cache behavior</h3>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Static files are uploaded to R2</strong><span>Production uses the `static/` prefix. Dev uses the `dev-static/` prefix.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Worker deploy controls routes</strong><span>`wrangler.toml` maps production domains and API custom domain to `worker/src/index.js`.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Cache keys bust frontend assets</strong><span>HTML references CSS/JS with a version query string, currently `20260429-architecture-search-v49`.</span></div></div>
+            <div class="step"><b>4</b><div><strong>Local junk stays local</strong><span>`USELESS/` contains previews/backups/profiles and is ignored by Git.</span></div></div>
+          </div>
+        </article>
+      </section>
+
+      <section id="api">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">API surface</span>
+            <h2>Current route groups</h2>
+          </div>
+          <p>The Worker file is the main route dispatcher. These are the important public, account, and admin route groups it exposes.</p>
+        </div>
+
+        <div class="grid cols-3">
+          <article class="api-card">
+            <h3>Public learning</h3>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/courses</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/courses/:courseId</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/categories</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/learn-carousels</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/search?q=...</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/recent</code></div>
+          </article>
+
+          <article class="api-card">
+            <h3>Auth and account</h3>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/auth/register</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/auth/login</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/auth/google/token</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/auth/me</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/auth/refresh</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/user-pins</code></div>
+            <div class="endpoint"><span class="method put">PUT</span><code>/api/user-pins</code></div>
+          </article>
+
+          <article class="api-card">
+            <h3>Engagement</h3>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/views/:simId</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/likes/:simId</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/dislikes/:simId</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/comments/:simId</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/comments/:simId</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/reports/:simId</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/bookmarks/:simId</code></div>
+          </article>
+
+          <article class="api-card">
+            <h3>Admin content</h3>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/courses</code></div>
+            <div class="endpoint"><span class="method put">PUT</span><code>/api/admin/courses</code></div>
+            <div class="endpoint"><span class="method delete">DEL</span><code>/api/admin/courses/:id</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/categories</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/sections</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/simulations</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/upload-simulation</code></div>
+          </article>
+
+          <article class="api-card">
+            <h3>Admin carousel</h3>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/admin/learn-carousels</code></div>
+            <div class="endpoint"><span class="method put">PUT</span><code>/api/admin/learn-carousels</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/admin/carousels</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/carousels</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/carousel</code></div>
+            <div class="endpoint"><span class="method put">PUT</span><code>/api/admin/carousel</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/carousel/upload</code></div>
+          </article>
+
+          <article class="api-card">
+            <h3>Admin operations</h3>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/sync-content</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/bulk-upload</code></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/api/admin/users</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/users/:id/role</code></div>
+            <div class="endpoint"><span class="method post">POST</span><code>/api/admin/metrics/unlock-account</code></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="data">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Data model</span>
+            <h2>Persistent storage</h2>
+          </div>
+          <p>D1 owns relational content and user data. KV owns high-speed config/tokens/rate limits. R2 owns static files, simulations, and uploaded media.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Storage</th>
+                <th>Key tables or keys</th>
+                <th>Purpose</th>
+                <th>Recent relevance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>D1</strong></td>
+                <td><code>categories</code>, <code>courses</code>, <code>sections</code>, <code>simulations</code></td>
+                <td>Course catalog hierarchy, modules, lessons, thumbnails, and searchable metadata.</td>
+                <td>Admin search/select now depends on clean folder/course metadata.</td>
+              </tr>
+              <tr>
+                <td><strong>D1</strong></td>
+                <td><code>carousels</code>, <code>carousel_cards</code></td>
+                <td>Legacy and compatibility storage for carousel rows and card media metadata.</td>
+                <td>Still supported while new learn carousel config is stored through KV.</td>
+              </tr>
+              <tr>
+                <td><strong>D1</strong></td>
+                <td><code>users</code>, <code>sessions</code>, <code>user_pins</code></td>
+                <td>Account identity, session history, and account-backed pinned courses/modules.</td>
+                <td>`2026-04-28-add-user-pins.sql` adds the pins table and index.</td>
+              </tr>
+              <tr>
+                <td><strong>D1</strong></td>
+                <td><code>comments</code>, <code>likes</code>, <code>bookmarks</code>, <code>reports</code>, analytics tables</td>
+                <td>Learner engagement, feedback, safety reports, and usage metrics.</td>
+                <td>Player and course pages can write engagement without changing static files.</td>
+              </tr>
+              <tr>
+                <td><strong>KV</strong></td>
+                <td><code>gradstudio-learn-carousels:{env}</code>, refresh tokens, rate limits</td>
+                <td>Fast config reads, auth refresh state, and request throttling.</td>
+                <td>Modern homepage layout blocks and card sizing are saved here.</td>
+              </tr>
+              <tr>
+                <td><strong>R2</strong></td>
+                <td><code>static/</code>, <code>dev-static/</code>, <code>carousel/images/</code>, simulations</td>
+                <td>HTML/CSS/JS assets, generated images, lesson files, uploaded carousel media.</td>
+                <td>Hero image and production frontend assets are served from R2.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="files">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Source map</span>
+            <h2>Files that matter now</h2>
+          </div>
+          <p>These are the current files to inspect before making future architecture or product changes.</p>
+        </div>
+
+        <div class="file-map">
+          <div class="file-row"><code>static/index.html</code><span>Main production shell: top nav, hero, catalog, player mount points, auth/info page mount points, footer, CSS/JS cache keys.</span></div>
+          <div class="file-row"><code>static/gradstudio-learn-demo.html</code><span>Standalone copy of the learner app shell for the GradStudio Learn demo path.</span></div>
+          <div class="file-row"><code>static/gradstudio-learn-demo.css</code><span>Current responsive design, hero sizing, carousel cropping fixes, account menu, pins UI, About page, player density, and mobile rules.</span></div>
+          <div class="file-row"><code>static/gradstudio-learn-demo.js</code><span>Main learner app logic: routing, catalog render, carousel render, account menu, Google sign-in, pinned items, course detail, player, About/contact/legal pages.</span></div>
+          <div class="file-row"><code>static/hero-gradstudio-20260429-152846.png</code><span>Current hero image asset referenced by the homepage and carousel card config.</span></div>
+          <div class="file-row"><code>static/gradstudio-learn-admin.html</code><span>Admin editor shell for course, folder, simulation, and carousel management.</span></div>
+          <div class="file-row"><code>static/gradstudio-learn-admin.js</code><span>Admin logic for course/folder editing, carousel layout blocks, card editor, height rule, frame style, course selector, and search.</span></div>
+          <div class="file-row"><code>worker/src/index.js</code><span>Main Cloudflare Worker entry and route dispatcher for public, auth, user, admin, R2, D1, and KV behavior.</span></div>
+          <div class="file-row"><code>worker/wrangler.toml</code><span>Production/dev routes, D1 binding, R2 bucket binding, KV namespaces, static/admin prefixes, environment variables.</span></div>
+          <div class="file-row"><code>worker/schema.sql</code><span>Baseline schema for courses, simulations, users, comments, bookmarks, analytics, and carousel tables.</span></div>
+          <div class="file-row"><code>worker/migrations/2026-04-28-add-user-pins.sql</code><span>Latest user pins persistence migration.</span></div>
+          <div class="file-row"><code>.gitignore</code><span>Ignores `USELESS/`, local browser profiles, logs, temp files, archives, dependencies, and local environment files.</span></div>
+        </div>
+      </section>
+
+      <section id="recent">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Latest changes reflected</span>
+            <h2>What changed recently</h2>
+          </div>
+          <p>This page reflects the latest production work that changed the platform behavior and folder structure.</p>
+        </div>
+
+        <div class="grid cols-2">
+          <article class="card">
+            <h3>Homepage and visual polish</h3>
+            <ul class="checklist">
+              <li>Hero image changed to `hero-gradstudio-20260429-152846.png`.</li>
+              <li>Hero visual uses a stable image/card layout instead of browser-zoom-dependent cropping.</li>
+              <li>About page rewritten with first-person Sabareesh wording and a natural image frame.</li>
+              <li>Current frontend cache key is `20260429-architecture-search-v49`.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Carousel behavior</h3>
+            <ul class="checklist">
+              <li>Carousel arrows show when there is more than one scrollable card.</li>
+              <li>Right-edge clipping was addressed with viewport-constrained block width and scroll padding.</li>
+              <li>The first active card height now sets every card height in that carousel. Width remains per-card.</li>
+              <li>Card frame style can be framed or flush for borderless page-color designs.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Admin editor</h3>
+            <ul class="checklist">
+              <li>Course display picker was rebuilt around Folder/Courses selection and direct search.</li>
+              <li>Admin carousel card editor supports course-list cards, search/select, dimensions, colors, text positioning, and frame style.</li>
+              <li>Modern homepage layout blocks are saved through `/api/admin/learn-carousels`.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Account and cleanup</h3>
+            <ul class="checklist">
+              <li>Account chip opens a real account menu with name/email, My pinned, and logout.</li>
+              <li>Pinned courses/modules sync to D1 per logged-in account.</li>
+              <li>Local bloat was moved to `USELESS/`; it is ignored by Git and not needed for the app to run.</li>
+              <li>GitHub cleanup removed old previews/backups/prototypes from tracked project files.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="callout">
+          <strong>Operational note:</strong> deleting `USELESS/` will not break production or the local app. It only removes local backups, previews, old downloaded codebase copies, browser profiles, and scratch files that were moved out of the active source tree.
+        </div>
+      </section>
+
+      <p class="footer-note">GradStudio architecture document generated from the current project structure: static frontend, admin editor, Cloudflare Worker, D1, R2, and KV.</p>
+    </main>
+  </div>
+
+  <script>
+    const graphNodeDetails = {
+      shell: {
+        title: "HTML shell",
+        description: "The static browser entry point that mounts the current GradStudio learner experience.",
+        tags: ["static/index.html", "gradstudio-learn-demo.html", "cache v48"],
+        responsibilities: [
+          "Defines the top navigation, hero copy, catalog shell, course detail/player mount points, auth mount, info-page mount, and footer.",
+          "Loads `gradstudio-learn-demo.css` and `gradstudio-learn-demo.js` with the current cache-busting query string.",
+          "Keeps the page layout stable while JavaScript hydrates courses, carousels, account state, and pins."
+        ]
+      },
+      runtime: {
+        title: "Learner runtime",
+        description: "The frontend JavaScript layer that turns the static shell into the interactive GradStudio app.",
+        tags: ["static/gradstudio-learn-demo.js", "static/gradstudio-learn-demo.css"],
+        responsibilities: [
+          "Renders course catalog, topic filters, search, course detail, course player, pinned page, About page, contact/legal pages, and account menu.",
+          "Builds the hero visual and homepage carousel blocks from `/api/learn-carousels`.",
+          "Applies the latest carousel behavior: first active card controls height, width remains per-card, and arrows show for multi-card scrollable rows."
+        ]
+      },
+      worker: {
+        title: "Worker API",
+        description: "The single Cloudflare Worker that handles public pages, API routes, auth, admin writes, and storage access.",
+        tags: ["worker/src/index.js", "api.gradstudio.org", "gradstudio.org/*"],
+        responsibilities: [
+          "Dispatches public learning APIs, auth/account APIs, admin APIs, simulation serving, and static asset serving.",
+          "Applies CORS, security headers, auth checks, rate limits, and consistent JSON responses.",
+          "Coordinates D1, R2, KV, refresh-token storage, and admin-only actions."
+        ]
+      },
+      database: {
+        title: "Relational data",
+        description: "Cloudflare D1 stores the durable product data and account-backed learning state.",
+        tags: ["learning-platform-db", "worker/schema.sql", "user_pins"],
+        responsibilities: [
+          "Stores folders/categories, courses, sections, simulations, users, sessions, comments, bookmarks, likes, dislikes, reports, and analytics.",
+          "Stores account-backed pinned courses/modules through `user_pins`.",
+          "Supports admin soft-delete, restore, reorder, and content management flows."
+        ]
+      },
+      assets: {
+        title: "Assets and lessons",
+        description: "R2 stores production static files, generated images, carousel media, and lesson HTML.",
+        tags: ["learning-simulations", "static/", "dev-static/", "carousel/images/"],
+        responsibilities: [
+          "Serves the current frontend assets and `hero-gradstudio-20260429-152846.png`.",
+          "Stores admin-uploaded simulation HTML and carousel images.",
+          "Keeps production and dev assets separated with prefix configuration."
+        ]
+      },
+      config: {
+        title: "Fast config",
+        description: "KV stores configuration and auth-related state that should be cheap to read at the edge.",
+        tags: ["KV", "REFRESH_TOKENS", "RATE_LIMITS"],
+        responsibilities: [
+          "Stores modern homepage layout blocks under `gradstudio-learn-carousels:{environment}`.",
+          "Stores refresh token records and request-rate state.",
+          "Lets the homepage read carousel layout without depending on many relational joins."
+        ]
+      },
+      adminGraph: {
+        title: "Content editor",
+        description: "The admin UI manages the course catalog and the modern homepage carousel system.",
+        tags: ["gradstudio-learn-admin.html", "gradstudio-learn-admin.js", "/api/admin/*"],
+        responsibilities: [
+          "Edits folders, courses, course sections, lessons, uploads, and recycle/restore flows.",
+          "Edits carousel layout blocks, card dimensions, frame style, colors, target type, and course-list selection.",
+          "Saves modern carousel config through `/api/admin/learn-carousels` and uploads assets through R2-backed admin endpoints."
+        ]
+      },
+      accountGraph: {
+        title: "Auth and pins",
+        description: "Account features connect the browser UI, Worker auth routes, D1 users/sessions, KV refresh tokens, and the pinned learning page.",
+        tags: ["/api/auth/google/token", "/api/auth/me", "/api/user-pins"],
+        responsibilities: [
+          "Supports email auth and Google token sign-in.",
+          "Renders the account chip dropdown with name/email, My pinned, and logout.",
+          "Syncs pinned courses/modules to D1 so saved learning follows the logged-in account."
+        ]
+      },
+      deployGraph: {
+        title: "Deploy and cleanup",
+        description: "The operational layer keeps production deploys separate from local artifacts.",
+        tags: ["worker/wrangler.toml", "deploy-prod.sh", "USELESS/"],
+        responsibilities: [
+          "Wrangler routes production domains and API custom domain to the Worker.",
+          "Static uploads use `static/` for production and `dev-static/` for dev.",
+          "`USELESS/` is ignored by Git and can be deleted without breaking the app."
+        ]
+      }
+    };
+
+    const nodeDetails = {
+      learner: {
+        title: "Learner app",
+        description: "The production-facing GradStudio experience for browsing courses, opening modules, watching lessons, and saving pinned items.",
+        tags: ["static/index.html", "gradstudio-learn-demo.js", "gradstudio-learn-demo.css"],
+        responsibilities: [
+          "Renders the hero, catalog, course detail, course player, carousel blocks, About page, and account pages.",
+          "Fetches course data, carousel config, auth state, and pinned items from the Worker.",
+          "Handles hash routes such as #courses, #about, #pinned, #course/:id, and lesson routes."
+        ]
+      },
+      admin: {
+        title: "Admin app",
+        description: "The authenticated browser editor used to manage folders, courses, simulations, and homepage carousel layout.",
+        tags: ["gradstudio-learn-admin.html", "gradstudio-learn-admin.js"],
+        responsibilities: [
+          "Loads current content with admin APIs and requires admin authorization.",
+          "Edits course data, sections, lessons, thumbnails, carousel cards, card dimensions, and frame style.",
+          "Saves modern homepage layout through /api/admin/learn-carousels."
+        ]
+      },
+      google: {
+        title: "Google OAuth",
+        description: "The frontend uses the Google Identity token client and sends the access token to the Worker for verification and account creation/login.",
+        tags: ["/api/auth/google/token", "Google Identity Services"],
+        responsibilities: [
+          "Requests access token in the browser.",
+          "Worker validates the Google token and maps it to a GradStudio account.",
+          "Signed-in users get synced pinned courses/modules."
+        ]
+      },
+      routes: {
+        title: "Cloudflare routes",
+        description: "Cloudflare routes production page and API traffic into the Worker.",
+        tags: ["gradstudio.org/*", "www.gradstudio.org/*", "api.gradstudio.org"],
+        responsibilities: [
+          "Serve production domains through the same Worker.",
+          "Separate production and dev behavior using Wrangler environments.",
+          "Apply CORS and security headers before responses leave the edge."
+        ]
+      },
+      static: {
+        title: "Static asset serving",
+        description: "The Worker maps static asset paths to R2 objects using the configured static/admin prefixes.",
+        tags: ["STATIC_PREFIX=static/", "ADMIN_PREFIX=admin-preview/", "R2"],
+        responsibilities: [
+          "Serve HTML, CSS, JavaScript, images, favicons, and lesson assets.",
+          "Apply cache headers and content-type handling.",
+          "Support dev prefixes without touching production domains."
+        ]
+      },
+      api: {
+        title: "API dispatcher",
+        description: "worker/src/index.js matches request paths and methods, then calls the correct handler.",
+        tags: ["worker/src/index.js"],
+        responsibilities: [
+          "Route public learning APIs, auth APIs, admin APIs, and simulation serving.",
+          "Handle OPTIONS/CORS and common error responses.",
+          "Coordinate D1, R2, KV, and auth middleware calls."
+        ]
+      },
+      auth: {
+        title: "Auth handlers",
+        description: "Email/password and Google token sign-in flows are handled by the Worker and backed by D1/KV.",
+        tags: ["users", "sessions", "REFRESH_TOKENS", "RATE_LIMITS"],
+        responsibilities: [
+          "Register/login users and return access/refresh tokens.",
+          "Refresh sessions and support logout/logout-all.",
+          "Rate limit and lock abusive login attempts."
+        ]
+      },
+      adminApi: {
+        title: "Admin handlers",
+        description: "Authenticated admin routes manage content, uploads, carousel config, users, metrics, and migrations.",
+        tags: ["/api/admin/*", "requireAdmin"],
+        responsibilities: [
+          "Protect write routes behind admin authorization.",
+          "Write course metadata to D1 and uploaded files to R2.",
+          "Save learn carousel config to KV and legacy carousel data to D1 where needed."
+        ]
+      },
+      d1: {
+        title: "D1 database",
+        description: "Relational storage for course content, accounts, pins, engagement, and analytics.",
+        tags: ["learning-platform-db", "worker/schema.sql"],
+        responsibilities: [
+          "Store categories, courses, sections, simulations, users, sessions, comments, bookmarks, likes, reports, and user_pins.",
+          "Support soft delete and restore flows for content.",
+          "Provide indexed lookup for course catalog, pins, and engagement."
+        ]
+      },
+      r2: {
+        title: "R2 bucket",
+        description: "Object storage for static frontend files, simulation HTML, carousel media, uploaded images, and generated visual assets.",
+        tags: ["learning-simulations", "static/", "dev-static/", "carousel/images/"],
+        responsibilities: [
+          "Serve production static assets and lesson files.",
+          "Receive admin uploads for simulations and carousel media.",
+          "Keep app files deployable without a traditional server filesystem."
+        ]
+      },
+      kv: {
+        title: "KV namespaces",
+        description: "Low-latency key/value storage for modern homepage config, refresh token state, and rate limiting.",
+        tags: ["KV", "REFRESH_TOKENS", "RATE_LIMITS"],
+        responsibilities: [
+          "Store normalized learn carousel layout under environment-specific keys.",
+          "Track refresh tokens and request limits.",
+          "Reduce database dependency for frequently read config."
+        ]
+      },
+      deploy: {
+        title: "Deploy scripts",
+        description: "Deployment is handled by Wrangler and R2 uploads using production/dev prefixes.",
+        tags: ["deploy-prod.sh", "deploy-dev.sh", "deploy-dev.ps1", "wrangler.toml"],
+        responsibilities: [
+          "Deploy Worker code to production or dev.",
+          "Upload static files to the correct R2 prefix.",
+          "Use cache-busted CSS/JS query strings after frontend changes."
+        ]
+      },
+      clean: {
+        title: "Cleanup policy",
+        description: "The active source tree now stays focused on app code. Local junk is isolated in USELESS and ignored by Git.",
+        tags: ["USELESS/", ".gitignore"],
+        responsibilities: [
+          "Keep preview images, backups, browser profiles, and scratch files out of commits.",
+          "Allow safe deletion of local cleanup artifacts.",
+          "Keep GitHub focused on active source, deploy scripts, and required static assets."
+        ]
+      }
+    };
+
+    function renderNode(key) {
+      const detail = nodeDetails[key] || nodeDetails.learner;
+      document.querySelectorAll(".node").forEach((button) => {
+        button.classList.toggle("active", button.dataset.node === key);
+      });
+      document.getElementById("nodeTitle").textContent = detail.title;
+      document.getElementById("nodeDescription").textContent = detail.description;
+      document.getElementById("nodeTags").innerHTML = detail.tags.map((tag) => `<span class="tag orange">${escapeHtml(tag)}</span>`).join("");
+      document.getElementById("nodeResponsibilities").innerHTML = detail.responsibilities.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    }
+
+    function renderGraphNode(key) {
+      const detail = graphNodeDetails[key] || graphNodeDetails.shell;
+      document.querySelectorAll(".graph-node").forEach((button) => {
+        button.classList.toggle("active", button.dataset.graphNode === key);
+      });
+      document.getElementById("graphTitle").textContent = detail.title;
+      document.getElementById("graphDescription").textContent = detail.description;
+      document.getElementById("graphTags").innerHTML = detail.tags.map((tag) => `<span class="tag blue">${escapeHtml(tag)}</span>`).join("");
+      document.getElementById("graphResponsibilities").innerHTML = detail.responsibilities.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function readStoredUser() {
+      try {
+        return JSON.parse(localStorage.getItem("gradstudio_user") || "null");
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function storedAuthToken() {
+      try {
+        return localStorage.getItem("lp_auth_token") || localStorage.getItem("token") || "";
+      } catch (_) {
+        return "";
+      }
+    }
+
+    function storedPinnedCount() {
+      try {
+        const pins = JSON.parse(localStorage.getItem("gradstudio_learn_pinned_v1") || "[]");
+        return Array.isArray(pins) ? pins.length : 0;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    function userDisplayName(user) {
+      const name = String(user?.display_name || user?.name || user?.email || "Account").trim();
+      return name.includes("@") ? name.split("@")[0] : name;
+    }
+
+    function userInitials(user) {
+      return userDisplayName(user)
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase() || "GS";
+    }
+
+    function userEmail(user) {
+      return String(user?.email || user?.mail || user?.preferred_username || "Signed in").trim();
+    }
+
+    function renderArchitectureAccount() {
+      const root = document.querySelector("[data-architecture-account]");
+      if (!root) return;
+      const user = readStoredUser();
+      if (!storedAuthToken() || !user) {
+        root.innerHTML = '<a class="signin-button" href="/#home">Sign in</a>';
+        return;
+      }
+
+      root.innerHTML = `
+        <div class="auth-account-menu-wrap">
+        <button class="auth-user-chip" type="button" data-site-account-trigger aria-haspopup="menu" aria-expanded="false">
+          <span>${escapeHtml(userInitials(user))}</span>
+          <strong>${escapeHtml(userDisplayName(user))}</strong>
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M5.4 7.6 10 12.2l4.6-4.6 1.1 1.1-5.7 5.7-5.7-5.7 1.1-1.1Z"/></svg>
+        </button>
+        <div class="auth-account-menu" data-site-account-menu role="menu" hidden>
+          <div class="auth-account-summary">
+            <span>${escapeHtml(userInitials(user))}</span>
+            <div>
+              <strong>${escapeHtml(userDisplayName(user))}</strong>
+              <small>${escapeHtml(userEmail(user))}</small>
+            </div>
+          </div>
+          <a href="/#pinned" role="menuitem"><span>My learning</span><small>${storedPinnedCount()} saved</small></a>
+          <button type="button" data-site-logout role="menuitem">Log out</button>
+        </div>
+        </div>
+      `;
+    }
+
+    function closeArchitectureAccountMenu() {
+      const trigger = document.querySelector("[data-site-account-trigger]");
+      const menu = document.querySelector("[data-site-account-menu]");
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+      if (menu) menu.hidden = true;
+    }
+
+    document.querySelectorAll(".node").forEach((button) => {
+      button.addEventListener("click", () => renderNode(button.dataset.node));
+    });
+
+    document.querySelectorAll(".graph-node").forEach((button) => {
+      button.addEventListener("click", () => renderGraphNode(button.dataset.graphNode));
+    });
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+        document.querySelectorAll(".flow-card").forEach((card) => card.classList.toggle("active", card.id === `flow-${tab.dataset.flow}`));
+      });
+    });
+
+    renderArchitectureAccount();
+
+    document.addEventListener("click", (event) => {
+      const trigger = event.target.closest("[data-site-account-trigger]");
+      const menu = document.querySelector("[data-site-account-menu]");
+      if (trigger && menu) {
+        const shouldOpen = menu.hidden;
+        closeArchitectureAccountMenu();
+        menu.hidden = !shouldOpen;
+        trigger.setAttribute("aria-expanded", String(shouldOpen));
+        return;
+      }
+      if (event.target.closest("[data-site-logout]")) {
+        ["lp_auth_token", "token", "lp_is_logged_in", "gradstudio_user"].forEach((key) => {
+          try { localStorage.removeItem(key); } catch (_) {}
+        });
+        window.location.href = "/";
+        return;
+      }
+      if (!event.target.closest("[data-architecture-account]")) closeArchitectureAccountMenu();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeArchitectureAccountMenu();
+    });
+
+    renderNode("learner");
+    renderGraphNode("shell");
+  </script>
+</body>
+</html>
