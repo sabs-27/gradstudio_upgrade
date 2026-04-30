@@ -123,6 +123,9 @@ export default {
         if (path === '/api/auth/register' && request.method === 'POST') {
           limitError = await rateLimit({ limit: 30, window: 3600, keyGenerator: () => clientIp })(request, env);
         }
+        else if (path === '/api/auth/google/token' && request.method === 'POST') {
+          limitError = await rateLimit({ limit: 30, window: 3600, keyGenerator: () => clientIp })(request, env);
+        }
         // 2. Auth - Refresh
         else if (path === '/api/auth/refresh' && request.method === 'POST') {
           limitError = await rateLimit({ limit: 10, window: 900, keyGenerator: () => clientIp })(request, env);
@@ -298,6 +301,18 @@ export default {
           return await handleToggleBookmark(simId, request, env, corsHeaders);
         }
 
+        // 9.7 Get pinned courses/modules for user
+        // GET /api/user-pins
+        if (path === '/api/user-pins' && request.method === 'GET') {
+          return await handleGetUserPins(request, env, corsHeaders);
+        }
+
+        // 9.8 Save pinned courses/modules for user
+        // PUT /api/user-pins
+        if (path === '/api/user-pins' && request.method === 'PUT') {
+          return await handleSaveUserPins(request, env, corsHeaders);
+        }
+
         // 10. Upvote a comment
         // POST /api/comments/:commentId/upvote
         if (path.match(/^\/api\/comments\/[0-9]+\/upvote$/) && request.method === 'POST') {
@@ -369,13 +384,21 @@ export default {
           const validationError = await validateBody({
             email: { type: 'email', required: true },
             password: { type: 'string', required: true },
-            display_name: { type: 'string', required: true, minLength: 1, maxLength: 50 },
+            display_name: { type: 'string', required: false, maxLength: 50 },
             role: { type: 'string', required: false }
           })(request, env);
           if (validationError) return validationError;
 
           const data = request.sanitizedBody;
           return await handleAuthRegister(data, env, corsHeaders);
+        }
+
+        // 13.1 Auth - Google token
+        // POST /api/auth/google/token
+        if (path === '/api/auth/google/token' && request.method === 'POST') {
+          const data = await request.json();
+          const ip = getClientIp(request);
+          return await handleGoogleTokenAuth(data, env, corsHeaders, ip);
         }
 
         // 14. Auth - Current user
@@ -3388,6 +3411,113 @@ async function handleToggleBookmark(simId, request, env, corsHeaders) {
   }
 }
 
+async function ensureUserPinsTable(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS user_pins (
+      user_id TEXT NOT NULL,
+      item_key TEXT NOT NULL,
+      type TEXT NOT NULL,
+      course_id TEXT NOT NULL,
+      lesson_index INTEGER DEFAULT 0,
+      title TEXT,
+      meta TEXT,
+      saved_at INTEGER,
+      updated_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, item_key)
+    )
+  `).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_pins_user ON user_pins(user_id)').run();
+}
+
+function normalizeUserPin(pin) {
+  if (!pin || typeof pin !== 'object') return null;
+  const type = String(pin.type || '').trim();
+  const key = String(pin.key || '').trim();
+  const courseId = String(pin.courseId || '').trim();
+  if (!key || !courseId || !['course', 'topic'].includes(type)) return null;
+  return {
+    key: key.slice(0, 240),
+    type,
+    courseId: courseId.slice(0, 120),
+    lessonIndex: Math.max(0, Math.floor(Number(pin.lessonIndex || 0))),
+    title: String(pin.title || '').trim().slice(0, 240),
+    meta: String(pin.meta || '').trim().slice(0, 240),
+    savedAt: Number.isFinite(Number(pin.savedAt)) ? Number(pin.savedAt) : Date.now()
+  };
+}
+
+/**
+ * GET /api/user-pins
+ * List account-backed pinned courses/modules for the authenticated user
+ */
+async function handleGetUserPins(request, env, corsHeaders) {
+  try {
+    const auth = await requireAuthUser(request, env, corsHeaders);
+    if (auth.error) return auth.error;
+    await ensureUserPinsTable(env);
+
+    const { results } = await env.DB.prepare(`
+      SELECT item_key, type, course_id, lesson_index, title, meta, saved_at
+      FROM user_pins
+      WHERE user_id = ?
+      ORDER BY saved_at DESC
+    `).bind(auth.userId).all();
+
+    const pins = (results || []).map((row) => ({
+      key: row.item_key,
+      type: row.type,
+      courseId: row.course_id,
+      lessonIndex: Number(row.lesson_index || 0),
+      title: row.title || '',
+      meta: row.meta || '',
+      savedAt: Number(row.saved_at || Date.now())
+    }));
+
+    return jsonResponse({ pins }, 200, corsHeaders);
+  } catch (err) {
+    return jsonResponse({ error: err.message }, 500, corsHeaders);
+  }
+}
+
+/**
+ * PUT /api/user-pins
+ * Replace account-backed pinned courses/modules for the authenticated user
+ */
+async function handleSaveUserPins(request, env, corsHeaders) {
+  try {
+    const auth = await requireAuthUser(request, env, corsHeaders);
+    if (auth.error) return auth.error;
+    await ensureUserPinsTable(env);
+
+    const body = await request.json().catch(() => ({}));
+    const pins = Array.isArray(body.pins)
+      ? body.pins.map(normalizeUserPin).filter(Boolean).slice(0, 200)
+      : [];
+
+    await env.DB.prepare('DELETE FROM user_pins WHERE user_id = ?').bind(auth.userId).run();
+    for (const pin of pins) {
+      await env.DB.prepare(`
+        INSERT OR REPLACE INTO user_pins (
+          user_id, item_key, type, course_id, lesson_index, title, meta, saved_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        auth.userId,
+        pin.key,
+        pin.type,
+        pin.courseId,
+        pin.lessonIndex,
+        pin.title,
+        pin.meta,
+        pin.savedAt
+      ).run();
+    }
+
+    return jsonResponse({ success: true, pins }, 200, corsHeaders);
+  } catch (err) {
+    return jsonResponse({ error: err.message }, 500, corsHeaders);
+  }
+}
+
 /**
  * POST /api/dislikes/:simId
  * Toggles dislike using D1 with uniqueness constraints
@@ -3571,13 +3701,6 @@ async function logFileAction(env, action, fileKey, user, metadata = {}) {
 }
 
 // ===== AUTH HANDLERS =====
-
-const GOOGLE_CLIENT_ID = 'XXXX';
-const GOOGLE_REDIRECT_URI = 'http://localhost:8787/api/auth/google/callback';
-
-// Relocated to fetch handler
-
-// ... (existing code)
 
 async function handleMigrateUsersRole(env, corsHeaders) {
   try {
@@ -3837,77 +3960,112 @@ async function handleAuthLogoutAll(request, env, corsHeaders) {
   } catch (err) { return jsonResponse({ error: err.message }, 500, corsHeaders); }
 }
 
-async function handleGoogleAuthStart(request, env, corsHeaders) {
-  const url = new URL(request.url);
-  const mode = url.searchParams.get('mode') || 'login';
+async function handleGoogleTokenAuth(data, env, corsHeaders, ip = 'unknown') {
+  const accessToken = String(data?.access_token || '').trim();
+  if (!accessToken) return jsonResponse({ error: 'Google access token is required' }, 400, corsHeaders);
 
-  const redirectUrl = new URL(GOOGLE_REDIRECT_URI);
-  redirectUrl.searchParams.set('mode', mode);
-  redirectUrl.searchParams.set('email', 'google.user@example.com');
-
-  return Response.redirect(redirectUrl.toString(), 302);
+  try {
+    const profile = await fetchGoogleProfile(accessToken);
+    const result = await completeGoogleAuth(profile, env, ip);
+    return jsonResponse(result.body, 200, {
+      ...corsHeaders,
+      'Set-Cookie': createRefreshCookie(result.refreshToken)
+    });
+  } catch (err) {
+    return jsonResponse({ error: err.message || 'Google sign-in failed' }, 401, corsHeaders);
+  }
 }
 
-async function handleGoogleAuthCallback(request, env, corsHeaders) {
-  const url = new URL(request.url);
-  const email = (url.searchParams.get('email') || 'google.user@example.com').toLowerCase();
-  const displayName = email.split('@')[0];
+async function fetchGoogleProfile(accessToken) {
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!response.ok) throw new Error('Google profile verification failed');
+  const profile = await response.json();
+  const email = String(profile.email || '').toLowerCase().trim();
+  if (!email || !isValidEmail(email)) throw new Error('Google did not return a valid email');
+  if (profile.email_verified === false || profile.email_verified === 'false') {
+    throw new Error('Google email is not verified');
+  }
+  return {
+    sub: String(profile.sub || ''),
+    email,
+    displayName: String(profile.name || profile.given_name || email.split('@')[0]).trim()
+  };
+}
 
-  let user = await env.DB.prepare('SELECT id, email, display_name FROM users WHERE email = ?').bind(email).first();
+async function completeGoogleAuth(profile, env, ip = 'unknown') {
+  let user = await selectUserByEmail(env, profile.email);
   if (!user) {
     const userId = `user_${crypto.randomUUID()}`;
-    await env.DB.prepare(
-      'INSERT INTO users (id, email, password_hash, display_name, is_active) VALUES (?, ?, ?, ?, 1)'
-    ).bind(userId, email, 'google_oauth', displayName).run();
+    const displayName = profile.displayName || profile.email.split('@')[0];
+    try {
+      await env.DB.prepare(
+        'INSERT INTO users (id, email, password_hash, display_name, is_active, role) VALUES (?, ?, ?, ?, 1, ?)'
+      ).bind(userId, profile.email, `google_oauth:${profile.sub || userId}`, displayName, 'user').run();
+    } catch (err) {
+      await env.DB.prepare(
+        'INSERT INTO users (id, email, password_hash, display_name, is_active) VALUES (?, ?, ?, ?, 1)'
+      ).bind(userId, profile.email, `google_oauth:${profile.sub || userId}`, displayName).run();
+    }
 
-    await env.DB.prepare(
-      'INSERT INTO user_access (user_id, has_full_access, unlocked_at) VALUES (?, 1, datetime(\'now\')) ON CONFLICT(user_id) DO UPDATE SET has_full_access = 1, unlocked_at = datetime(\'now\')'
-    ).bind(userId).run();
-
-    user = { id: userId, email, display_name: displayName };
+    user = { id: userId, email: profile.email, display_name: displayName, role: 'user' };
+  } else if (!user.display_name && profile.displayName) {
+    await env.DB.prepare('UPDATE users SET display_name = ? WHERE id = ?').bind(profile.displayName, user.id).run().catch(() => {});
+    user.display_name = profile.displayName;
   }
 
-  // JWT Generation
-  const { accessToken, refreshToken, jti } = await generateTokens({ id: user.id, email: user.email, role: 'user' }, env);
+  await env.DB.prepare(
+    'INSERT INTO user_access (user_id, has_full_access, unlocked_at) VALUES (?, 1, datetime(\'now\')) ON CONFLICT(user_id) DO UPDATE SET has_full_access = 1, unlocked_at = datetime(\'now\')'
+  ).bind(user.id).run();
 
-  // Store Refresh Token in KV
+  const role = user.role || 'user';
+  const { accessToken, refreshToken, jti } = await generateTokens({ id: user.id, email: user.email, role }, env);
   await env.REFRESH_TOKENS.put(`refresh:${user.id}:${jti}`, JSON.stringify({
     token: refreshToken,
     createdAt: Date.now(),
     expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
   }), { expirationTtl: 7 * 24 * 60 * 60 });
 
-  // Set-Cookie in response used by window.opener check? 
-  // Wait, postMessage is JS. The response loads in the popup. 
-  // The popup sets the cookie for the domain.
-  // Then opener can close popup. Opener needs accessToken.
+  await logSecurityEvent(env, null, 'login_success', {
+    userId: user.id,
+    email: user.email,
+    ip,
+    role,
+    provider: 'google'
+  }).catch(() => {});
 
-  // NOTE: Set-Cookie headers on this response will set the cookie on the browser for this domain.
-  // This is exactly what we want.
-
-  const headers = {
-    ...corsHeaders,
-    'Set-Cookie': createRefreshCookie(refreshToken),
-    'Content-Type': 'text/html'
+  return {
+    refreshToken,
+    body: {
+      accessToken,
+      user: { id: user.id, email: user.email, display_name: user.display_name, role },
+      hasFullAccess: true
+    }
   };
+}
 
-  const html = `<!doctype html>
-  <html><body>
-    <script>
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'auth-success',
-          token: '${accessToken}',
-          user: { email: '${user.email}', display_name: '${user.display_name || ''}' }
-        }, '*');
-        window.close();
-      } else {
-        document.body.innerText = 'Login complete. You can close this window.';
-      }
-    </script>
-  </body></html>`;
+async function selectUserByEmail(env, email) {
+  try {
+    return await env.DB.prepare(
+      'SELECT id, email, display_name, role FROM users WHERE email = ? AND is_active = 1'
+    ).bind(email).first();
+  } catch (err) {
+    return await env.DB.prepare(
+      'SELECT id, email, display_name FROM users WHERE email = ? AND is_active = 1'
+    ).bind(email).first();
+  }
+}
 
-  return new Response(html, { headers });
+async function handleGoogleAuthStart(request, env, corsHeaders) {
+  return jsonResponse({ error: 'Use POST /api/auth/google/token for Google sign-in.' }, 410, corsHeaders);
+}
+
+async function handleGoogleAuthCallback(request, env, corsHeaders) {
+  return new Response('<!doctype html><html><body>Google sign-in uses the GradStudio sign-in page. You can close this window.</body></html>', {
+    status: 410,
+    headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+  });
 }
 
 async function handleAdminUpdateUserRole(targetUserId, data, adminUser, env, corsHeaders) {

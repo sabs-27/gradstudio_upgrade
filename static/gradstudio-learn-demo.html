@@ -6,20 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GradStudio</title>
     <link rel="icon" type="image/png" href="favicon-32.png">
-    <link rel="stylesheet" href="gradstudio-learn-demo.css?v=20260427-mobile-density-v5">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap">
+    <link rel="stylesheet" href="gradstudio-learn-demo.css?v=20260429-about-copy-image-v48">
 </head>
 
 <body>
     <div class="site-shell">
         <header class="topbar">
             <a class="brand" href="gradstudio-learn-demo.html" aria-label="GradStudio home">
-                <img class="brand-mark" src="gradstudio-header-logo.png" alt="" aria-hidden="true">
+                <span class="brand-mark-wrap" aria-hidden="true"><img class="brand-mark" src="gradstudio-header-logo.png" alt=""></span>
                 <span class="brand-name"><span class="brand-name-grad">Grad</span>Studio</span>
             </a>
 
             <nav class="main-nav" aria-label="Primary navigation">
                 <a href="#home" data-nav-home>Home</a>
-                <a href="#courses" data-nav-courses>Courses</a>
+                <button class="nav-link" type="button" data-nav-courses data-course-menu-trigger aria-expanded="false" aria-controls="courseMegaMenu">Courses</button>
                 <a href="#about" data-nav-about>About</a>
                 <a href="#contact" data-nav-contact>Contact</a>
             </nav>
@@ -29,6 +32,15 @@
                 <button class="signin-button" type="button" data-auth-open="signin">Sign in</button>
             </div>
         </header>
+        <div id="courseMegaMenu" class="course-mega-menu" aria-label="Course topics" hidden>
+            <div class="course-mega-inner">
+                <div class="mega-column mega-column-feature">
+                    <span>Browse Topics</span>
+                    <button type="button" class="mega-all-modules" data-mega-topic="All">All Courses</button>
+                </div>
+                <div id="courseMegaGroups" class="mega-topic-groups"></div>
+            </div>
+        </div>
 
         <section id="home" class="hero-section" aria-labelledby="heroTitle">
             <div class="hero-copy">
@@ -40,40 +52,8 @@
                     <a class="secondary-action" href="#get-started" data-auth-open="signup">Get Started</a>
                 </div>
             </div>
-            <div class="hero-visual" aria-label="Learning lab preview">
-                <div class="lab-window">
-                    <div class="window-bar">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                    <div class="lab-screen">
-                        <div class="desktop-strip">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <div class="editor-panel">
-                            <div class="editor-title">Visual Studio Code</div>
-                            <div class="editor-lines">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                        </div>
-                        <div class="terminal-panel">
-                            <span>$ kubectl get pods</span>
-                            <strong>api-service&nbsp;&nbsp; Running</strong>
-                            <strong>web-ui&nbsp;&nbsp;&nbsp; Running</strong>
-                        </div>
-                        <div class="guide-panel">
-                            <b>Course Guide</b>
-                            <span>Complete the deployment task</span>
-                            <button type="button">Check</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="hero-visual" aria-label="Featured module preview">
+                <div id="heroCarouselCard" class="hero-carousel-card-shell"></div>
             </div>
         </section>
 
@@ -99,7 +79,7 @@
                             </svg>
                             <input id="courseSearch" type="search" placeholder="Search courses">
                         </label>
-                        <button class="pinned-button" type="button" data-open-pinned aria-label="Open pinned courses and topics">
+                        <button class="pinned-button" type="button" data-open-pinned aria-label="Open pinned courses and modules">
                             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M15 4.5l4.5 4.5-3 3 .8 3.7-1.1 1.1-4.1-4.1-4.9 4.9-.8-.8 4.9-4.9-4.1-4.1 1.1-1.1 3.7.8 3-3z"></path>
                                 <path d="M5 19l4-4"></path>
@@ -110,7 +90,7 @@
                     </div>
                     <div class="catalog-stats" aria-label="Catalog stats">
                         <span><strong id="courseCount">0</strong> courses</span>
-                        <span><strong id="topicCountStat">0</strong> topics</span>
+                        <span><strong id="topicCountStat">0</strong> modules</span>
                     </div>
                 </div>
 
@@ -129,10 +109,24 @@
         <main id="infoPage" class="info-page-shell" hidden></main>
 
         <footer class="site-footer">
-            <div class="footer-brand-block">
-                <div class="footer-logo"><span>Grad</span>Studio</div>
-                <p>Clear, structured courses focused on real understanding, practical examples, and stronger technical foundations.</p>
+            <div class="footer-space-bg" aria-hidden="true">
+                <span class="footer-orbit-ring footer-orbit-ring--one"></span>
+                <span class="footer-orbit-ring footer-orbit-ring--two"></span>
+                <span class="footer-star footer-star--one"></span>
+                <span class="footer-star footer-star--two"></span>
+                <span class="footer-star footer-star--three"></span>
+                <span class="footer-star footer-star--four"></span>
+                <span class="footer-star footer-star--five"></span>
+                <span class="footer-shooting-star"></span>
             </div>
+            <div class="footer-inner">
+            <div class="footer-brand-block">
+                <a class="footer-logo" href="#home" data-nav-home>Grad<span>Studio</span></a>
+                <p>Clear, structured courses focused on real understanding, practical examples, and stronger technical foundations.</p>
+                <div class="footer-bottom"><span class="footer-pulse"></span>Copyright 2026 GradStudio.org. All rights reserved.</div>
+            </div>
+            <div class="footer-nav-block">
+                <div class="footer-index-label"><span></span>Index</div>
             <nav class="footer-links" aria-label="Footer navigation">
                 <a href="#about" data-nav-about>About</a>
                 <a href="#contact" data-nav-contact>Contact</a>
@@ -141,11 +135,13 @@
                 <a href="#terms" data-info-page="terms">Terms</a>
                 <a href="#cookies" data-info-page="cookies">Cookies</a>
             </nav>
-            <div class="footer-bottom">Copyright 2026 GradStudio.org. All rights reserved.</div>
+            </div>
+            </div>
         </footer>
     </div>
 
-    <script src="gradstudio-learn-demo.js?v=20260427-mobile-density-v5"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="gradstudio-learn-demo.js?v=20260429-about-copy-image-v48"></script>
 </body>
 
 </html>

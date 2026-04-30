@@ -134,10 +134,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .pill{border:1px solid var(--border);background:var(--hover);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--text2)}
 .pill-btn{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer}
 .pill-btn:hover{border-color:var(--accent);color:var(--accent);background:#eff6ff}
-.preview-card{position:relative;contain:layout paint style;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;margin-top:10px}
-.preview-media{position:relative;contain:layout paint style;isolation:isolate;min-height:190px;max-height:260px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.preview-media img,.preview-media iframe{width:100%;height:100%;min-height:190px;border:0;object-fit:cover;background:#fff}
-.preview-media .thumbnail-card{position:relative;inset:auto;width:100%;height:190px;min-height:190px}
+.preview-card{position:relative;contain:layout paint style;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;margin-top:10px;width:min(100%,var(--preview-card-width,420px));height:var(--preview-card-height,auto)}
+.preview-card.is-flush{border-color:transparent;background:transparent;box-shadow:none}
+.preview-card.is-flush .preview-media{background:transparent}
+.preview-media{position:relative;contain:layout paint style;isolation:isolate;min-height:0;height:100%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview-media img,.preview-media iframe{width:100%;height:100%;min-height:0;border:0;object-fit:cover;background:#fff}
+.preview-media .thumbnail-card{position:relative;inset:auto;width:100%;height:100%;min-height:100%}
 .thumbnail-card{position:relative;min-height:170px;width:100%;padding:22px;color:#fff;background:radial-gradient(circle at top left,var(--glow-top-left,#38bdf8),transparent 34%),radial-gradient(circle at bottom right,var(--glow-bottom-right,#22c55e),transparent 38%),linear-gradient(135deg,var(--bg-dark-1,#0f172a),var(--bg-dark-2,#1e293b));overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;container-type:inline-size;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 .thumbnail-card h3{position:relative;font-size:22px;line-height:1.05;margin:0 0 8px;max-width:75%}
 .thumbnail-card p{position:relative;margin:0;font-size:12px;line-height:1.4;color:rgba(255,255,255,.78);max-width:78%}
@@ -162,7 +164,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .thumb-circuit span{width:12px;height:12px;border-radius:50%;background:#a7f3d0;box-shadow:42px 24px 0 #38bdf8,92px -8px 0 #f472b6,130px 36px 0 #facc15}
 .circuit-board{position:relative;width:210px;height:86px;border:1px solid rgba(38,51,72,.12);border-radius:8px;background:#fff;box-shadow:0 14px 26px rgba(51,65,85,.12)}.circuit-board:before,.circuit-board:after{position:absolute;content:"";background:#5f6df6}.circuit-board:before{left:28px;right:28px;top:42px;height:4px;border-radius:999px}.circuit-board:after{top:20px;left:86px;width:38px;height:38px;border-radius:8px;background:#172033;box-shadow:-58px 18px 0 -10px #20a67a,58px 18px 0 -10px #f4b64a}
 .thumb-cloud{background:linear-gradient(135deg,#082f49,#0f766e)}
-.preview-body{padding:12px}
+.preview-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px}
 .preview-body strong{display:block;font-size:14px;margin-bottom:6px}
 .preview-meta{display:flex;gap:8px;color:var(--muted);font-size:12px}
 .carousel-toolbar{display:flex;gap:10px;align-items:end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap}
@@ -175,12 +177,20 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .carousel-row h3{font-size:14px;margin:0 0 4px}
 .carousel-row p{font-size:12px;color:var(--text2);margin:0 0 4px;line-height:1.4}
 .carousel-row small{color:var(--muted);font-size:11px}
-.course-picker{border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto;background:#fff}
+.course-picker-tools{display:grid;gap:8px;margin:8px 0}
+.course-picker-mode{display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--text);font-size:13px;font-weight:800}
+.course-picker-mode span{margin-right:2px;text-transform:uppercase;font-size:11px;letter-spacing:.04em;color:var(--muted)}
+.course-picker-mode label{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--text2)}
+.course-picker-tools input{width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;font:inherit;color:var(--text)}
+.course-picker-tools small{color:var(--muted);font-size:11px}
+.course-picker{border:1px solid var(--border);border-radius:8px;max-height:280px;overflow:auto;background:#fff}
 .course-picker-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
+.course-picker-row[hidden]{display:none!important}
 .course-picker-row:last-child{border-bottom:0}
 .course-picker-row:hover{background:var(--hover)}
 .course-picker-row span{display:block;color:var(--text);font-weight:600}
 .course-picker-row small{display:block;color:var(--muted);font-size:11px}
+input.is-locked{background:#f8fafc;color:var(--muted);cursor:not-allowed}
 .inline-check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2)}
 .modal-wide{width:min(92vw,920px);max-width:920px}
 .modal .fg{margin-bottom:14px}
@@ -254,7 +264,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
         <div class="fg"><label>Description</label><textarea id="cDescription" placeholder="Short course overview for the detail page"></textarea></div>
         <div class="form-grid">
             <div class="fg"><label>Level</label><input id="cLevel" value="Beginner" placeholder="Beginner"></div>
-            <div class="fg"><label>Labs</label><input id="cLabs" value="Auto" placeholder="Auto or 14 labs"><small>Use Auto to let the editor count uploaded topics.</small></div>
+            <div class="fg"><label>Modules</label><input id="cLabs" value="Auto" placeholder="Auto or 14 modules"><small>Use Auto to let the editor count uploaded modules.</small></div>
         </div>
         <div class="row">
             <div class="fg"><label>Icon Class</label><input id="cIcon" value="fas fa-book" placeholder="fas fa-book"></div>
@@ -270,6 +280,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
             <div class="fg"><label>Image URL</label><input id="cThumbImage" placeholder="/path/to/image.png or https://..."></div>
         </div>
         <div class="fg"><label>Thumbnail HTML</label><textarea id="cThumbHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>"></textarea><small>Used for HTML snippet or document thumbnails.</small></div>
+        <div class="fg"><label>All Courses Order</label><input type="number" id="cAllOrder" placeholder="Leave blank to use display order"><small>Controls card order only when users click All in the topics sidebar.</small></div>
         <div class="pill-row" id="snippetLibrary"></div>
         <div id="coursePreview" class="preview-card"></div>
         <div style="display:flex;gap:8px;margin-top:16px">
@@ -289,6 +300,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 </div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<script id="admin-js" src="gradstudio-learn-admin.js?v=20260427-font-spacing"></script>
+<script id="admin-js" src="gradstudio-learn-admin.js?v=20260429-course-search-rank-v42"></script>
 </body>
 </html>

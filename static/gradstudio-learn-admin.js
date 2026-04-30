@@ -25,7 +25,7 @@
     const snippets = [
         {
             name: "Express",
-            html: starterThumbnailHtml("EXP", "Express.js<br>API Lab", "JS", "#101827", "#1f6f5b", "#34d399", "#60a5fa", "#111827", "#ffffff")
+            html: starterThumbnailHtml("EXP", "Express.js<br>API Module", "JS", "#101827", "#1f6f5b", "#34d399", "#60a5fa", "#111827", "#ffffff")
         },
         {
             name: "MERN",
@@ -33,11 +33,11 @@
         },
         {
             name: "MongoDB",
-            html: starterThumbnailHtml("DB", "MongoDB<br>Data Lab", "DB", "#102018", "#14532d", "#84cc16", "#34d399", "#dcfce7", "#14532d")
+            html: starterThumbnailHtml("DB", "MongoDB<br>Data Module", "DB", "#102018", "#14532d", "#84cc16", "#34d399", "#dcfce7", "#14532d")
         },
         {
             name: "React",
-            html: starterThumbnailHtml("UI", "React<br>Component Lab", "R", "#101827", "#1d4ed8", "#38bdf8", "#a78bfa", "#e0f2fe", "#0f172a")
+            html: starterThumbnailHtml("UI", "React<br>Component Module", "R", "#101827", "#1d4ed8", "#38bdf8", "#a78bfa", "#e0f2fe", "#0f172a")
         },
         {
             name: "Terminal",
@@ -50,6 +50,10 @@
         {
             name: "Circuit",
             html: '<div class="html-thumb thumb-circuit"><div class="circuit-board" aria-hidden="true"></div></div>'
+        },
+        {
+            name: "Hero Lab",
+            html: heroLabWindowHtml()
         }
     ];
 
@@ -70,6 +74,16 @@
         return '<div class="thumbnail-card" style="--bg-dark-1:' + bg1 + ';--bg-dark-2:' + bg2 + ';--glow-top-left:' + glow1 + ';--glow-bottom-right:' + glow2 + ';--badge-bg:' + badgeBg + ';--badge-text:' + badgeText + ';--title-top:58%;--title-width:62%;"><span class="thumbnail-badge">' + badge + '</span><h3 class="thumbnail-title">' + title + '</h3><div class="thumbnail-logo" aria-hidden="true"><span class="thumbnail-logo-text">' + logo + '</span></div></div>';
     }
 
+    function heroLabWindowHtml() {
+        return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.lab-window{position:absolute;inset:0;border:1px solid rgba(118,131,156,.18);border-radius:0;background:#fff;overflow:hidden}.window-bar{display:flex;align-items:center;gap:10px;height:12%;min-height:34px;padding:0 5%;background:#f3f6fb;border-bottom:1px solid #e7ebf2}.window-bar span{width:12px;height:12px;border-radius:999px;background:#f16b5f}.window-bar span:nth-child(2){background:#f4b64a}.window-bar span:nth-child(3){background:#20a67a}.lab-screen{position:relative;height:88%;overflow:hidden;background:linear-gradient(135deg,#79b4d7,#d9eef8)}.desktop-strip{position:absolute;top:12%;left:7%;display:grid;gap:18px}.desktop-strip span{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.74);box-shadow:0 8px 18px rgba(29,41,57,.16)}.editor-panel{position:absolute;left:22%;top:25%;width:52%;height:42%;padding:6% 5%;background:#191d20;color:#e7ebf2;box-shadow:0 26px 50px rgba(23,32,51,.22)}.editor-title{font-size:clamp(20px,4.2vw,34px);font-weight:760}.editor-lines{display:grid;gap:14px;margin-top:12%}.editor-lines span{height:8px;border-radius:999px;background:rgba(255,255,255,.16)}.editor-lines span:nth-child(1){width:72%}.editor-lines span:nth-child(2){width:52%}.editor-lines span:nth-child(3){width:64%;background:rgba(255,90,0,.56)}.editor-lines span:nth-child(4){width:42%}.terminal-panel{position:absolute;left:47%;bottom:15%;width:32%;min-width:190px;padding:18px;border:2px solid #0d1523;background:#02060d;color:#7df0b0;font-family:"SFMono-Regular",Consolas,monospace;font-size:clamp(13px,2.2vw,20px);line-height:1.6;box-shadow:0 18px 32px rgba(2,6,13,.24)}.terminal-panel span,.terminal-panel strong{display:block;white-space:nowrap}.terminal-panel strong{font-weight:700}.guide-panel{position:absolute;right:6%;top:25%;width:22%;min-width:170px;display:grid;gap:12px;padding:18px;border:1px solid rgba(255,90,0,.22);border-radius:8px;background:rgba(255,255,255,.92);box-shadow:0 18px 32px rgba(29,41,57,.13)}.guide-panel b{font-size:clamp(16px,2.6vw,26px);color:#111827}.guide-panel span{color:#5c667a;font-size:clamp(13px,2vw,20px);line-height:1.35}.guide-panel button{height:38px;border:0;border-radius:8px;background:#e85d24;color:#fff;font-size:clamp(13px,2vw,18px);font-weight:800}@media(max-width:640px){.editor-panel{left:16%;width:62%}.guide-panel{right:4%;min-width:128px;padding:12px}.terminal-panel{left:36%;width:46%;min-width:0}.desktop-strip span{width:20px;height:20px}}</style></head><body><div class="lab-window"><div class="window-bar"><span></span><span></span><span></span></div><div class="lab-screen"><div class="desktop-strip"><span></span><span></span><span></span></div><div class="editor-panel"><div class="editor-title">Visual Studio Code</div><div class="editor-lines"><span></span><span></span><span></span><span></span></div></div><div class="terminal-panel"><span>$ kubectl get pods</span><strong>api-service&nbsp;&nbsp; Running</strong><strong>web-ui&nbsp;&nbsp;&nbsp; Running</strong></div><div class="guide-panel"><b>Course Guide</b><span>Complete the deployment task</span><button type="button">Check</button></div></div></div></body></html>';
+    }
+
+    function moduleCountLabel(value) {
+        return String(value || "")
+            .replace(/\blabs\b/gi, "modules")
+            .replace(/\blab\b/gi, "module");
+    }
+
     document.addEventListener("DOMContentLoaded", init);
 
     function init() {
@@ -85,7 +99,7 @@
             "tree", "folderJump", "btnNewFolder", "btnNewCourse", "btnDelFolder", "btnRecycle",
             "btnCarousel", "emptyState", "courseForm", "contentsCard", "sectionsList", "carouselArea", "recycleArea",
             "formTitle", "cId", "cTitle", "cDescription", "cLevel", "cLabs", "cIcon", "cOrder",
-            "cParent", "cType", "cTags", "cThumbType", "cThumbImage", "cThumbHtml", "coursePreview",
+            "cParent", "cType", "cTags", "cThumbType", "cThumbImage", "cThumbHtml", "cAllOrder", "coursePreview",
             "snippetLibrary", "btnSaveCourse", "btnDelCourse", "btnAddSection", "modalBg", "modalBox", "toast"
         ].forEach((id) => { els[id] = document.getElementById(id); });
     }
@@ -238,11 +252,12 @@
     function normalizeCarousels(carousels) {
         const existing = new Map((carousels || []).filter(Boolean).map((carousel) => [String(carousel.id), carousel]));
         const fixed = [
-            fixedCarouselSlot("1", "Big Carousel", "Featured lab previews", existing.get("1"), "HTML Demo Thumbnails"),
+            fixedCarouselSlot("hero", "Hero Visual", "Hero Visual", existing.get("hero")),
+            fixedCarouselSlot("1", "Big Carousel", "Featured module previews", existing.get("1"), "HTML Demo Thumbnails"),
             fixedCarouselSlot("2", "Bottom Small Carousel", "Quick course paths", existing.get("2"))
         ];
         const extras = (carousels || [])
-            .filter((carousel) => carousel && !["1", "2"].includes(String(carousel.id)))
+            .filter((carousel) => carousel && !["hero", "1", "2"].includes(String(carousel.id)))
             .map((carousel) => fixedCarouselSlot(String(carousel.id), String(carousel.name || blockTypeLabel(carousel)), String(carousel.header || blockTypeLabel(carousel)), carousel, carousel.eyebrow || ""));
         return [...fixed, ...extras]
             .sort((a, b) => (a.display_order - b.display_order) || String(a.id).localeCompare(String(b.id)));
@@ -256,14 +271,15 @@
         try {
             cloudPayload = await apiJson("/api/admin/learn-carousels?t=" + Date.now(), { headers: authHeaders() });
             if (isOldCourseCarouselPayload(cloudPayload)) return defaultLearnCarouselConfig();
-            if (cloudPayload && (cloudPayload.source === "kv" || hasCarouselCards(cloudPayload))) return cloudPayload;
+            if (cloudPayload && Array.isArray(cloudPayload.carousels)) return cloudPayload;
+            if (cloudPayload && (cloudPayload.source === "kv" || hasCarouselConfig(cloudPayload))) return cloudPayload;
         } catch (error) {
             console.warn("New learn carousel API unavailable; trying legacy carousel API.", error);
         }
 
         try {
             const legacyPayload = await loadLegacyLearnCarouselConfig();
-            if (hasCarouselCards(legacyPayload)) return legacyPayload;
+            if (hasCarouselConfig(legacyPayload)) return legacyPayload;
         } catch (error) {
             console.warn("Legacy carousel API unavailable.", error);
         }
@@ -277,23 +293,46 @@
             source: "starter",
             carousels: [
                 {
+                    id: "hero",
+                    name: "Hero Visual",
+                    block_type: "carousel",
+                    header: "Hero Visual",
+                    eyebrow: "",
+                    display_order: 0,
+                    is_active: true,
+                    layout_align: "stretch",
+                    max_width: "860px",
+                    visible_count: 1,
+                    grid_columns: 1,
+                    card_gap: 0,
+                    infinite_scroll: false,
+                    cards: [
+                        {
+                            ...defaultCarouselCard("starter-hero", "hero", 1, "Hero module preview", "", heroLabWindowHtml(), "#ff5a00", []),
+                            width: "860px",
+                            height_px: "360px",
+                            text_position: "hidden"
+                        }
+                    ]
+                },
+                {
                     id: "1",
                     name: "Big Carousel",
-                    header: "Featured lab previews",
+                    header: "Featured module previews",
                     eyebrow: "HTML Demo Thumbnails",
                     display_order: 1,
                     is_active: true,
                     cards: [
-                        defaultCarouselCard("starter-express", "1", 1, "Express.js 3D Card", "Backend API and routing labs", snippets[0].html, "#22c55e", ["backend1", "frontend1", "pyb"]),
-                        defaultCarouselCard("starter-mern", "1", 2, "MERN Stack 3D UI", "MongoDB, Express, React, and Node labs", snippets[1].html, "#0f766e", ["mogodb1", "frontend1", "backend1"]),
-                        defaultCarouselCard("starter-mongodb", "1", 3, "MongoDB 3D Card", "Document database and data modeling labs", snippets[2].html, "#16876a", ["mogodb1", "dte"]),
-                        defaultCarouselCard("starter-react", "1", 4, "React 3D Card", "Component, state, and UI workflow labs", snippets[3].html, "#5f6df6", ["frontend1"])
+                        defaultCarouselCard("starter-express", "1", 1, "Express.js 3D Card", "Backend API and routing modules", snippets[0].html, "#22c55e", ["backend1", "frontend1", "pyb"]),
+                        defaultCarouselCard("starter-mern", "1", 2, "MERN Stack 3D UI", "MongoDB, Express, React, and Node modules", snippets[1].html, "#0f766e", ["mogodb1", "frontend1", "backend1"]),
+                        defaultCarouselCard("starter-mongodb", "1", 3, "MongoDB 3D Card", "Document database and data modeling modules", snippets[2].html, "#16876a", ["mogodb1", "dte"]),
+                        defaultCarouselCard("starter-react", "1", 4, "React 3D Card", "Component, state, and UI workflow modules", snippets[3].html, "#5f6df6", ["frontend1"])
                     ]
                 },
                 {
                     id: "2",
                     name: "Bottom Small Carousel",
-                    header: "More lab previews",
+                    header: "More module previews",
                     eyebrow: "",
                     display_order: 2,
                     is_active: true,
@@ -301,7 +340,7 @@
                         defaultCarouselCard("starter-terminal", "2", 1, "Linux terminal race", "Shell practice", snippets[4].html, "#4f46e5", ["linnn"]),
                         defaultCarouselCard("starter-stack", "2", 2, "Full stack flow", "Generated mini card", snippets[5].html, "#0f766e", ["frontend1", "backend1"]),
                         defaultCarouselCard("starter-circuit", "2", 3, "Security capture", "Generated mini card", snippets[6].html, "#7c2d12", ["cybersecurity"]),
-                        { ...defaultCarouselCard("starter-cloud", "2", 4, "Cloud deploy lab", "Generated mini card", snippets[1].html, "#2f76d2", ["awssub", "aws2", "azure1"]), content_type: "standard" },
+                        { ...defaultCarouselCard("starter-cloud", "2", 4, "Cloud deploy module", "Generated mini card", snippets[1].html, "#2f76d2", ["awssub", "aws2", "azure1"]), content_type: "standard" },
                         { ...defaultCarouselCard("starter-api", "2", 5, "API workflow", "Generated mini card", snippets[0].html, "#312e81", ["backend1"]), content_type: "standard" }
                     ]
                 }
@@ -326,8 +365,9 @@
             image_url: "",
             iframe_url: "",
             content_html: html,
-            width: carouselId === "2" ? "220px" : "400px",
-            height_px: carouselId === "2" ? "160px" : "420px",
+            width: carouselId === "hero" ? "860px" : carouselId === "2" ? "220px" : "400px",
+            height_px: carouselId === "hero" ? "360px" : carouselId === "2" ? "160px" : "420px",
+            frame_style: carouselId === "hero" ? "flush" : "framed",
             full_bleed: true,
             course_links: links
         };
@@ -353,7 +393,7 @@
                     ...existing,
                     id,
                     name: existing.name || (id === "1" ? "Big Carousel" : "Bottom Small Carousel"),
-                    header: existing.header || cardsPayload?.header || (id === "1" ? "Featured lab previews" : "Quick course paths"),
+                    header: moduleCountLabel(existing.header || cardsPayload?.header || (id === "1" ? "Featured module previews" : "Quick course paths")),
                     eyebrow: existing.eyebrow || (id === "1" ? "HTML Demo Thumbnails" : ""),
                     display_order: Number(existing.display_order || id),
                     is_active: existing.is_active === undefined ? true : existing.is_active,
@@ -363,10 +403,8 @@
         };
     }
 
-    function hasCarouselCards(payload) {
-        return Array.isArray(payload?.carousels) && payload.carousels.some((carousel) => {
-            return carousel && Array.isArray(carousel.cards) && carousel.cards.length > 0;
-        });
+    function hasCarouselConfig(payload) {
+        return Array.isArray(payload?.carousels);
     }
 
     function isOldCourseCarouselPayload(payload) {
@@ -400,28 +438,35 @@
     }
 
     function fixedCarouselSlot(id, name, fallbackHeader, existing, fallbackEyebrow = "") {
-        const defaultVisible = id === "1" ? 2 : 5;
+        const defaultVisible = id === "hero" ? 1 : id === "1" ? 2 : 5;
         const hasHeader = existing && Object.prototype.hasOwnProperty.call(existing, "header");
         const hasEyebrow = existing && Object.prototype.hasOwnProperty.call(existing, "eyebrow");
+        const heroDefaults = String(id) === "hero";
+        const defaultHeroCard = {
+            ...defaultCarouselCard("starter-hero", "hero", 1, "Hero module preview", "", heroLabWindowHtml(), "#ff5a00", []),
+            width: "860px",
+            height_px: "360px",
+            text_position: "hidden"
+        };
         return {
             ...(existing || {}),
             id,
             name,
             block_type: choiceValue(existing && existing.block_type, ["carousel", "text"], String(id).startsWith("text-") ? "text" : "carousel"),
-            header: String(hasHeader ? (existing.header || "") : fallbackHeader),
+            header: moduleCountLabel(hasHeader ? (existing.header || "") : fallbackHeader),
             eyebrow: String(hasEyebrow ? (existing.eyebrow || "") : fallbackEyebrow),
-            display_order: Number(existing && existing.display_order ? existing.display_order : (id === "1" ? 1 : id === "2" ? 2 : 0)),
+            display_order: Number(existing && existing.display_order !== undefined ? existing.display_order : (id === "hero" ? 0 : id === "1" ? 1 : id === "2" ? 2 : 0)),
             is_active: !existing || (existing.is_active !== 0 && existing.is_active !== false),
             layout_align: choiceValue(existing && (existing.layout_align || existing.align), ["left", "center", "right", "stretch"], "stretch"),
-            max_width: String(existing && existing.max_width ? existing.max_width : "1480px"),
+            max_width: String(existing && existing.max_width ? existing.max_width : (heroDefaults ? "860px" : "1480px")),
             layout_style: choiceValue(existing && existing.layout_style, ["fit", "custom_width"], "fit"),
             visible_count: numberValue(existing && (existing.visible_count || existing.grid_columns), defaultVisible),
             grid_columns: numberValue(existing && (existing.grid_columns || existing.visible_count), defaultVisible),
-            card_gap: numberValue(existing && existing.card_gap, id === "1" ? 12 : 10),
+            card_gap: numberValue(existing && existing.card_gap, heroDefaults ? 0 : id === "1" ? 12 : 10),
             block_spacing_top: spacingNumberValue(existing && existing.block_spacing_top, 40),
             block_spacing_bottom: spacingNumberValue(existing && existing.block_spacing_bottom, 44),
             text_gap: spacingNumberValue(existing && existing.text_gap, 28),
-            infinite_scroll: !existing || existing.infinite_scroll === undefined ? true : (existing.infinite_scroll !== 0 && existing.infinite_scroll !== false),
+            infinite_scroll: heroDefaults ? false : (!existing || existing.infinite_scroll === undefined ? true : (existing.infinite_scroll !== 0 && existing.infinite_scroll !== false)),
             text_align: choiceValue(existing && existing.text_align, ["left", "center", "right"], "left"),
             header_font: String(existing && existing.header_font ? existing.header_font : "Inter"),
             header_font_size: numberValue(existing && existing.header_font_size, id === "1" ? 28 : 24),
@@ -432,7 +477,7 @@
             section_text_color: String(existing && existing.section_text_color ? existing.section_text_color : "#1d2233"),
             section_text_align: choiceValue(existing && existing.section_text_align, ["left", "center", "right"], "left"),
             section_text_max_width: String(existing && existing.section_text_max_width ? existing.section_text_max_width : "860px"),
-            cards: normalizeCarouselCards(existing && Array.isArray(existing.cards) ? existing.cards : [])
+            cards: normalizeCarouselCards(existing && Array.isArray(existing.cards) ? existing.cards : (heroDefaults ? [defaultHeroCard] : []))
         };
     }
 
@@ -450,6 +495,13 @@
         return Number.isFinite(num) && num > 0 ? num : fallback;
     }
 
+    function optionalNumberValue(value) {
+        const text = String(value ?? "").trim();
+        if (!text) return null;
+        const num = Number(text);
+        return Number.isFinite(num) ? num : null;
+    }
+
     function spacingNumberValue(value, fallback) {
         const num = Number(value);
         if (!Number.isFinite(num) || num < 0) return fallback;
@@ -462,6 +514,7 @@
     }
 
     function carouselSlotLabel(carousel) {
+        if (carousel.id === "hero") return "Hero Visual";
         if (carousel.id === "1") return "Big Carousel";
         if (carousel.id === "2") return "Bottom Small Carousel";
         if (carousel.block_type === "text") return carousel.name || "Text Block";
@@ -475,8 +528,8 @@
                 ...card,
                 id: String(card.id),
                 carousel_id: String(card.carousel_id || state.activeCarouselId || "1"),
-                title: String(card.title || ""),
-                description: String(card.description || ""),
+                title: moduleCountLabel(card.title || ""),
+                description: moduleCountLabel(card.description || ""),
                 icon_class: String(card.icon_class || "fas fa-star"),
                 color_hex: String(card.color_hex || "#3b82f6"),
                 target_type: normalizeCarouselTargetType(card.target_type, parseCourseLinks(card.course_links), card),
@@ -489,6 +542,7 @@
                 content_html: normalizeStoredHtml(card.content_html),
                 width: String(card.width || "400px"),
                 height_px: String(card.height_px || "420px"),
+                frame_style: choiceValue(card.frame_style || card.frameStyle, ["framed", "flush"], String(card.carousel_id || state.activeCarouselId || "1") === "hero" ? "flush" : "framed"),
                 full_bleed: card.full_bleed === 1 || card.full_bleed === true,
                 bg_color: String(card.bg_color || ""),
                 chip_text: String(card.chip_text || ""),
@@ -521,8 +575,9 @@
             if (!parsed || typeof parsed !== "object") return defaultCardMeta();
             return {
                 level: String(parsed.level || "Beginner"),
-                labs: String(parsed.labs || "Auto"),
+                labs: moduleCountLabel(parsed.labs || "Auto"),
                 tags: Array.isArray(parsed.tags) ? parsed.tags.map(String).filter(Boolean) : [],
+                allOrder: optionalNumberValue(parsed.allOrder ?? parsed.all_order),
                 thumbnail: normalizeThumbnail(parsed.thumbnail)
             };
         } catch (_) {
@@ -535,6 +590,7 @@
             level: "Beginner",
             labs: "Auto",
             tags: [],
+            allOrder: null,
             thumbnail: { type: "html", html: "" }
         };
     }
@@ -561,8 +617,9 @@
 
         return JSON.stringify({
             level: els.cLevel.value.trim() || "Beginner",
-            labs: els.cLabs.value.trim() || "Auto",
+            labs: moduleCountLabel(els.cLabs.value.trim() || "Auto"),
             tags,
+            allOrder: optionalNumberValue(els.cAllOrder.value),
             thumbnail
         });
     }
@@ -776,6 +833,7 @@
         els.cThumbType.value = "html";
         els.cThumbImage.value = "";
         els.cThumbHtml.value = snippets[0].html;
+        els.cAllOrder.value = "";
         els.btnSaveCourse.textContent = "Create Course";
         els.btnDelCourse.style.display = "none";
         renderCoursePreview();
@@ -796,7 +854,7 @@
         els.cTitle.value = course.title;
         els.cDescription.value = course.description || "";
         els.cLevel.value = course.cardMeta.level || "Beginner";
-        els.cLabs.value = course.cardMeta.labs || "Auto";
+        els.cLabs.value = moduleCountLabel(course.cardMeta.labs || "Auto");
         els.cIcon.value = course.icon_class || "fas fa-book";
         els.cOrder.value = course.display_order || 0;
         renderParentOptions(course.parent_course_id ? "" : "cat:" + course.category, course.parent_course_id ? "course:" + course.parent_course_id : "");
@@ -806,6 +864,7 @@
         els.cThumbType.value = thumb.type || "html";
         els.cThumbImage.value = thumb.type === "image" ? (thumb.src || "") : "";
         els.cThumbHtml.value = thumb.type === "image" ? "" : (thumb.html || "");
+        els.cAllOrder.value = Number.isFinite(course.cardMeta.allOrder) ? course.cardMeta.allOrder : "";
         els.btnSaveCourse.textContent = "Save Course";
         els.btnDelCourse.style.display = "block";
         renderCoursePreview();
@@ -935,7 +994,7 @@
     function renderCoursePreview() {
         const title = els.cTitle.value.trim() || "Course title";
         const level = els.cLevel.value.trim() || "Beginner";
-        const labs = els.cLabs.value.trim() || "Auto";
+        const labs = moduleCountLabel(els.cLabs.value.trim() || "Auto");
         const tags = splitTags(els.cTags.value);
         const thumbType = els.cThumbType.value;
         let media = "";
@@ -1526,6 +1585,10 @@
             display_order: 1,
             is_active: true
         };
+        const isFixedBlock = ["hero", "1", "2"].includes(String(active.id));
+        const blockActionButton = isFixedBlock
+            ? '<button class="btn-s ' + (active.is_active ? "btn-danger" : "") + '" type="button" id="btnToggleCarouselBlock"><i class="fas ' + (active.is_active ? "fa-trash" : "fa-eye") + '"></i> ' + (active.is_active ? "Remove Block" : "Restore Block") + '</button>'
+            : '<button class="btn-s btn-danger" type="button" id="btnDeleteLayoutBlock"><i class="fas fa-trash"></i> Delete Layer</button>';
 
         els.carouselArea.innerHTML = '' +
             '<div class="simple-carousel-admin">' +
@@ -1537,7 +1600,7 @@
             '<button class="btn-s" type="button" id="btnEditCarouselLayout"><i class="fas fa-sliders"></i> Layout / Text</button>' +
             '<button class="btn-s" type="button" id="btnAddTextBlock"><i class="fas fa-align-left"></i> Add Text</button>' +
             '<button class="btn-s" type="button" id="btnAddCarouselLayer"><i class="far fa-images"></i> Add Carousel Layer</button>' +
-            (!["1", "2"].includes(String(active.id)) ? '<button class="btn-s btn-danger" type="button" id="btnDeleteLayoutBlock"><i class="fas fa-trash"></i> Delete Layer</button>' : '') +
+            blockActionButton +
             '<button class="btn-a" type="button" id="btnAddCarouselCard"><i class="fas fa-plus"></i> Add Card</button>' +
             '</div></div>' +
             '<div class="simple-carousel-shell">' +
@@ -1563,6 +1626,7 @@
         document.getElementById("btnAddTextBlock").addEventListener("click", addStandaloneTextBlock);
         document.getElementById("btnAddCarouselLayer").addEventListener("click", addCarouselLayer);
         document.getElementById("btnDeleteLayoutBlock")?.addEventListener("click", deleteActiveLayoutBlock);
+        document.getElementById("btnToggleCarouselBlock")?.addEventListener("click", toggleActiveCarouselBlock);
         document.getElementById("btnAddCarouselCard").disabled = active.block_type === "text";
         document.getElementById("btnEditCarouselHeaderInline")?.addEventListener("click", openCarouselHeaderModal);
         document.getElementById("btnEditCarouselLayoutInline")?.addEventListener("click", openCarouselLayoutModal);
@@ -1595,7 +1659,7 @@
             '<button class="slot-main" type="button" data-carousel-slot="' + escAttr(carousel.id) + '">' +
             '<span class="slot-grip" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>' +
             '<span class="slot-icon" aria-hidden="true"><i class="' + (isText ? "fas fa-align-left" : "far fa-images") + '"></i></span>' +
-            '<span class="slot-copy"><b>' + esc(carouselSlotLabel(carousel)) + '</b><small>' + esc(isText ? (carousel.section_text || "Standalone text block") : (carousel.header || "No header set")) + '</small></span>' +
+            '<span class="slot-copy"><b>' + esc(carouselSlotLabel(carousel)) + (carousel.is_active ? "" : " (hidden)") + '</b><small>' + esc(isText ? (carousel.section_text || "Standalone text block") : (carousel.header || "No header set")) + '</small></span>' +
             '<span class="slot-count">' + esc(isText ? "T" : String((carousel.cards || []).length)) + '</span>' +
             '</button>' +
             '<div class="slot-move-actions">' +
@@ -1621,7 +1685,7 @@
             '<div class="placement-summary">' +
             '<div><span>Homepage position</span><b>' + esc(carouselPlacementText(active)) + '</b></div>' +
             '<div><span>Alignment</span><b>' + esc(layoutAlignLabel(active.layout_align)) + '</b></div>' +
-            '<div><span>Cards</span><b>' + esc(active.visible_count || active.grid_columns || (active.id === "1" ? 2 : 5)) + ' visible</b></div>' +
+            '<div><span>Cards</span><b>' + esc(active.visible_count || active.grid_columns || (active.id === "hero" ? 1 : active.id === "1" ? 2 : 5)) + ' visible</b></div>' +
             '<div><span>Text</span><b>' + esc(textState) + '</b></div>' +
             '<div><span>Width mode</span><b>' + esc(cardMode) + '</b></div>' +
             '<button class="btn-s" type="button" id="btnEditCarouselLayoutInline"><i class="fas fa-sliders"></i> Edit Layout / Text</button>' +
@@ -1633,6 +1697,7 @@
     }
 
     function carouselPlacementText(active) {
+        if (String(active.id) === "hero") return "Hero section single carousel card";
         if (active.block_type === "text") return "Standalone text layer in homepage layout";
         return String(active.id) === "1"
             ? "Homepage below the course catalog"
@@ -1681,7 +1746,7 @@
             body: '' +
                 '<form id="carouselHeaderForm">' +
                 '<div class="fg"><label>Eyebrow</label><input id="modalCarouselEyebrow" value="' + escAttr(active.eyebrow || "") + '" placeholder="HTML Demo Thumbnails"><small>Small label above the carousel title.</small></div>' +
-                '<div class="fg"><label>Carousel Title</label><input id="modalCarouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured lab previews"><small>Leave empty if you do not want heading text above the cards.</small></div>' +
+                '<div class="fg"><label>Carousel Title</label><input id="modalCarouselHeader" value="' + escAttr(active.header || "") + '" placeholder="Featured module previews"><small>Leave empty if you do not want heading text above the cards.</small></div>' +
                 '<label class="inline-check"><input id="modalCarouselActive" type="checkbox" ' + (active.is_active ? "checked" : "") + '> Show this carousel on the homepage</label>' +
                 '</form>',
             footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselHeaderForm">Save Header</button>'
@@ -1713,8 +1778,8 @@
                 '<div class="fg"><label>Section max width</label><input id="modalCarouselMaxWidth" value="' + escAttr(active.max_width || "1480px") + '" placeholder="1480px"></div>' +
                 '<input id="modalCarouselLayoutStyle" type="hidden" value="fit">' +
                 '<div class="fg"><label>Card width</label><div class="readonly-field">Edit width on each card</div><small>Default cards auto-fit. A custom Width inside one card only changes that card.</small></div>' +
-                '<div class="fg"><label>Visible cards</label><input id="modalCarouselVisibleCount" type="number" min="1" max="8" value="' + escAttr(active.visible_count || active.grid_columns || (active.id === "1" ? 2 : 5)) + '"></div>' +
-                '<div class="fg"><label>Spacing between cards</label><input id="modalCarouselCardGap" type="number" min="0" max="80" value="' + escAttr(active.card_gap || (active.id === "1" ? 12 : 10)) + '"><small>Only changes card-to-card spacing inside this carousel.</small></div>' +
+                '<div class="fg"><label>Visible cards</label><input id="modalCarouselVisibleCount" type="number" min="1" max="8" value="' + escAttr(active.visible_count || active.grid_columns || (active.id === "hero" ? 1 : active.id === "1" ? 2 : 5)) + '"></div>' +
+                '<div class="fg"><label>Spacing between cards</label><input id="modalCarouselCardGap" type="number" min="0" max="80" value="' + escAttr(active.card_gap || (active.id === "hero" ? 0 : active.id === "1" ? 12 : 10)) + '"><small>Only changes card-to-card spacing inside this carousel.</small></div>' +
                 '<div class="fg"><label>Heading align</label><select id="modalCarouselTextAlign">' + renderOptions([["left", "Left"], ["center", "Center"], ["right", "Right"]], activeTextAlign) + '</select></div>' +
                 '<div class="fg"><label>Space above block</label><input id="modalCarouselBlockTop" type="number" min="0" max="200" value="' + escAttr(spacingNumberValue(active.block_spacing_top, 40)) + '"></div>' +
                 '<div class="fg"><label>Space below block</label><input id="modalCarouselBlockBottom" type="number" min="0" max="200" value="' + escAttr(spacingNumberValue(active.block_spacing_bottom, 44)) + '"></div>' +
@@ -1735,7 +1800,7 @@
                 '<div class="fg"><label>Heading size</label><input id="modalCarouselHeaderSize" type="number" min="14" max="96" value="' + escAttr(active.header_font_size || 28) + '"></div>' +
                 '<div class="fg"><label>Heading color</label><input id="modalCarouselHeaderColor" type="color" value="' + escAttr(colorInputValue(active.header_color, "#1d2233")) + '"></div>' +
                 '</div></details>' +
-                '<label class="inline-check" style="margin-top:14px"><input id="modalCarouselInfinite" type="checkbox" ' + (active.infinite_scroll === false ? "" : "checked") + '> Infinite carousel arrows</label>' +
+                '<label class="inline-check" style="margin-top:14px"><input id="modalCarouselInfinite" type="checkbox" ' + (active.infinite_scroll === false ? "" : "checked") + (active.id === "hero" ? " disabled" : "") + '> Infinite carousel arrows</label>' +
                 '</form>',
             footer: '<button class="btn-s" type="button" data-close>Cancel</button><button class="btn-a" type="submit" form="carouselLayoutForm">Save Layout</button>'
         });
@@ -1840,7 +1905,7 @@
 
     async function deleteActiveLayoutBlock() {
         const active = activeCarousel();
-        if (!active || ["1", "2"].includes(String(active.id))) return;
+        if (!active || ["hero", "1", "2"].includes(String(active.id))) return;
         if (!confirm("Delete this homepage layout layer?")) return;
         state.carousels = state.carousels.filter((carousel) => String(carousel.id) !== String(active.id));
         state.carousels.forEach((carousel, index) => {
@@ -1848,6 +1913,14 @@
         });
         state.activeCarouselId = state.carousels[0] ? String(state.carousels[0].id) : "1";
         await saveCarouselConfigFromModal("Layout layer deleted");
+    }
+
+    async function toggleActiveCarouselBlock() {
+        const active = activeCarousel();
+        if (!active) return;
+        if (active.is_active && !confirm("Remove this carousel block from the homepage? You can restore it later from this editor.")) return;
+        active.is_active = !active.is_active;
+        await saveCarouselConfigFromModal(active.is_active ? "Carousel block restored" : "Carousel block removed");
     }
 
     function sortedCarouselBlocks() {
@@ -1895,12 +1968,17 @@
     }
 
     function renderCarouselLocationGuide(active) {
+        const isHero = String(active.id) === "hero";
         const isFeatured = String(active.id) === "1";
-        const slotName = isFeatured ? "Big Carousel" : "Bottom Small Carousel";
-        const locationText = isFeatured
-            ? "Homepage -> after Course Catalog -> before Featured lab previews"
+        const slotName = isHero ? "Hero Visual" : isFeatured ? "Big Carousel" : "Bottom Small Carousel";
+        const locationText = isHero
+            ? "Homepage -> hero visual card"
+            : isFeatured
+            ? "Homepage -> after Course Catalog -> before Featured module previews"
             : "Homepage -> after Big Carousel -> before Bottom Small Carousel cards";
-        const textNote = isFeatured
+        const textNote = isHero
+            ? "This card replaces the old static hero illustration."
+            : isFeatured
             ? "Optional text appears between the Course Catalog and the Big Carousel."
             : "Optional text appears between the Big Carousel and the Bottom Small Carousel.";
         return '' +
@@ -1909,10 +1987,10 @@
             '<span class="location-chip"><i class="fas fa-location-dot"></i> Editing: ' + esc(slotName) + '</span>' +
             '<h4 style="margin-top:14px">Where this appears on the homepage</h4>' +
             '<div class="homepage-map" aria-label="Homepage section map">' +
-            renderMapBlock("Hero", "GradStudio title and buttons", false) +
-            renderMapBlock("Catalog", "Course filters and course cards", false) +
-            renderMapBlock("Text + Big", "Optional text, then main carousel cards", isFeatured) +
-            renderMapBlock("Text + Small", "Optional text, then smaller carousel row", !isFeatured) +
+            renderMapBlock("Hero", "GradStudio title and single visual card", isHero) +
+            renderMapBlock("Catalog", "Module filters and module cards", false) +
+            renderMapBlock("Text + Big", "Optional text, then main carousel cards", !isHero && isFeatured) +
+            renderMapBlock("Text + Small", "Optional text, then smaller carousel row", !isHero && !isFeatured) +
             renderMapBlock("Footer", "About, contact, legal links", false) +
             '</div>' +
             '<p class="preview-note"><strong>Text slot:</strong> ' + esc(textNote) + '</p>' +
@@ -1958,7 +2036,7 @@
         const sectionAlign = getInputValue("carouselSectionAlign", "left");
         const textColor = getInputValue("carouselSectionColor", "#1d2233");
         const textSize = Math.max(14, Math.min(96, Number(getInputValue("carouselSectionSize", "44")) || 44));
-        const heading = getInputValue("carouselHeader", "Featured lab previews").trim() || "Carousel title";
+        const heading = getInputValue("carouselHeader", "Featured module previews").trim() || "Carousel title";
         const eyebrow = getInputValue("carouselEyebrow", "").trim();
         const headingAlign = getInputValue("carouselTextAlign", "left");
         const headingColor = getInputValue("carouselHeaderColor", "#1d2233");
@@ -2048,7 +2126,11 @@
     function openCarouselCardModal(card) {
         const isEdit = !!card;
         const activeCarouselId = card ? String(card.carousel_id) : state.activeCarouselId;
-        const defaultTarget = activeCarouselId === "2" ? "course" : "course_list";
+        const defaultTarget = activeCarouselId === "hero" ? "none" : activeCarouselId === "2" ? "course" : "course_list";
+        const defaultHtml = activeCarouselId === "hero" ? heroLabWindowHtml() : snippets[3].html;
+        const defaultWidth = activeCarouselId === "hero" ? "860px" : activeCarouselId === "2" ? "220px" : "400px";
+        const defaultHeight = activeCarouselId === "hero" ? "360px" : activeCarouselId === "2" ? "160px" : "420px";
+        const frameChecked = card ? card.frame_style !== "flush" : activeCarouselId !== "hero";
         const selectedIds = card ? card.course_links : [];
         const selectedCourse = card && card.target_type === "course" ? card.target_id : (state.courses[0] ? state.courses[0].id : "");
         showModal({
@@ -2072,13 +2154,15 @@
                 '</div>' +
                 '<div class="fg" id="ccImageUploadWrap"><label>Upload Image Thumbnail</label><div class="action-row"><input id="ccImageFile" type="file" accept="image/*" style="flex:1"><button class="btn-s" type="button" id="ccUploadImage"><i class="fas fa-upload"></i> Upload Image</button></div><small>Uploads an image to the carousel media folder and fills Image URL.</small></div>' +
                 '<div class="fg" id="ccHtmlUploadWrap"><label>Upload HTML Thumbnail File</label><div class="action-row"><input id="ccHtmlFile" type="file" accept=".html,text/html" style="flex:1"><button class="btn-s" type="button" id="ccUploadHtml"><i class="fas fa-upload"></i> Upload HTML</button></div><small>Uploads a standalone .html thumbnail and uses it as an iframe carousel thumbnail.</small></div>' +
-                '<div class="fg"><label>HTML Thumbnail</label><textarea id="ccContentHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>">' + esc(card ? card.content_html : snippets[3].html) + '</textarea><small>Use this for custom carousel HTML thumbnails.</small></div>' +
+                '<div class="fg"><label>HTML Thumbnail</label><textarea id="ccContentHtml" placeholder="<div class=&quot;thumbnail-card&quot;>...</div>">' + esc(card ? card.content_html : defaultHtml) + '</textarea><small>Use this for custom carousel HTML thumbnails.</small></div>' +
+                '<label class="inline-check" style="margin:0 0 14px"><input id="ccFrameEnabled" type="checkbox" ' + (frameChecked ? "checked" : "") + '> Show card frame and shading</label>' +
+                '<p class="hint" style="margin:-8px 0 14px">Turn off for a transparent page-color card with no border, shadow, or overlay.</p>' +
                 '<div class="fg" id="ccSnippetWrap"><label>Starter Thumbnails</label><div class="pill-row" id="ccSnippetLibrary"></div></div>' +
                 '<div class="row">' +
                 '<div class="fg"><label>Icon Class</label><input id="ccIcon" value="' + escAttr(card ? card.icon_class : "fas fa-layer-group") + '"></div>' +
                 '<div class="fg"><label>Accent Color</label><input id="ccColor" type="color" value="' + escAttr(card ? card.color_hex : "#3b82f6") + '"></div>' +
-                '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : (activeCarouselId === "2" ? "220px" : "400px")) + '"><small>Only this card changes width.</small></div>' +
-                '<div class="fg"><label>Height</label><input id="ccHeight" value="' + escAttr(card ? card.height_px : (activeCarouselId === "2" ? "160px" : "420px")) + '"></div>' +
+                '<div class="fg"><label>Width</label><input id="ccWidth" value="' + escAttr(card ? card.width : defaultWidth) + '"><small>Only this card changes width.</small></div>' +
+                '<div class="fg" id="ccHeightGroup"><label>Height</label><input id="ccHeight" value="' + escAttr(card ? card.height_px : defaultHeight) + '"><small id="ccHeightRule">The first active card height sets every card height in this carousel. Width remains per-card.</small></div>' +
                 '</div>' +
                 '<div class="row">' +
                 '<div class="fg"><label>Text Position</label><select id="ccTextPosition"><option value="bottom">Bottom overlay</option><option value="top">Top overlay</option><option value="center">Center overlay</option><option value="hidden">Hide text</option></select></div>' +
@@ -2105,16 +2189,17 @@
 
         document.getElementById("ccContentType").value = card ? card.content_type : "html";
         document.getElementById("ccTargetType").value = card ? card.target_type : defaultTarget;
-        document.getElementById("ccTextPosition").value = card ? (card.text_position || "bottom") : "bottom";
+        document.getElementById("ccTextPosition").value = card ? (card.text_position || "bottom") : (activeCarouselId === "hero" ? "hidden" : "bottom");
         document.getElementById("ccTextAlign").value = card ? (card.text_align || "left") : "left";
-        ["ccCarousel", "ccTitle", "ccDescription", "ccContentType", "ccTargetType", "ccImageUrl", "ccIframeUrl", "ccContentHtml", "ccIcon", "ccColor", "ccWidth", "ccHeight", "ccTextPosition", "ccTextAlign", "ccBgColor", "ccHeadingFont", "ccHeadingSize", "ccHeadingColor", "ccSubFont", "ccSubSize", "ccSubColor", "ccDirectCourse"].forEach((id) => {
+        document.getElementById("carouselCardForm").dataset.cardId = card ? String(card.id) : "__new__";
+        ["ccCarousel", "ccOrder", "ccTitle", "ccDescription", "ccContentType", "ccTargetType", "ccImageUrl", "ccIframeUrl", "ccContentHtml", "ccFrameEnabled", "ccIcon", "ccColor", "ccWidth", "ccHeight", "ccTextPosition", "ccTextAlign", "ccBgColor", "ccHeadingFont", "ccHeadingSize", "ccHeadingColor", "ccSubFont", "ccSubSize", "ccSubColor", "ccActive", "ccDirectCourse"].forEach((id) => {
             const node = document.getElementById(id);
             if (node) {
                 node.addEventListener("input", updateCarouselCardModal);
                 node.addEventListener("change", updateCarouselCardModal);
             }
         });
-        els.modalBox.querySelectorAll('input[name="ccCourseLink"]').forEach((input) => input.addEventListener("change", updateCarouselCardModal));
+        bindCoursePickerControls();
         renderCarouselSnippetLibrary();
         document.getElementById("ccUploadImage").addEventListener("click", uploadCarouselImageThumbnail);
         document.getElementById("ccUploadHtml").addEventListener("click", uploadCarouselHtmlThumbnail);
@@ -2130,18 +2215,139 @@
 
     function renderCoursePicker(selectedIds) {
         const selected = new Set((selectedIds || []).map(String));
+        const folderRows = state.categories
+            .slice()
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+            .map((category) => {
+                const folderCourses = state.courses.filter((course) => course.category === category.id);
+                const searchText = [category.name, category.id].join(" ").toLowerCase();
+                const checkedCount = folderCourses.filter((course) => selected.has(course.id)).length;
+                const checked = folderCourses.length > 0 && checkedCount === folderCourses.length;
+                return '<label class="course-picker-row" data-course-picker-row data-course-picker-mode="folder" data-folder-id="' + escAttr(category.id) + '" data-course-picker-name="' + escAttr(String(category.name || "").toLowerCase()) + '" data-course-picker-search="' + escAttr(searchText) + '">' +
+                    '<input type="checkbox" data-folder-link value="' + escAttr(category.id) + '"' + (checked ? " checked" : "") + '>' +
+                    '<div><span>' + esc(category.name) + '</span><small>' + esc(folderCourses.length + " courses") + '</small></div></label>';
+            })
+            .join("");
         const knownRows = state.courses.map((course) => {
             const meta = categoryName(course.category) + (course.parent_course_id ? " / nested" : "");
-            return '<label class="course-picker-row"><input type="checkbox" name="ccCourseLink" value="' + escAttr(course.id) + '"' + (selected.has(course.id) ? " checked" : "") + '>' +
+            const searchText = [course.title, meta, course.id].join(" ").toLowerCase();
+            return '<label class="course-picker-row" data-course-picker-row data-course-picker-mode="course" data-course-picker-folder="' + escAttr(course.category) + '" data-course-picker-course="' + escAttr(course.id) + '" data-course-picker-name="' + escAttr(String(course.title || "").toLowerCase()) + '" data-course-picker-search="' + escAttr(searchText) + '"><input type="checkbox" name="ccCourseLink" value="' + escAttr(course.id) + '"' + (selected.has(course.id) ? " checked" : "") + '>' +
                 '<div><span>' + esc(course.title) + '</span><small>' + esc(meta) + '</small></div></label>';
         }).join("");
         const knownIds = new Set(state.courses.map((course) => course.id));
         const missingRows = Array.from(selected)
             .filter((id) => id && !knownIds.has(id))
-            .map((id) => '<label class="course-picker-row"><input type="checkbox" name="ccCourseLink" value="' + escAttr(id) + '" checked>' +
+            .map((id) => '<label class="course-picker-row" data-course-picker-row data-course-picker-mode="course" data-course-picker-folder="saved" data-course-picker-course="' + escAttr(id) + '" data-course-picker-name="' + escAttr(String(id).toLowerCase()) + '" data-course-picker-search="' + escAttr(String(id).toLowerCase()) + '"><input type="checkbox" name="ccCourseLink" value="' + escAttr(id) + '" checked>' +
                 '<div><span>' + esc(id) + '</span><small>Saved course id not currently in the catalog</small></div></label>')
             .join("");
-        return '<div class="course-picker">' + knownRows + missingRows + '</div>';
+        return '' +
+            '<div class="course-picker-tools">' +
+            '<div class="course-picker-mode" role="radiogroup" aria-label="Choose search type">' +
+            '<span>Choose one:</span>' +
+            '<label><input type="radio" name="ccCourseSearchMode" value="folder"> Folder</label>' +
+            '<label><input type="radio" name="ccCourseSearchMode" value="course" checked> Courses</label>' +
+            '</div>' +
+            '<input id="ccCourseSearch" type="search" placeholder="Search course name">' +
+            '<small id="ccCoursePickerCount"></small>' +
+            '</div>' +
+            '<div class="course-picker" id="ccCoursePicker">' + folderRows + knownRows + missingRows + '</div>';
+    }
+
+    function bindCoursePickerControls() {
+        els.modalBox.querySelectorAll('input[name="ccCourseSearchMode"]').forEach((input) => {
+            input.addEventListener("change", filterCoursePicker);
+        });
+        const search = document.getElementById("ccCourseSearch");
+        if (search) {
+            search.addEventListener("input", filterCoursePicker);
+        }
+        els.modalBox.querySelectorAll("[data-folder-link]").forEach((input) => {
+            input.addEventListener("change", () => {
+                setFolderCourseSelection(input.value, input.checked);
+                updateCoursePickerState();
+            });
+        });
+        els.modalBox.querySelectorAll('input[name="ccCourseLink"]').forEach((input) => {
+            input.addEventListener("change", updateCoursePickerState);
+        });
+        filterCoursePicker();
+    }
+
+    function filterCoursePicker() {
+        const search = document.getElementById("ccCourseSearch");
+        const query = search ? search.value.trim().toLowerCase() : "";
+        const modeInput = els.modalBox.querySelector('input[name="ccCourseSearchMode"]:checked');
+        const mode = modeInput ? modeInput.value : "course";
+        const picker = document.getElementById("ccCoursePicker");
+        if (search) {
+            search.placeholder = mode === "folder" ? "Search folder name" : "Search course name";
+        }
+        let visible = 0;
+        const rows = Array.from(els.modalBox.querySelectorAll("[data-course-picker-row]"));
+        const rankedRows = rows.map((row, index) => {
+            const modeMatch = row.dataset.coursePickerMode === mode;
+            const name = String(row.dataset.coursePickerName || "");
+            const searchText = String(row.dataset.coursePickerSearch || "");
+            const queryMatch = !query || String(row.dataset.coursePickerSearch || "").includes(query);
+            const isVisible = modeMatch && queryMatch;
+            row.hidden = !isVisible;
+            if (isVisible) visible += 1;
+            return {
+                row,
+                index,
+                rank: isVisible ? coursePickerRank(name, searchText, query) : Number.POSITIVE_INFINITY
+            };
+        });
+        if (picker) {
+            rankedRows
+                .sort((a, b) => (a.rank - b.rank) || (a.index - b.index))
+                .forEach((item) => picker.appendChild(item.row));
+            picker.scrollTop = 0;
+        }
+        updateFolderCheckboxes();
+        const counter = document.getElementById("ccCoursePickerCount");
+        if (counter) {
+            const selectedCount = selectedCarouselCourseIds().length;
+            counter.textContent = selectedCount + " selected - " + visible + " visible";
+        }
+    }
+
+    function coursePickerRank(name, searchText, query) {
+        if (!query) return 20;
+        if (name === query) return 0;
+        if (name.startsWith(query)) return 1;
+        if (name.split(/\s+/).some((word) => word.startsWith(query))) return 2;
+        if (name.includes(query)) return 3;
+        if (searchText.startsWith(query)) return 4;
+        return 5;
+    }
+
+    function updateCoursePickerState() {
+        updateFolderCheckboxes();
+        filterCoursePicker();
+        renderCarouselModalPreview();
+    }
+
+    function setFolderCourseSelection(folderId, isSelected) {
+        els.modalBox.querySelectorAll('input[name="ccCourseLink"]').forEach((input) => {
+            const row = input.closest("[data-course-picker-row]");
+            if (row && row.dataset.coursePickerFolder === String(folderId)) {
+                input.checked = isSelected;
+            }
+        });
+    }
+
+    function updateFolderCheckboxes() {
+        const selected = new Set(selectedCarouselCourseIds());
+        els.modalBox.querySelectorAll("[data-folder-link]").forEach((input) => {
+            const folderId = String(input.value || "");
+            const courseIds = state.courses
+                .filter((course) => String(course.category) === folderId)
+                .map((course) => String(course.id));
+            const selectedCount = courseIds.filter((id) => selected.has(id)).length;
+            input.checked = courseIds.length > 0 && selectedCount === courseIds.length;
+            input.indeterminate = selectedCount > 0 && selectedCount < courseIds.length;
+        });
     }
 
     function renderCarouselSnippetLibrary() {
@@ -2172,7 +2378,67 @@
         document.getElementById("ccImageUploadWrap").style.display = contentType === "image" ? "block" : "none";
         document.getElementById("ccHtmlUploadWrap").style.display = contentType === "iframe" ? "block" : "none";
         document.getElementById("ccSnippetWrap").style.display = contentType === "html" ? "block" : "none";
+        updateCarouselHeightControl();
+        filterCoursePicker();
         renderCarouselModalPreview();
+    }
+
+    function modalCarouselCards(carouselId) {
+        const slotId = String(carouselId || state.activeCarouselId);
+        const carousel = state.carousels.find((item) => String(item.id) === slotId);
+        const cards = carousel && Array.isArray(carousel.cards)
+            ? carousel.cards
+            : state.carouselCards.filter((card) => String(card.carousel_id) === slotId);
+        return normalizeCarouselCards(cards).filter((card) => String(card.carousel_id) === slotId);
+    }
+
+    function modalHeightContext() {
+        const form = document.getElementById("carouselCardForm");
+        const heightInput = document.getElementById("ccHeight");
+        const currentId = form ? String(form.dataset.cardId || "__new__") : "__new__";
+        const carouselId = document.getElementById("ccCarousel").value;
+        const currentOrder = Number(document.getElementById("ccOrder").value || 0);
+        const currentTitle = document.getElementById("ccTitle").value.trim() || "this card";
+        const currentActive = document.getElementById("ccActive").checked;
+        const currentHeight = heightInput.value.trim() || "420px";
+        const cards = modalCarouselCards(carouselId)
+            .filter((card) => String(card.id) !== currentId)
+            .map((card) => ({ ...card }));
+        if (currentActive) {
+            cards.push({
+                id: currentId,
+                title: currentTitle,
+                display_order: currentOrder,
+                is_active: true,
+                height_px: currentHeight
+            });
+        }
+        const activeCards = cards
+            .filter((card) => card.is_active !== false)
+            .sort((a, b) => (Number(a.display_order || 0) - Number(b.display_order || 0)) || String(a.title || "").localeCompare(String(b.title || "")));
+        const first = activeCards[0] || null;
+        return {
+            controlsHeight: !first || String(first.id) === currentId,
+            first,
+            currentId,
+            currentHeight,
+            effectiveHeight: first && first.height_px ? String(first.height_px) : currentHeight
+        };
+    }
+
+    function updateCarouselHeightControl() {
+        const heightInput = document.getElementById("ccHeight");
+        const hint = document.getElementById("ccHeightRule");
+        if (!heightInput || !hint) return;
+        const context = modalHeightContext();
+        heightInput.disabled = !context.controlsHeight;
+        heightInput.classList.toggle("is-locked", !context.controlsHeight);
+        if (context.controlsHeight) {
+            hint.textContent = "This is the first active card, so this height sets every card height in this carousel.";
+            return;
+        }
+        const firstTitle = context.first && context.first.title ? context.first.title : "the first active card";
+        hint.textContent = "Locked: " + firstTitle + " controls carousel height (" + context.effectiveHeight + "). Move this card earlier to make its height apply.";
     }
 
     function renderCarouselModalPreview() {
@@ -2183,7 +2449,7 @@
         if (contentType === "image" && document.getElementById("ccImageUrl").value.trim()) {
             media = '<img src="' + escAttr(resolveAssetUrl(document.getElementById("ccImageUrl").value.trim())) + '" alt="' + escAttr(title + " thumbnail") + '">';
         } else if (contentType === "iframe" && document.getElementById("ccIframeUrl").value.trim()) {
-            media = '<iframe title="' + escAttr(title) + '" src="' + escAttr(resolveAssetUrl(document.getElementById("ccIframeUrl").value.trim())) + '" loading="lazy" style="width:100%;height:190px;border:0"></iframe>';
+            media = '<iframe title="' + escAttr(title) + '" src="' + escAttr(resolveAssetUrl(document.getElementById("ccIframeUrl").value.trim())) + '" loading="lazy" style="width:100%;height:100%;border:0"></iframe>';
         } else if (contentType === "html") {
             media = renderSafeHtmlPreview(document.getElementById("ccContentHtml").value, title) || '<div class="hint">HTML thumbnail preview</div>';
         } else {
@@ -2194,7 +2460,12 @@
         const previewBody = document.getElementById("ccTextPosition").value === "hidden"
             ? ""
             : '<div class="preview-body" style="background:' + escAttr(document.getElementById("ccBgColor").value || "#111827") + ';text-align:' + escAttr(document.getElementById("ccTextAlign").value || "left") + '"><strong style="' + titleStyle + '">' + esc(title) + '</strong><div class="preview-meta" style="' + subStyle + '"><span>' + esc(description) + '</span></div></div>';
-        document.getElementById("ccPreview").innerHTML = '<div class="preview-media">' + media + '</div>' + previewBody;
+        const preview = document.getElementById("ccPreview");
+        const heightContext = modalHeightContext();
+        preview.className = "preview-card" + (document.getElementById("ccFrameEnabled").checked ? "" : " is-flush");
+        preview.style.setProperty("--preview-card-width", document.getElementById("ccWidth").value.trim() || "400px");
+        preview.style.setProperty("--preview-card-height", heightContext.effectiveHeight || "420px");
+        preview.innerHTML = '<div class="preview-media">' + media + '</div>' + previewBody;
     }
 
     function targetLabelFromModal() {
@@ -2297,6 +2568,7 @@
             content_html: normalizeStoredHtml(document.getElementById("ccContentHtml").value),
             width: document.getElementById("ccWidth").value.trim() || "400px",
             height_px: document.getElementById("ccHeight").value.trim() || "420px",
+            frame_style: document.getElementById("ccFrameEnabled").checked ? "framed" : "flush",
             full_bleed: true,
             bg_color: document.getElementById("ccBgColor").value || "",
             heading_font: document.getElementById("ccHeadingFont").value.trim() || "Inter",
@@ -2444,6 +2716,10 @@
     async function saveLegacyCarouselConfig(payload) {
         const savedCarousels = [];
         for (const carousel of payload.carousels) {
+            if (!/^\d+$/.test(String(carousel.id))) {
+                savedCarousels.push(carousel);
+                continue;
+            }
             await apiJson("/api/admin/carousels", {
                 method: "PUT",
                 headers: authJsonHeaders(),
@@ -2505,6 +2781,7 @@
             content_html: card.content_html,
             width: card.width,
             height_px: card.height_px,
+            frame_style: card.frame_style,
             full_bleed: card.full_bleed,
             bg_color: card.bg_color,
             chip_text: card.chip_text,
