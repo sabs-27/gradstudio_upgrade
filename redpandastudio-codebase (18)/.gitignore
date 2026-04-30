@@ -1,8 +1,0 @@
-node_modules/
-.wrangler/
-*.log
-deploy_output*.txt
-styles_from_r2.css
-index_from_r2.html
-.env
-*.tgz

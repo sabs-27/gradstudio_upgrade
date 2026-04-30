@@ -1,9 +1,0 @@
-{
-  "projectId": "c0aa7269-709f-42ff-892d-fb4f04f02c30",
-  "createdAt": 1772351778173,
-  "version": "1.0",
-  "startupCommands": [
-    "bun install && npx live-server --port=5500 --open=false --no-browser"
-  ],
-  "templateId": "any"
-}
